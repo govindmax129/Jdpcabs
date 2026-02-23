@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>JDP CABS | Cloud Live</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { brand: { 50: '#fffbeb', 100: '#fef3c7', 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706' }, surface: { light: '#ffffff', dark: '#0f172a' }, bg: { light: '#f8fafc', dark: '#020617' } } } } }
+    </script>
+
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .screen { display: none; opacity: 0; transition: opacity 0.3s ease; }
+        .screen.active { display: block; opacity: 1; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .glass-nav { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(226, 232, 240, 0.6); }
+        .dark .glass-nav { background: rgba(15, 23, 42, 0.85); border-bottom: 1px solid rgba(30, 41, 59, 0.6); }
+        .glass-bottom { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(16px); border-top: 1px solid rgba(226, 232, 240, 0.6); }
+        .dark .glass-bottom { background: rgba(15, 23, 42, 0.9); border-top: 1px solid rgba(30, 41, 59, 0.6); }
+        input[type="radio"]:checked + div { border-color: #f59e0b; background-color: rgba(245, 158, 11, 0.05); transform: scale(1.02); }
+        input[type="radio"]:checked + div .car-img { border-color: #f59e0b; }
+        .pulse-ring { position: absolute; width: 100%; height: 100%; border-radius: 50%; z-index: -1; animation: pulsate 2s ease-out infinite; border: 2px solid #10b981; }
+        @keyframes pulsate { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(1.6); opacity: 0; } }
+        #globalLoader { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; backdrop-filter: blur(4px); flex-direction: column; align-items: center; justify-content: center; }
+        .spinner { border: 4px solid rgba(255, 255, 255, 0.2); border-top: 4px solid #f59e0b; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .car-img { width: 70px; height: 50px; object-fit: cover; border-radius: 8px; border: 2px solid transparent; transition: all 0.3s; }
+    </style>
+</head>
+<body class="bg-bg-light dark:bg-bg-dark text-slate-800 dark:text-slate-100 min-h-screen relative pb-24 transition-colors duration-300">
+
+    <div id="globalLoader">
+        <div class="spinner"></div>
+        <p class="text-white font-bold mt-4 tracking-wide" id="loaderText">Syncing to Cloud...</p>
+    </div>
+
+    <nav class="fixed top-0 w-full z-50 glass-nav transition-colors duration-300">
+        <div class="max-w-md mx-auto px-5 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-slate-900 dark:bg-brand-500 rounded-lg flex items-center justify-center shadow-md">
+                    <span class="text-white font-bold text-sm tracking-tighter">JDP</span>
+                </div>
+                <h1 class="font-extrabold text-xl tracking-tight text-slate-900 dark:text-white">CABS</h1>
+                <span class="bg-green-100 text-green-600 text-[10px] font-bold px-2 py-0.5 rounded ml-2 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> LIVE</span>
+            </div>
+            <button onclick="window.toggleTheme()" class="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors">
+                <i data-lucide="moon" id="themeIcon" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </nav>
+
+    <main class="max-w-md mx-auto pt-20 px-5 pb-10">
+
+        <div class="screen active mt-4" id="authScreen">
+            <div class="text-center mb-8">
+                <div class="inline-block w-full h-32 rounded-2xl overflow-hidden mb-6 shadow-md relative">
+                    <img src="https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=600&q=80" alt="Premium Cab" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-4">
+                        <h2 class="text-2xl font-extrabold text-white text-left">Your City,<br>Your Ride.</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl flex mb-6 shadow-inner">
+                <button id="btnRoleRider" class="flex-1 py-3 rounded-xl text-sm font-bold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition-all" onclick="window.switchRole('rider')">Rider</button>
+                <button id="btnRoleDriver" class="flex-1 py-3 rounded-xl text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all" onclick="window.switchRole('driver')">Partner</button>
+            </div>
+
+            <div class="flex gap-4 mb-6 border-b border-slate-200 dark:border-slate-800 pb-2">
+                <button id="tabLogin" class="tab-auth text-brand-500 font-bold border-b-2 border-brand-500 pb-2 px-2 transition-all" onclick="window.switchAuthTab('login')">Sign In</button>
+                <button id="tabRegister" class="tab-auth text-slate-400 font-medium pb-2 px-2 transition-all" onclick="window.switchAuthTab('register')">Create Account</button>
+            </div>
+
+            <div id="loginForm" class="bg-surface-light dark:bg-surface-dark rounded-3xl p-6 shadow-md border border-slate-100 dark:border-slate-800 transition-colors">
+                <div class="space-y-4">
+                    <input type="tel" id="loginPhone" placeholder="Mobile Number" class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-4 font-medium focus:border-brand-500 outline-none">
+                    <input type="password" id="loginPass" placeholder="Password" class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-4 font-medium focus:border-brand-500 outline-none">
+                    <p class="text-red-500 text-sm hidden font-medium" id="loginErr">Invalid Details!</p>
+                    <button class="w-full bg-slate-900 dark:bg-brand-500 text-white py-4 rounded-xl font-bold text-lg mt-2 transition-transform active:scale-95" onclick="window.login()">Login Securely</button>
+                </div>
+            </div>
+
+            <div id="registerForm" class="bg-surface-light dark:bg-surface-dark rounded-3xl p-6 shadow-md border border-slate-100 dark:border-slate-800 hidden transition-colors">
+                <div class="space-y-4">
+                    <input type="text" id="regName" placeholder="Full Name" class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-4 font-medium focus:border-brand-500 outline-none">
+                    <input type="tel" id="regPhone" placeholder="Mobile Number" class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-4 font-medium focus:border-brand-500 outline-none">
+                    <div id="driverExtraFields" class="hidden space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                        <input type="text" id="regVehicle" placeholder="Vehicle No (e.g. CG-17 XX 0000)" class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 uppercase focus:border-brand-500 outline-none">
+                        <input type="text" id="regLicense" placeholder="Driving License No" class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 uppercase focus:border-brand-500 outline-none">
+                    </div>
+                    <input type="password" id="regPass" placeholder="Create Password" class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-4 font-medium focus:border-brand-500 outline-none">
+                    <p class="text-red-500 text-sm hidden font-medium" id="regErr">User already exists!</p>
+                    <button class="w-full bg-brand-500 text-white py-4 rounded-xl font-bold text-lg mt-2 transition-transform active:scale-95" onclick="window.register()">Create Cloud Account</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="screen" id="homeScreen">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <p class="text-sm text-slate-500 font-medium">Ready for a ride?</p>
+                    <h2 class="text-2xl font-bold text-slate-900 dark:text-white"><span id="welcomeName">Rider</span></h2>
+                </div>
+            </div>
+
+            <div class="bg-surface-light dark:bg-surface-dark border border-slate-100 dark:border-slate-800 rounded-[2rem] p-5 shadow-md relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-brand-500"></div>
+                <h3 class="font-bold text-lg mb-4 flex items-center gap-2"><i data-lucide="map-pin" class="w-5 h-5 text-brand-500"></i> Where to?</h3>
+                
+                <form onsubmit="window.bookRide(event)" class="space-y-4">
+                    <input type="text" id="pickup" placeholder="Pickup Location" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3.5 text-sm outline-none">
+                    <input type="text" id="drop" placeholder="Drop Location" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3.5 text-sm outline-none">
+
+                    <div class="pt-2">
+                        <label class="text-xs font-bold text-slate-500 uppercase mb-2 block">Estimated Distance (KM)</label>
+                        <input type="number" id="distance" placeholder="e.g. 5" min="1" required oninput="window.calculateFares()" class="w-full bg-transparent border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-lg font-bold outline-none focus:border-brand-500 transition-colors">
+                    </div>
+                    
+                    <div class="pt-4 grid grid-cols-1 gap-3">
+                        <label class="relative block cursor-pointer group">
+                            <input type="radio" name="cabType" value="Auto" class="peer hidden" checked>
+                            <div class="flex items-center justify-between p-3 border-2 border-slate-100 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 transition-all duration-300">
+                                <div class="flex items-center gap-4">
+                                    <img src="https://images.unsplash.com/photo-1590226456722-6752718915b8?auto=format&fit=crop&w=150&q=80" alt="Auto" class="car-img shadow-sm">
+                                    <div>
+                                        <h4 class="font-extrabold text-slate-900 dark:text-white">JDP Auto</h4>
+                                    </div>
+                                </div>
+                                <p class="font-bold text-lg">₹<span id="price-auto">30</span></p>
+                            </div>
+                        </label>
+                        <label class="relative block cursor-pointer group">
+                            <input type="radio" name="cabType" value="Mini Cab" class="peer hidden">
+                            <div class="flex items-center justify-between p-3 border-2 border-slate-100 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 transition-all duration-300">
+                                <div class="flex items-center gap-4">
+                                    <img src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=150&q=80" alt="Mini Cab" class="car-img shadow-sm">
+                                    <div>
+                                        <h4 class="font-extrabold text-slate-900 dark:text-white">Mini Cab</h4>
+                                    </div>
+                                </div>
+                                <p class="font-bold text-lg">₹<span id="price-mini">50</span></p>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-slate-900 dark:bg-brand-500 text-white py-4 rounded-xl font-bold text-lg mt-4 shadow-lg transition-transform active:scale-95">Book Now (Cloud)</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="screen" id="activityScreen">
+            <h2 class="text-2xl font-bold mb-6">Cloud Rides</h2>
+            <div id="riderHistory" class="space-y-4"></div>
+        </div>
+
+        <div class="screen" id="driverScreen">
+            <div class="bg-surface-light dark:bg-surface-dark border border-slate-100 dark:border-slate-800 rounded-[2rem] p-6 shadow-md mb-6">
+                <div class="flex items-center gap-4 mb-5">
+                    <div class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-3xl">👨🏽‍✈️</div>
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900 dark:text-white" id="drvName">Driver Name</h2>
+                        <div class="text-xs font-bold text-slate-500 mt-1 bg-slate-100 dark:bg-slate-800 inline-block px-2 py-1 rounded">ID: <span id="drvIdDisplay">JDP-XXXX</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="driverRidesList" class="mb-6 space-y-3"></div>
+
+            <div class="bg-surface-light dark:bg-surface-dark border border-slate-100 dark:border-slate-800 rounded-3xl p-8 text-center shadow-md relative">
+                <h3 class="text-sm font-bold text-slate-500 uppercase mb-8">Duty Status</h3>
+                
+                <div id="radarSection" class="relative w-48 h-48 mx-auto flex items-center justify-center">
+                    <div id="radarRing" class="hidden pulse-ring"></div>
+                    <button id="btnDuty" class="w-40 h-40 rounded-full bg-slate-100 dark:bg-slate-800 border-4 border-slate-200 text-slate-400 flex flex-col items-center justify-center transition-all z-10" onclick="window.toggleDuty()">
+                        <i id="dutyIcon" data-lucide="power" class="w-10 h-10 mb-2"></i>
+                        <span class="font-bold text-lg" id="dutyText">OFFLINE</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="bottomNav" class="fixed bottom-0 w-full glass-bottom pb-safe transition-transform duration-300 transform translate-y-full z-40">
+        <div class="max-w-md mx-auto flex justify-around p-3">
+            <button onclick="window.navSwitch('home')" id="navHome" class="flex flex-col items-center gap-1 p-2 text-brand-500 w-16 transition-colors">
+                <i data-lucide="home" class="w-6 h-6"></i>
+                <span class="text-[10px] font-bold">Home</span>
+            </button>
+            <button onclick="window.navSwitch('activity')" id="navActivity" class="flex flex-col items-center gap-1 p-2 text-slate-400 w-16 transition-colors">
+                <i data-lucide="list" class="w-6 h-6"></i>
+                <span class="text-[10px] font-bold">Activity</span>
+            </button>
+            <button onclick="window.logout()" class="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-red-500 w-16 transition-colors">
+                <i data-lucide="log-out" class="w-6 h-6"></i>
+                <span class="text-[10px] font-bold">Logout</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4" id="popup">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center">
+            <h2 class="text-2xl font-bold mb-2 text-green-500">Ride Syncing to Cloud!</h2>
+            <p class="font-bold text-lg text-brand-500 mb-4" id="bookingIdShow"></p>
+            <button class="w-full bg-slate-900 dark:bg-brand-500 text-white py-4 rounded-xl font-bold" onclick="window.closePopup()">View Live Rides</button>
+        </div>
+    </div>
+
+    <script type="module">
+        // 1. Importing Firebase Core and Firestore Database
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // ========================================================
+        // 🔥 YOUR REAL FIREBASE API KEYS ADDED HERE
+        // ========================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBRPV3mosWr3YFnW6xCfJaqC1bV4MhJm_Y",
+            authDomain: "jdpcabs.firebaseapp.com",
+            projectId: "jdpcabs",
+            storageBucket: "jdpcabs.firebasestorage.app",
+            messagingSenderId: "148264332732",
+            appId: "1:148264332732:web:eed512ac4e685cef97cfb9",
+            measurementId: "G-68X79DK95F"
+        };
+
+        // Initialize Cloud Connection
+        let app, db;
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            console.log("🔥 Firebase Cloud Connected Successfully!");
+        } catch(e) {
+            console.error("Firebase Config Missing. Please add keys.", e);
+        }
+
+        let currentUserData = null;
+        let currentRole = 'rider';
+        let unsubscribeRides = null; // Real-time listener
+
+        // Standard Functions (UI & Sound)
+        const showLoader = (text) => { document.getElementById('loaderText').innerText = text; document.getElementById('globalLoader').style.display = 'flex'; };
+        const hideLoader = () => { document.getElementById('globalLoader').style.display = 'none'; };
+
+        window.playAlarmChime = () => {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                if(ctx.state === 'suspended') return; 
+                const playTone = (freq, start, dur) => {
+                    const osc = ctx.createOscillator(); const gain = ctx.createGain();
+                    osc.type = 'triangle'; osc.frequency.setValueAtTime(freq, start);
+                    gain.gain.setValueAtTime(0, start); gain.gain.linearRampToValueAtTime(0.3, start + 0.05); gain.gain.exponentialRampToValueAtTime(0.01, start + dur);
+                    osc.connect(gain); gain.connect(ctx.destination); osc.start(start); osc.stop(start + dur);
+                };
+                const now = ctx.currentTime;
+                playTone(523.25, now, 0.4); playTone(659.25, now + 0.15, 0.4); playTone(783.99, now + 0.3, 0.6);  
+            } catch(e) {}
+        };
+
+        window.toggleTheme = () => {
+            const htmlEl = document.documentElement;
+            if (htmlEl.classList.contains('dark')) { htmlEl.classList.remove('dark'); localStorage.setItem('theme', 'light'); } 
+            else { htmlEl.classList.add('dark'); localStorage.setItem('theme', 'dark'); }
+        };
+
+        const fares = { 'Auto': { base: 30, perKm: 10 }, 'Mini Cab': { base: 50, perKm: 12 }, 'Sedan': { base: 80, perKm: 15 } };
+        window.calculateFares = () => {
+            let km = parseFloat(document.getElementById('distance').value); if(isNaN(km) || km < 1) km = 1;
+            for(const cab in fares) {
+                let p = fares[cab].base; if(km > 3) p += (km - 3) * fares[cab].perKm;
+                const el = document.getElementById('price-' + cab.split(' ')[0].toLowerCase()); if(el) el.textContent = Math.round(p);
+            }
+        };
+
+        const routeUser = () => {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            if (currentUserData.role === 'rider') {
+                document.getElementById('homeScreen').classList.add('active');
+                document.getElementById('welcomeName').textContent = currentUserData.name.split(' ')[0];
+                document.getElementById('bottomNav').classList.remove('translate-y-full');
+                fetchRidesCloud('rider');
+            } else {
+                document.getElementById('driverScreen').classList.add('active');
+                document.getElementById('drvName').textContent = currentUserData.name;
+                document.getElementById('drvIdDisplay').textContent = currentUserData.id;
+                document.getElementById('bottomNav').classList.remove('translate-y-full');
+                window.updateDutyUI(currentUserData.isOnline);
+                if(currentUserData.isOnline) fetchRidesCloud('driver');
+            }
+        };
+
+        // ==========================================
+        // 🔥 1. CLOUD REGISTER (Save User to Database)
+        // ==========================================
+        window.register = async () => {
+            document.getElementById('regErr').classList.add('hidden');
+            const name = document.getElementById('regName').value.trim();
+            const phone = document.getElementById('regPhone').value.trim();
+            const pass = document.getElementById('regPass').value.trim();
+            
+            if (!name || !phone || !pass) return alert("Please fill all mandatory fields!");
+            if(!db) return alert("Firebase is not connected yet! Please add API keys.");
+            
+            showLoader("Creating Cloud Account...");
+            try {
+                // Check if user exists in Cloud
+                const userRef = doc(db, "jdp_users", phone);
+                const docSnap = await getDoc(userRef);
+                
+                if (docSnap.exists()) {
+                    hideLoader(); document.getElementById('regErr').classList.remove('hidden'); return;
+                }
+
+                let userObj = { name, phone, pass, role: currentRole };
+                if (currentRole === 'driver') {
+                    const vehicle = document.getElementById('regVehicle').value.trim();
+                    const license = document.getElementById('regLicense').value.trim();
+                    if(!vehicle || !license) { hideLoader(); return alert("Enter vehicle details!"); }
+                    userObj = { ...userObj, vehicle, license, id: 'JDP-' + Math.floor(1000+Math.random()*9000), isOnline: false };
+                } else {
+                    userObj.id = 'JDP-' + Date.now().toString().slice(-4);
+                }
+
+                // Save to Firebase Cloud
+                await setDoc(userRef, userObj);
+                localStorage.setItem('jdp_active_phone', phone);
+                currentUserData = userObj;
+                
+                hideLoader(); routeUser();
+            } catch(e) { hideLoader(); alert("Cloud Error: " + e.message); }
+        };
+
+        // ==========================================
+        // 🔥 2. CLOUD LOGIN (Verify from Database)
+        // ==========================================
+        window.login = async () => {
+            document.getElementById('loginErr').classList.add('hidden');
+            const phone = document.getElementById('loginPhone').value.trim();
+            const pass = document.getElementById('loginPass').value.trim();
+            
+            if(!phone || !pass) return alert("Enter Phone and Password!");
+            if(!db) return alert("Firebase is not connected yet!");
+
+            showLoader("Verifying in Cloud...");
+            try {
+                const userRef = doc(db, "jdp_users", phone);
+                const docSnap = await getDoc(userRef);
+                
+                if (docSnap.exists() && docSnap.data().pass === pass && docSnap.data().role === currentRole) {
+                    localStorage.setItem('jdp_active_phone', phone);
+                    currentUserData = docSnap.data();
+                    hideLoader(); routeUser();
+                } else {
+                    hideLoader(); document.getElementById('loginErr').classList.remove('hidden');
+                }
+            } catch(e) { hideLoader(); alert("Cloud Error: " + e.message); }
+        };
+
+        // ==========================================
+        // 🔥 3. CLOUD RIDE BOOKING (Send to Live DB)
+        // ==========================================
+        window.bookRide = async (e) => {
+            e.preventDefault();
+            if(!db) return alert("Firebase not connected!");
+            showLoader("Syncing to Firebase...");
+
+            const cabValue = document.querySelector('input[name="cabType"]:checked').value;
+            let finalPrice = document.getElementById('price-' + cabValue.split(' ')[0].toLowerCase()).textContent;
+            
+            const rideId = 'BK' + Math.random().toString(36).slice(2,7).toUpperCase();
+            const rideData = {
+                id: rideId,
+                riderPhone: currentUserData.phone,
+                riderName: currentUserData.name,
+                pickup: document.getElementById('pickup').value,
+                drop: document.getElementById('drop').value,
+                cab: cabValue,
+                price: finalPrice,
+                status: 'pending',
+                timestamp: serverTimestamp() // Cloud Time
+            };
+
+            try {
+                // Add to 'jdp_rides' collection in Firebase
+                await addDoc(collection(db, "jdp_rides"), rideData);
+                
+                hideLoader();
+                window.playAlarmChime();
+                document.getElementById('bookingIdShow').textContent = rideId;
+                document.getElementById('popup').classList.remove('hidden');
+                document.getElementById('popup').classList.add('flex');
+                e.target.reset();
+                window.calculateFares();
+            } catch(err) { hideLoader(); alert("Error booking ride in cloud!"); }
+        };
+
+        // ==========================================
+        // 🔥 4. REAL-TIME CLOUD LISTENER (Magic happens here)
+        // ==========================================
+        const fetchRidesCloud = (viewRole) => {
+            if(!db) return;
+            if(unsubscribeRides) unsubscribeRides(); // Stop previous listener
+
+            const q = query(collection(db, "jdp_rides"));
+            
+            // onSnapshot = Real-time listener. Updates instantly without refreshing!
+            unsubscribeRides = onSnapshot(q, (snapshot) => {
+                let rides = [];
+                snapshot.forEach(doc => rides.push({ docId: doc.id, ...doc.data() }));
+                
+                // Sort by newest first
+                rides.sort((a, b) => {
+                    let timeA = a.timestamp ? a.timestamp.seconds : 0;
+                    let timeB = b.timestamp ? b.timestamp.seconds : 0;
+                    return timeB - timeA; 
+                });
+
+                if(viewRole === 'rider') {
+                    const myRides = rides.filter(r => r.riderPhone === currentUserData.phone);
+                    renderRiderHistory(myRides);
+                } else if(viewRole === 'driver' && currentUserData.isOnline) {
+                    const pendingRides = rides.filter(r => r.status === 'pending');
+                    renderDriverAvailableRides(pendingRides);
+                }
+            });
+        };
+
+        const renderRiderHistory = (rides) => {
+            const el = document.getElementById('riderHistory');
+            if(rides.length === 0) { el.innerHTML = '<p class="text-center text-slate-500 py-10">No cloud rides found.</p>'; return; }
+            el.innerHTML = rides.map(r => `
+                <div class="bg-surface-light dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-2xl p-4 shadow-sm flex justify-between items-center relative overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-brand-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg">CLOUD SYNCED</div>
+                    <div>
+                        <div class="font-bold text-sm text-slate-900 dark:text-white mt-1">${r.pickup} <i data-lucide="arrow-right" class="w-3 h-3 inline text-brand-500"></i> ${r.drop}</div>
+                        <div class="text-slate-500 text-xs mt-1">ID: ${r.id} • ${r.cab}</div>
+                    </div>
+                    <div class="font-bold text-lg text-slate-900 dark:text-white">₹${r.price}</div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        };
+
+        const renderDriverAvailableRides = (rides) => {
+            const el = document.getElementById('driverRidesList');
+            if(rides.length === 0) { el.innerHTML = ''; return; }
+            
+            window.playAlarmChime();
+
+            el.innerHTML = rides.map(r => `
+                <div class="bg-brand-50 dark:bg-brand-900/20 border border-brand-200 dark:border-brand-500/30 rounded-2xl p-4 mb-3 border-l-4 border-l-brand-500 shadow-md">
+                    <p class="text-xs text-brand-500 font-bold mb-1 uppercase tracking-wider animate-pulse flex items-center gap-1"><i data-lucide="radio" class="w-3 h-3"></i> Live Cloud Request</p>
+                    <p class="font-extrabold text-slate-900 dark:text-white">${r.pickup} <i data-lucide="arrow-right" class="w-3 h-3 inline"></i> ${r.drop}</p>
+                    <p class="text-[11px] text-slate-500 mt-1">Customer: ${r.riderName || 'Rider'} • ${r.riderPhone}</p>
+                    <div class="flex justify-between items-center mt-3 pt-3 border-t border-brand-200/50">
+                        <p class="font-bold text-lg text-slate-900 dark:text-white">₹${r.price}</p>
+                        <button class="bg-brand-500 hover:bg-slate-900 text-white px-5 py-2 rounded-xl text-sm font-bold transition-colors" onclick="alert('Accepted via Cloud!')">Accept Duty</button>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        };
+
+        window.toggleDuty = async () => {
+            if(!db) return alert("Firebase not connected!");
+            
+            currentUserData.isOnline = !currentUserData.isOnline;
+            
+            // Update Cloud Status
+            const userRef = doc(db, "jdp_users", currentUserData.phone);
+            await setDoc(userRef, { isOnline: currentUserData.isOnline }, { merge: true });
+            
+            window.updateDutyUI(currentUserData.isOnline);
+            if(currentUserData.isOnline) {
+                window.playAlarmChime();
+                fetchRidesCloud('driver');
+            }
+            else {
+                if(unsubscribeRides) unsubscribeRides();
+                document.getElementById('driverRidesList').innerHTML = '';
+            }
+        };
+
+        window.updateDutyUI = (isOnline) => {
+            const btn = document.getElementById('btnDuty'); const text = document.getElementById('dutyText'); const ring = document.getElementById('radarRing');
+            if (isOnline) {
+                btn.className = "w-40 h-40 rounded-full bg-green-500 text-white flex flex-col items-center justify-center transition-all relative z-10 scale-105 shadow-[0_0_30px_rgba(16,185,129,0.4)]";
+                text.textContent = "ONLINE"; ring.classList.remove('hidden');
+            } else {
+                btn.className = "w-40 h-40 rounded-full bg-slate-100 dark:bg-slate-800 border-4 border-slate-200 dark:border-slate-700 text-slate-400 flex flex-col items-center justify-center transition-all z-10";
+                text.textContent = "OFFLINE"; ring.classList.add('hidden');
+            }
+        };
+
+        window.switchRole = (role) => {
+            currentRole = role; const isRider = role === 'rider';
+            document.getElementById('btnRoleRider').className = isRider ? "flex-1 py-3 rounded-xl text-sm font-bold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" : "flex-1 py-3 rounded-xl text-sm font-bold text-slate-500 hover:text-slate-900";
+            document.getElementById('btnRoleDriver').className = !isRider ? "flex-1 py-3 rounded-xl text-sm font-bold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" : "flex-1 py-3 rounded-xl text-sm font-bold text-slate-500 hover:text-slate-900";
+            document.getElementById('driverExtraFields').style.display = isRider ? 'none' : 'block';
+            document.getElementById('loginErr').classList.add('hidden'); document.getElementById('regErr').classList.add('hidden');
+        };
+
+        window.switchAuthTab = (t) => {
+            document.getElementById('tabLogin').className = t === 'login' ? "tab-auth text-brand-500 font-bold border-b-2 border-brand-500 pb-2 px-2" : "tab-auth text-slate-400 font-medium pb-2 px-2";
+            document.getElementById('tabRegister').className = t === 'register' ? "tab-auth text-brand-500 font-bold border-b-2 border-brand-500 pb-2 px-2" : "tab-auth text-slate-400 font-medium pb-2 px-2";
+            document.getElementById('loginForm').style.display = t==='login' ? 'block' : 'none'; document.getElementById('registerForm').style.display = t==='register' ? 'block' : 'none';
+        };
+
+        window.navSwitch = (tab) => {
+            document.getElementById('homeScreen').classList.remove('active'); document.getElementById('activityScreen').classList.remove('active');
+            document.getElementById('navHome').classList.replace('text-brand-500', 'text-slate-400'); document.getElementById('navActivity').classList.replace('text-brand-500', 'text-slate-400');
+            if(tab === 'home') { document.getElementById('homeScreen').classList.add('active'); document.getElementById('navHome').classList.replace('text-slate-400', 'text-brand-500'); }
+            if(tab === 'activity') { document.getElementById('activityScreen').classList.add('active'); document.getElementById('navActivity').classList.replace('text-slate-400', 'text-brand-500'); fetchRidesCloud(currentRole); }
+        };
+
+        window.closePopup = () => { document.getElementById('popup').classList.add('hidden'); window.navSwitch('activity'); };
+        
+        window.logout = () => {
+            localStorage.removeItem('jdp_active_phone'); currentUserData = null; if(unsubscribeRides) unsubscribeRides();
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('authScreen').classList.add('active'); document.getElementById('bottomNav').classList.add('translate-y-full');
+        };
+
+        window.onload = async () => {
+            lucide.createIcons(); window.switchRole('rider'); window.calculateFares();
+            
+            // Check if user was logged in previously
+            const savedPhone = localStorage.getItem('jdp_active_phone');
+            if (savedPhone && db) {
+                try {
+                    const docSnap = await getDoc(doc(db, "jdp_users", savedPhone));
+                    if(docSnap.exists()) {
+                        currentUserData = docSnap.data(); currentRole = currentUserData.role; routeUser();
+                    }
+                } catch(e) { console.log("Auto-login failed. Keys might be missing."); }
+            }
+        };
+    </script>
+</body>
+</html>
