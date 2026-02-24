@@ -3,9 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>JDP CABS — Live Uber Edition</title>
+<title>JDP CABS — Live Booking Engine</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 <style>
@@ -24,79 +23,77 @@ body.light-mode {
 body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;transition:background 0.3s, color 0.3s;}
 #map{width:100vw;height:100vh;position:absolute;inset:0;z-index:1;}
 
-/* Hide Map Watermarks for Premium App Look */
-.leaflet-control-attribution { display: none !important; }
-.leaflet-control-zoom { display: none !important; }
+.leaflet-control-attribution, .leaflet-control-zoom { display: none !important; }
 
-body.light-mode .bsheet, body.light-mode .topbtn, body.light-mode .loc-box { background: rgba(255,255,255,0.97); color: #000; border-color: #cbd5e1; }
+body.light-mode .bsheet, body.light-mode .topbtn, body.light-mode .loc-box, body.light-mode .ride-opt { background: rgba(255,255,255,0.97); color: #000; border-color: #cbd5e1; }
 body.light-mode .auth-hero-ov { background: linear-gradient(to bottom,rgba(255,255,255,0.2),rgba(255,255,255,1)); }
-body.light-mode .auth-logo-name { color: #000; }
 body.light-mode .fi { background: #fff; color: #000; border-color: #cbd5e1; }
+body.light-mode .ride-opt.sel { background: rgba(251,191,36,0.1); border-color: var(--yellow); }
 
-/* ══ LOADER ══ */
+/* Loader & UI */
 #loader{position:fixed;inset:0;background:var(--bg);z-index:9000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
 .ld-icon{width:72px;height:72px;background:var(--yellow);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:900;color:#000;box-shadow:0 12px 40px rgba(251,191,36,0.4);animation:ldP 2s infinite;}
 @keyframes ldP{0%,100%{box-shadow:0 12px 40px rgba(251,191,36,0.4)}50%{box-shadow:0 12px 60px rgba(251,191,36,0.7)}}
-.ld-name{font-size:2rem;font-weight:900;}
 .ld-bar-wrap{width:220px;height:4px;background:rgba(255,255,255,0.07);border-radius:100px;overflow:hidden;}
 .ld-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--yellow),#f97316);border-radius:100px;transition:width 0.4s;}
-.ld-txt{font-size:0.75rem;color:var(--muted);}
 
-/* ══ UI ELEMENTS ══ */
+/* Auth System */
 #authScreen{position:fixed;inset:0;z-index:8000;display:none;flex-direction:column;background:var(--bg);overflow-y:auto;}
 #authScreen::-webkit-scrollbar{display:none;}
 .auth-hero{position:relative;width:100%;height:200px;overflow:hidden;flex-shrink:0;}
 .auth-hero img{width:100%;height:100%;object-fit:cover;opacity:0.45;}
 .auth-hero-ov{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(10,10,10,0.2),rgba(10,10,10,1));display:flex;flex-direction:column;justify-content:flex-end;padding:20px 22px 22px;}
-.auth-logo-name{font-size:1.5rem;font-weight:900;}
 .auth-body{padding:0 18px 40px;}
 
 .role-toggle{display:flex;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:14px;padding:4px;margin-bottom:16px;}
 .rtab{flex:1;padding:11px;border-radius:10px;border:none;background:transparent;color:var(--muted);font-weight:700;cursor:pointer;}
-.rtab.active.r{background:var(--yellow);color:#000;}
-.rtab.active.d{background:var(--green);color:#fff;}
-
+.rtab.active.r{background:var(--yellow);color:#000;} .rtab.active.d{background:var(--green);color:#fff;}
 .auth-tabs{display:flex;gap:4px;margin-bottom:18px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:12px;padding:4px;}
 .atab{flex:1;padding:10px;border-radius:9px;border:none;background:transparent;color:var(--muted);font-weight:700;cursor:pointer;}
 .atab.active{background:var(--card2);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,0.3);}
-
 .auth-form{display:none;} .auth-form.show{display:block;animation:fUp 0.3s ease;}
 @keyframes fUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-
 .fg{margin-bottom:13px;} .fl{font-size:0.68rem;font-weight:700;color:var(--muted);margin-bottom:6px;display:block;}
 .fi{width:100%;background:rgba(255,255,255,0.05);border:1.5px solid var(--border);border-radius:12px;padding:13px 15px;color:var(--text);outline:none;}
 .fi:focus{border-color:var(--yellow);} .fi.gf:focus{border-color:var(--green);}
 .frow{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
-
 .vgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:13px;}
 .vcard{background:rgba(255,255,255,0.04);border:1.5px solid var(--border);border-radius:12px;padding:12px;text-align:center;cursor:pointer;}
 .vcard.sel{border-color:var(--green);background:rgba(16,185,129,0.07);}
 .vcard-ico{font-size:1.7rem;} .vcard-name{font-size:0.76rem;font-weight:700;}
-
 .auth-submit{width:100%;border:none;border-radius:14px;padding:16px;font-size:0.97rem;font-weight:800;cursor:pointer;}
 .auth-submit.y{background:var(--yellow);color:#000;} .auth-submit.g{background:var(--green);color:#fff;}
-
 .fb-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(255,165,0,0.1);border:1px solid rgba(255,165,0,0.2);border-radius:100px;padding:4px 10px;font-size:0.65rem;font-weight:700;color:orange;margin-bottom:14px;}
 .fb-badge.ok{background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.2);color:var(--green);}
 
+/* Navigation & Bottom Sheet */
 .topbar{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:linear-gradient(to bottom,rgba(0,0,0,0.85) 0%,transparent 100%);}
 .topbtn{height:38px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0 12px;}
-
 .locate-btn{position:fixed;right:16px;z-index:500;width:46px;height:46px;background:white;border-radius:50%;border:none;cursor:pointer;font-size:1.1rem;box-shadow:0 4px 18px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;}
-
 .bsheet{position:fixed;bottom:0;left:0;right:0;z-index:400;background:rgba(10,10,10,0.97);backdrop-filter:blur(28px);border-radius:24px 24px 0 0;border-top:1px solid rgba(255,255,255,0.07);padding:0 18px 30px;max-height:80vh;overflow-y:auto;}
 .handle{width:36px;height:4px;background:rgba(255,255,255,0.12);border-radius:4px;margin:12px auto 18px;}
-.mbtn{width:100%;border:none;border-radius:15px;padding:16px;font-size:0.96rem;font-weight:800;cursor:pointer;}
-.mbtn.y{background:var(--yellow);color:#000;}
 
+/* Custom Booking Engine UI */
+.scr { display: none; }
+.scr.on { display: block; animation: fUp 0.3s ease; }
+.mbtn{width:100%;border:none;border-radius:15px;padding:16px;font-size:0.96rem;font-weight:800;cursor:pointer;margin-top:10px;}
+.mbtn.y{background:var(--yellow);color:#000;} 
+.mbtn.ro{background:rgba(239,68,68,0.08);color:var(--red);border:1px solid rgba(239,68,68,0.2);}
 .loc-boxes{display:flex;flex-direction:column;gap:9px;margin-bottom:15px;}
 .loc-box{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.07);border-radius:14px;padding:12px 14px;}
 
+/* Ride Selection Cards */
+.ride-opt { display: flex; align-items: center; justify-content: space-between; padding: 14px; background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.06); border-radius: 14px; margin-bottom: 10px; cursor: pointer; transition: 0.2s; }
+.ride-opt.sel { background: rgba(251,191,36,0.08); border-color: var(--yellow); }
+
+/* Radar Animation */
+.radar-spinner { width: 60px; height: 60px; border: 4px solid rgba(251,191,36,0.2); border-top: 4px solid var(--yellow); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* Toast & Markers */
 .toast{position:fixed;top:84px;left:50%;transform:translateX(-50%);background:rgba(20,20,20,0.97);border:1px solid rgba(255,255,255,0.09);border-radius:100px;padding:10px 20px;font-size:0.8rem;font-weight:600;z-index:9999;animation:tin 0.3s ease,tout 0.3s ease 2.6s forwards;white-space:nowrap;}
 @keyframes tin{from{opacity:0;top:64px}to{opacity:1;top:84px}}
 @keyframes tout{to{opacity:0}}
-
-/* Uber Style Live Marker */
 .live-pulse-marker { position: relative; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; background:transparent; }
 .live-pulse-dot { width: 14px; height: 14px; background-color: #3b82f6; border: 2px solid white; border-radius: 50%; z-index: 2; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
 .live-pulse-ring { position: absolute; width: 100%; height: 100%; background-color: #3b82f6; border-radius: 50%; animation: pulseRing 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; z-index: 1; }
@@ -108,7 +105,7 @@ body.light-mode .fi { background: #fff; color: #000; border-color: #cbd5e1; }
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, collection, addDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBRPV3mosWr3YFnW6xCfJaqC1bV4MhJm_Y",
@@ -123,8 +120,8 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-window.FB = { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, doc, setDoc, getDoc, serverTimestamp };
-
+// Register everything globally including booking features
+window.FB = { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, doc, setDoc, getDoc, collection, addDoc, updateDoc, serverTimestamp };
 document.getElementById('fbBadge').className = 'fb-badge ok';
 document.getElementById('fbBadge').textContent = '✅ Firebase Live';
 </script>
@@ -132,9 +129,8 @@ document.getElementById('fbBadge').textContent = '✅ Firebase Live';
 <body>
 
 <div id="loader">
-  <div class="ld-icon">JDP</div><div class="ld-name">CABS</div>
+  <div class="ld-icon">JDP</div><div class="ld-name" style="font-size:1.5rem">CABS</div>
   <div class="ld-bar-wrap"><div class="ld-bar" id="ldBar"></div></div>
-  <div class="ld-txt" id="ldTxt">Connecting Servers...</div>
 </div>
 
 <div id="map"></div>
@@ -143,33 +139,25 @@ document.getElementById('fbBadge').textContent = '✅ Firebase Live';
   <div class="auth-hero">
     <img src="https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=800&q=80">
     <div class="auth-hero-ov">
-      <div class="auth-logo-name" style="color:white;">JDP CABS</div>
+      <div style="font-size:1.5rem; font-weight:900; color:white;">JDP CABS</div>
       <div style="color:rgba(255,255,255,0.7); font-size: 0.85rem;">Jagdalpur's Premium Rides</div>
     </div>
   </div>
 
   <div class="auth-body">
-    <div class="fb-badge" id="fbBadge">⏳ Firebase linking...</div>
-
+    <div class="fb-badge" id="fbBadge">⏳ Linking...</div>
     <div class="role-toggle">
       <button class="rtab active r" id="rTab" onclick="setAuthRole('rider')">🧍 Rider</button>
       <button class="rtab d" id="dTab" onclick="setAuthRole('driver')">🚗 Driver</button>
     </div>
-
     <div class="auth-tabs">
       <button class="atab active" id="loginTab" onclick="setAuthTab('login')">Login</button>
       <button class="atab" id="regTab" onclick="setAuthTab('register')">Register</button>
     </div>
 
     <div class="auth-form show" id="loginForm">
-      <div class="fg">
-        <label class="fl">📱 Mobile Number</label>
-        <input type="tel" class="fi" id="loginId" placeholder="9876543210">
-      </div>
-      <div class="fg">
-        <label class="fl">🔒 Password</label>
-        <input type="password" class="fi" id="loginPass" placeholder="******">
-      </div>
+      <div class="fg"><label class="fl">Mobile Number</label><input type="tel" class="fi" id="loginId" placeholder="9876543210"></div>
+      <div class="fg"><label class="fl">Password</label><input type="password" class="fi" id="loginPass" placeholder="******"></div>
       <button class="auth-submit y" onclick="doLogin()">🚀 Login</button>
     </div>
 
@@ -178,7 +166,7 @@ document.getElementById('fbBadge').textContent = '✅ Firebase Live';
         <div class="fg"><label class="fl">Name</label><input type="text" class="fi" id="rFn" placeholder="Name"></div>
         <div class="fg"><label class="fl">Mobile</label><input type="tel" class="fi" id="rPhone" placeholder="Mobile"></div>
       </div>
-      <div class="fg"><label class="fl">Create Password</label><input type="password" class="fi" id="rPass" placeholder="Password"></div>
+      <div class="fg"><label class="fl">Password</label><input type="password" class="fi" id="rPass" placeholder="Password"></div>
       <button class="auth-submit y" onclick="doRiderRegister()">✅ Create Account</button>
     </div>
 
@@ -188,14 +176,7 @@ document.getElementById('fbBadge').textContent = '✅ Firebase Live';
         <div class="fg"><label class="fl">Mobile</label><input type="tel" class="fi gf" id="dPhone" placeholder="Mobile"></div>
       </div>
       <div class="fg"><label class="fl">Vehicle No</label><input type="text" class="fi gf" id="dVeh" placeholder="CG 17 XX 0000"></div>
-      <div class="fg">
-        <label class="fl">Vehicle Type</label>
-        <div class="vgrid">
-          <div class="vcard sel" onclick="selV(this,'Auto')"><div class="vcard-ico">🛺</div><div class="vcard-name">Auto</div></div>
-          <div class="vcard" onclick="selV(this,'Mini')"><div class="vcard-ico">🚗</div><div class="vcard-name">Mini Cab</div></div>
-        </div>
-      </div>
-      <div class="fg"><label class="fl">Create Password</label><input type="password" class="fi gf" id="dPass" placeholder="Password"></div>
+      <div class="fg"><label class="fl">Password</label><input type="password" class="fi gf" id="dPass" placeholder="Password"></div>
       <button class="auth-submit g" onclick="doDriverRegister()">✅ Register Driver</button>
     </div>
   </div>
@@ -208,220 +189,203 @@ document.getElementById('fbBadge').textContent = '✅ Firebase Live';
     <div class="topbtn" style="color:var(--red); border-color:var(--red)" onclick="doLogout()">Logout</div>
   </div>
 </div>
-
-<button class="locate-btn" id="locBtn" style="display:none;bottom:250px" onclick="locateMe()">📍</button>
+<button class="locate-btn" id="locBtn" style="display:none;bottom:350px" onclick="locateMe()">📍</button>
 
 <div class="bsheet" id="bsheet" style="display:none">
   <div class="handle"></div>
-  <div style="font-size:0.8rem; color:var(--muted); font-weight: 700; margin-bottom:10px;">WHERE TO, <span id="userNameDisplay">RIDER</span>?</div>
-  <div class="loc-boxes">
-    <div class="loc-box"><div style="width:10px;height:10px;background:var(--green);border-radius:50%;"></div><div style="flex:1"><div style="font-weight:700; font-size: 0.9rem;" id="puLbl">Live GPS Location</div><div style="font-size:0.7rem; color:var(--muted)">Jagdalpur</div></div></div>
-    <div class="loc-box"><div style="width:10px;height:10px;background:var(--red);border-radius:50%;"></div><div style="flex:1"><input type="text" placeholder="Enter Drop Location" style="background:transparent; border:none; color:var(--text); width:100%; font-family:inherit; font-weight:600; font-size: 0.9rem; outline:none;"></div></div>
+  
+  <div class="scr on" id="scrHome">
+    <div style="font-size:0.8rem; color:var(--muted); font-weight: 700; margin-bottom:10px;">WHERE TO, <span id="userNameDisplay">RIDER</span>?</div>
+    <div class="loc-boxes">
+      <div class="loc-box"><div style="width:10px;height:10px;background:var(--green);border-radius:50%;"></div><div style="flex:1"><div style="font-weight:700; font-size: 0.9rem;">Live GPS Location</div></div></div>
+      <div class="loc-box"><div style="width:10px;height:10px;background:var(--red);border-radius:50%;"></div><div style="flex:1"><input type="text" id="dropInput" placeholder="Enter Drop Location" style="background:transparent; border:none; color:var(--text); width:100%; font-family:inherit; font-weight:600; font-size: 0.9rem; outline:none;"></div></div>
+    </div>
+    <button class="mbtn y" onclick="calculateFare()">Find Driver 🚗</button>
   </div>
-  <button class="mbtn y" onclick="alert('Driver finding active! System stable.')">Find Driver 🚗</button>
+
+  <div class="scr" id="scrFare">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h3 style="font-weight:800;">Select a Ride</h3>
+        <span onclick="goScreen('scrHome')" style="color:var(--red); font-weight:bold; cursor:pointer;">Cancel</span>
+    </div>
+    
+    <div class="ride-opt sel" onclick="selRide(this, 'JDP Auto', fareAuto)">
+        <div style="font-size:2rem;">🛺</div>
+        <div style="flex:1; margin-left:15px;">
+            <div style="font-weight:800; font-size:1.1rem;">JDP Auto</div>
+            <div style="font-size:0.75rem; color:var(--muted)">3 mins away</div>
+        </div>
+        <div style="font-weight:900; font-size:1.3rem;">₹<span id="txtFareAuto">--</span></div>
+    </div>
+
+    <div class="ride-opt" onclick="selRide(this, 'Mini Cab', fareMini)">
+        <div style="font-size:2rem;">🚗</div>
+        <div style="flex:1; margin-left:15px;">
+            <div style="font-weight:800; font-size:1.1rem;">Mini Cab</div>
+            <div style="font-size:0.75rem; color:var(--muted)">5 mins away</div>
+        </div>
+        <div style="font-weight:900; font-size:1.3rem;">₹<span id="txtFareMini">--</span></div>
+    </div>
+    <button class="mbtn y" onclick="confirmBooking()">Book <span id="btnBookType">JDP Auto</span></button>
+  </div>
+
+  <div class="scr" id="scrFinding">
+    <div style="text-align:center; padding: 25px 0;">
+        <div class="radar-spinner"></div>
+        <h3 style="font-weight:800; margin-top:20px; font-size:1.2rem;">Finding nearby drivers...</h3>
+        <p style="color:var(--muted); font-size:0.85rem; margin-top:5px;">Connecting you to the closest captain.</p>
+    </div>
+  </div>
+
+  <div class="scr" id="scrAssigned">
+    <div style="background:rgba(16,185,129,0.15); color:var(--green); padding:10px; border-radius:12px; text-align:center; font-weight:800; margin-bottom:20px; border: 1px solid rgba(16,185,129,0.3);">✅ Driver Assigned!</div>
+    
+    <div style="display:flex; align-items:center; gap:15px; margin-bottom:20px;">
+        <div style="width:60px; height:60px; background:rgba(255,255,255,0.1); border-radius:50%; font-size:2.5rem; display:flex; justify-content:center; align-items:center;">👨🏽‍✈️</div>
+        <div style="flex:1;">
+            <div style="font-weight:900; font-size:1.2rem;">Ramesh Kumar</div>
+            <div style="font-size:0.85rem; color:var(--muted); margin-top:3px;">CG 17 AB 5678 • Auto</div>
+            <div style="font-size:0.8rem; color:var(--yellow); font-weight:700; margin-top:3px;">★ 4.8 Rating</div>
+        </div>
+        <div style="background:var(--card2); padding:10px; border-radius:12px; border:1px solid var(--border); text-align:center;">
+            <div style="font-size:0.7rem; color:var(--muted); font-weight:700;">PIN / OTP</div>
+            <div style="font-weight:900; font-size:1.4rem; color:var(--yellow);" id="rideOTP">0000</div>
+        </div>
+    </div>
+    <button class="mbtn ro" onclick="goScreen('scrHome')">Cancel Ride</button>
+  </div>
 </div>
 
 <script>
-let currentUser = null;
-let authRole = 'rider';
-let selectedVehicle = 'Auto';
-let isLoaded = false;
+let currentUser = null; let authRole = 'rider'; let isLoaded = false;
+let lmap = null; let tileLayer = null; let liveMarker = null; const JDP_CENTER = [19.0760, 82.0150];
 
-// Leaflet Map Variables
-let lmap = null;
-let tileLayer = null;
-let liveMarker = null;
-const JDP_CENTER = [19.0760, 82.0150]; // Jagdalpur City Center
+// Loading Anim
+let ldProg = 0; const ldInt = setInterval(() => { if(ldProg < 95) ldProg += 15; document.getElementById('ldBar').style.width = ldProg + '%'; }, 300);
+function finishLoad() { if(isLoaded) return; isLoaded = true; clearInterval(ldInt); document.getElementById('ldBar').style.width = '100%'; setTimeout(() => { document.getElementById('loader').style.display = 'none'; if(!currentUser) document.getElementById('authScreen').style.display = 'flex'; initMap(); }, 500); }
+setTimeout(finishLoad, 2500);
 
-// Simple progress bar
-let ldProg = 0;
-const ldInt = setInterval(() => { 
-    if(ldProg < 95) ldProg += 15; 
-    document.getElementById('ldBar').style.width = ldProg + '%'; 
-}, 300);
+function toast(msg) { const el = document.createElement('div'); el.className = 'toast'; el.textContent = msg; document.body.appendChild(el); setTimeout(() => el.remove(), 2500); }
 
-// Global Toast
-function toast(msg) {
-  const el = document.createElement('div');
-  el.className = 'toast'; el.textContent = msg;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 2500);
-}
-
-// Ensure loader dies
-function finishLoad() {
-  if (isLoaded) return;
-  isLoaded = true;
-  clearInterval(ldInt);
-  document.getElementById('ldBar').style.width = '100%';
-  setTimeout(() => {
-      document.getElementById('loader').style.display = 'none';
-      if (!currentUser) document.getElementById('authScreen').style.display = 'flex';
-      initMap(); // Start the Uber map system
-  }, 500);
-}
-
-// 🟢 NEW: Initialize Premium Vector Map (Leaflet + Carto)
-function initMap() {
-    if(lmap) return; // already initialized
-    lmap = L.map('map', { zoomControl: false }).setView(JDP_CENTER, 15);
-    setMapTheme();
-}
-
-// 🟢 NEW: Uber-style dynamic Theme Switching for Map
+// Map System
+function initMap() { if(lmap) return; lmap = L.map('map', { zoomControl: false }).setView(JDP_CENTER, 15); setMapTheme(); }
 function setMapTheme() {
     if(!lmap) return;
     const isLight = document.body.classList.contains('light-mode');
-    
-    // Premium Uber-like Map Styles
-    const tileUrl = isLight ? 
-        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png' : // Uber Light
-        'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'; // Uber Dark
-
+    const tileUrl = isLight ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
     if(tileLayer) lmap.removeLayer(tileLayer);
     tileLayer = L.tileLayer(tileUrl, { maxZoom: 19 }).addTo(lmap);
 }
+function toggleTheme() { document.body.classList.toggle('light-mode'); setMapTheme(); }
 
-function toggleTheme() { 
-    document.body.classList.toggle('light-mode'); 
-    setMapTheme(); // Update map to match
-}
+// Auth
+function setAuthRole(r) { authRole = r; document.getElementById('rTab').className = 'rtab' + (r === 'rider' ? ' active r' : ''); document.getElementById('dTab').className = 'rtab' + (r === 'driver' ? ' active d' : ''); }
+function setAuthTab(t) { document.getElementById('loginTab').className = 'atab' + (t === 'login' ? ' active' : ''); document.getElementById('regTab').className = 'atab' + (t === 'register' ? ' active' : ''); document.getElementById('loginForm').classList.remove('show'); document.getElementById('riderRegForm').classList.remove('show'); document.getElementById('driverRegForm').classList.remove('show'); if(t === 'login') document.getElementById('loginForm').classList.add('show'); if(t === 'register' && authRole === 'rider') document.getElementById('riderRegForm').classList.add('show'); if(t === 'register' && authRole === 'driver') document.getElementById('driverRegForm').classList.add('show'); }
 
-// Auth UI Switches
-function setAuthRole(r) {
-  authRole = r;
-  document.getElementById('rTab').className = 'rtab' + (r === 'rider' ? ' active r' : '');
-  document.getElementById('dTab').className = 'rtab' + (r === 'driver' ? ' active d' : '');
-  if(document.getElementById('regTab').classList.contains('active')) setAuthTab('register');
-}
-
-function setAuthTab(t) {
-  document.getElementById('loginTab').className = 'atab' + (t === 'login' ? ' active' : '');
-  document.getElementById('regTab').className = 'atab' + (t === 'register' ? ' active' : '');
-  document.getElementById('loginForm').classList.remove('show');
-  document.getElementById('riderRegForm').classList.remove('show');
-  document.getElementById('driverRegForm').classList.remove('show');
-  if(t === 'login') document.getElementById('loginForm').classList.add('show');
-  if(t === 'register' && authRole === 'rider') document.getElementById('riderRegForm').classList.add('show');
-  if(t === 'register' && authRole === 'driver') document.getElementById('driverRegForm').classList.add('show');
-}
-
-function selV(el, type) {
-  document.querySelectorAll('.vcard').forEach(c => c.classList.remove('sel'));
-  el.classList.add('sel');
-  selectedVehicle = type;
-}
-
-// Firebase Auth Actions
-async function doLogin() {
-  const id = document.getElementById('loginId').value.trim();
-  const pass = document.getElementById('loginPass').value;
-  if(!id || !pass) return toast("Enter Phone and Password");
-  
-  let email = id + '@jdpcabs.in';
-  try {
-    const cred = await window.FB.signInWithEmailAndPassword(window.FB.auth, email, pass);
-    const snap = await window.FB.getDoc(window.FB.doc(window.FB.db, 'users', cred.user.uid));
-    if(snap.exists()) {
-      currentUser = snap.data();
-      launchApp();
-    }
-  } catch(e) { toast("Login Failed!"); }
-}
-
-async function doRiderRegister() {
-  const fn = document.getElementById('rFn').value.trim();
-  const phone = document.getElementById('rPhone').value.trim();
-  const pass = document.getElementById('rPass').value;
-  if(!fn || !phone || !pass) return toast("Fill all details!");
-
-  let email = phone + '@jdpcabs.in';
-  try {
-    const cred = await window.FB.createUserWithEmailAndPassword(window.FB.auth, email, pass);
-    const uData = { name: fn, phone: phone, role: 'rider', createdAt: window.FB.serverTimestamp() };
-    await window.FB.setDoc(window.FB.doc(window.FB.db, 'users', cred.user.uid), uData);
-    currentUser = uData;
-    launchApp();
-  } catch(e) { toast("Error: " + e.message); }
-}
-
-async function doDriverRegister() {
-  const fn = document.getElementById('dFn').value.trim();
-  const phone = document.getElementById('dPhone').value.trim();
-  const veh = document.getElementById('dVeh').value.trim();
-  const pass = document.getElementById('dPass').value;
-  if(!fn || !phone || !veh || !pass) return toast("Fill all details!");
-
-  let email = phone + '@jdpcabs.in';
-  try {
-    const cred = await window.FB.createUserWithEmailAndPassword(window.FB.auth, email, pass);
-    const uData = { name: fn, phone: phone, role: 'driver', vehicle: veh, type: selectedVehicle, createdAt: window.FB.serverTimestamp() };
-    await window.FB.setDoc(window.FB.doc(window.FB.db, 'users', cred.user.uid), uData);
-    currentUser = uData;
-    launchApp();
-  } catch(e) { toast("Error: " + e.message); }
-}
-
-async function doLogout() {
-  if(window.FB) await window.FB.signOut(window.FB.auth);
-  currentUser = null;
-  document.getElementById('topbar').style.display = 'none';
-  document.getElementById('bsheet').style.display = 'none';
-  document.getElementById('locBtn').style.display = 'none';
-  document.getElementById('authScreen').style.display = 'flex';
-}
+async function doLogin() { const id = document.getElementById('loginId').value; const pass = document.getElementById('loginPass').value; if(!id || !pass) return toast("Enter details"); try { const cred = await window.FB.signInWithEmailAndPassword(window.FB.auth, id+'@jdpcabs.in', pass); const snap = await window.FB.getDoc(window.FB.doc(window.FB.db, 'users', cred.user.uid)); if(snap.exists()) { currentUser = { uid: cred.user.uid, ...snap.data() }; launchApp(); } } catch(e) { toast("Login Failed!"); } }
+async function doRiderRegister() { const fn = document.getElementById('rFn').value; const phone = document.getElementById('rPhone').value; const pass = document.getElementById('rPass').value; if(!fn || !phone || !pass) return toast("Fill all"); try { const cred = await window.FB.createUserWithEmailAndPassword(window.FB.auth, phone+'@jdpcabs.in', pass); const uData = { name: fn, phone: phone, role: 'rider' }; await window.FB.setDoc(window.FB.doc(window.FB.db, 'users', cred.user.uid), uData); currentUser = { uid: cred.user.uid, ...uData }; launchApp(); } catch(e) { toast("Error"); } }
 
 function launchApp() {
   document.getElementById('authScreen').style.display = 'none';
   document.getElementById('topbar').style.display = 'flex';
   document.getElementById('bsheet').style.display = 'block';
   document.getElementById('locBtn').style.display = 'flex';
-  
-  if(currentUser && currentUser.name) {
-    document.getElementById('userNameDisplay').textContent = currentUser.name.toUpperCase();
-  }
-  
-  if(lmap) {
-      setTimeout(() => { lmap.invalidateSize(); }, 300); // Fixes grey rendering
-  }
+  if(currentUser && currentUser.name) document.getElementById('userNameDisplay').textContent = currentUser.name.toUpperCase();
+  if(lmap) setTimeout(() => lmap.invalidateSize(), 300);
   locateMe(); 
 }
 
-// 🟢 NEW: Leaflet GPS Locator & Uber Marker
 function locateMe() {
-  if(!lmap) return;
-  toast('📍 Searching GPS...');
-  
+  if(!lmap) return; toast('📍 Locating...');
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const liveLat = position.coords.latitude;
-        const liveLng = position.coords.longitude;
-        
+      (pos) => {
         if(liveMarker) lmap.removeLayer(liveMarker);
-        
-        // Uber Style CSS Marker setup
-        const pulsingIcon = L.divIcon({
-            className: 'custom-pulse-wrap',
-            html: '<div class="live-pulse-marker"><div class="live-pulse-ring"></div><div class="live-pulse-dot"></div></div>',
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
-        });
-
-        liveMarker = L.marker([liveLat, liveLng], {icon: pulsingIcon}).addTo(lmap);
-        lmap.flyTo([liveLat, liveLng], 16, { animate: true, duration: 1.5 });
-        toast('✅ Live Location Locked');
-      },
-      (error) => { 
-        toast('⚠️ Using Default Jagdalpur Center'); 
-      }
+        const icon = L.divIcon({ className: 'custom-pulse-wrap', html: '<div class="live-pulse-marker"><div class="live-pulse-ring"></div><div class="live-pulse-dot"></div></div>', iconSize: [24,24], iconAnchor: [12,12] });
+        liveMarker = L.marker([pos.coords.latitude, pos.coords.longitude], {icon}).addTo(lmap);
+        lmap.flyTo([pos.coords.latitude, pos.coords.longitude], 16);
+      }, () => {}
     );
   }
 }
 
-// Force close loader after 3 seconds max
-setTimeout(finishLoad, 3000);
+// ═══════ REAL BOOKING ENGINE ═══════
+let fareAuto = 0, fareMini = 0;
+let selCabType = 'JDP Auto', selCabFare = 0;
 
+function goScreen(id) {
+    document.querySelectorAll('.scr').forEach(e => e.classList.remove('on'));
+    document.getElementById(id).classList.add('on');
+    if(id === 'scrHome') document.getElementById('dropInput').value = '';
+}
+
+function calculateFare() {
+    const drop = document.getElementById('dropInput').value.trim();
+    if(!drop) return toast('Please enter Drop Location');
+
+    // Jagdalpur Area Simulated Distance (2km to 7km)
+    const distKM = (Math.random() * 5 + 2).toFixed(1); 
+    
+    // Auto = Base ₹20 + ₹12/km, Mini = Base ₹40 + ₹16/km
+    fareAuto = Math.round(20 + (distKM * 12));
+    fareMini = Math.round(40 + (distKM * 16));
+
+    document.getElementById('txtFareAuto').innerText = fareAuto;
+    document.getElementById('txtFareMini').innerText = fareMini;
+    
+    // Default select Auto
+    selCabType = 'JDP Auto'; selCabFare = fareAuto;
+    document.getElementById('btnBookType').innerText = 'JDP Auto';
+    document.querySelectorAll('.ride-opt').forEach(e => e.classList.remove('sel'));
+    document.querySelectorAll('.ride-opt')[0].classList.add('sel');
+
+    goScreen('scrFare');
+}
+
+function selRide(el, type, fare) {
+    document.querySelectorAll('.ride-opt').forEach(e => e.classList.remove('sel'));
+    el.classList.add('sel');
+    selCabType = type; selCabFare = fare;
+    document.getElementById('btnBookType').innerText = type;
+}
+
+async function confirmBooking() {
+    goScreen('scrFinding');
+    
+    try {
+        const rideData = {
+            riderId: currentUser.uid || 'DemoRider',
+            riderName: currentUser.name || 'Rider',
+            pickup: 'Live GPS Location',
+            drop: document.getElementById('dropInput').value,
+            cabType: selCabType,
+            fare: selCabFare,
+            status: 'finding',
+            time: window.FB.serverTimestamp()
+        };
+        
+        // Save to Firebase Cloud
+        const docRef = await window.FB.addDoc(window.FB.collection(window.FB.db, 'rides'), rideData);
+
+        // Simulate matching algorithm time (4 seconds)
+        setTimeout(() => {
+            // Generate OTP
+            document.getElementById('rideOTP').innerText = Math.floor(1000 + Math.random() * 9000);
+            
+            // Update Database
+            window.FB.updateDoc(window.FB.doc(window.FB.db, 'rides', docRef.id), {
+                status: 'assigned', driver: 'Ramesh Kumar', vehicle: 'CG 17 AB 5678'
+            });
+
+            toast('✅ Driver Matched!');
+            goScreen('scrAssigned');
+        }, 4000);
+        
+    } catch(e) {
+        toast("Booking Failed!"); goScreen('scrHome');
+    }
+}
+async function doLogout(){ if(window.FB) await window.FB.signOut(window.FB.auth); location.reload(); }
 </script>
 </body>
 </html>
