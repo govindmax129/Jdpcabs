@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
 <style>
-/* ══ THEME VARIABLES & CSS (Unchanged from your premium design) ══ */
+/* ══ THEME VARIABLES & CSS ══ */
 :root {
   --bg:#0a0a0a; --card:#141414; --card2:#1c1c1c;
   --border:#252525; --text:#f1f5f9; --muted:#64748b;
@@ -22,18 +22,12 @@ body.light-mode {
 body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;transition:background 0.3s, color 0.3s;}
 #map{width:100vw;height:100vh;position:absolute;inset:0;z-index:1;}
 
-/* Light Mode Overrides */
-body.light-mode .bsheet, body.light-mode .popup, body.light-mode .prof-screen { background: rgba(255,255,255,0.97); }
-body.light-mode .topbar { background: linear-gradient(to bottom, rgba(255,255,255,0.95) 0%, transparent 100%); }
-body.light-mode .topbtn { background: rgba(255,255,255,0.9); color: #000; border-color: #cbd5e1; }
-body.light-mode .logo-title { color: #000; }
-body.light-mode .sinp, body.light-mode .fi, body.light-mode .oi { background: #fff; color: #000; border-color: #cbd5e1; }
-body.light-mode .loc-box, body.light-mode .qchip, body.light-mode .ropt, body.light-mode .dcard { background: #fff; border-color: #cbd5e1; }
+body.light-mode .bsheet, body.light-mode .topbtn, body.light-mode .loc-box { background: rgba(255,255,255,0.97); color: #000; border-color: #cbd5e1; }
 body.light-mode .auth-hero-ov { background: linear-gradient(to bottom,rgba(255,255,255,0.2),rgba(255,255,255,1)); }
 body.light-mode .auth-logo-name { color: #000; }
-body.light-mode .auth-tagline { color: #475569; }
+body.light-mode .fi { background: #fff; color: #000; border-color: #cbd5e1; }
 
-/* ══ UI ELEMENTS ══ */
+/* ══ LOADER ══ */
 #loader{position:fixed;inset:0;background:var(--bg);z-index:9000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
 .ld-icon{width:72px;height:72px;background:var(--yellow);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:900;color:#000;box-shadow:0 12px 40px rgba(251,191,36,0.4);animation:ldP 2s infinite;}
 @keyframes ldP{0%,100%{box-shadow:0 12px 40px rgba(251,191,36,0.4)}50%{box-shadow:0 12px 60px rgba(251,191,36,0.7)}}
@@ -42,7 +36,7 @@ body.light-mode .auth-tagline { color: #475569; }
 .ld-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--yellow),#f97316);border-radius:100px;transition:width 0.4s;}
 .ld-txt{font-size:0.75rem;color:var(--muted);}
 
-/* Auth & Sheets */
+/* ══ UI ELEMENTS ══ */
 #authScreen{position:fixed;inset:0;z-index:8000;display:none;flex-direction:column;background:var(--bg);overflow-y:auto;}
 #authScreen::-webkit-scrollbar{display:none;}
 .auth-hero{position:relative;width:100%;height:200px;overflow:hidden;flex-shrink:0;}
@@ -52,7 +46,7 @@ body.light-mode .auth-tagline { color: #475569; }
 .auth-body{padding:0 18px 40px;}
 
 .role-toggle{display:flex;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:14px;padding:4px;margin-bottom:16px;}
-.rtab{flex:1;padding:11px;border-radius:10px;border:none;background:transparent;color:var(--muted);font-weight:700;cursor:pointer;transition:all 0.25s;}
+.rtab{flex:1;padding:11px;border-radius:10px;border:none;background:transparent;color:var(--muted);font-weight:700;cursor:pointer;}
 .rtab.active.r{background:var(--yellow);color:#000;}
 .rtab.active.d{background:var(--green);color:#fff;}
 
@@ -75,33 +69,28 @@ body.light-mode .auth-tagline { color: #475569; }
 
 .auth-submit{width:100%;border:none;border-radius:14px;padding:16px;font-size:0.97rem;font-weight:800;cursor:pointer;}
 .auth-submit.y{background:var(--yellow);color:#000;} .auth-submit.g{background:var(--green);color:#fff;}
-.auth-switch{text-align:center;margin-top:14px;font-size:0.8rem;color:var(--muted); cursor:pointer;}
 
 .fb-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(255,165,0,0.1);border:1px solid rgba(255,165,0,0.2);border-radius:100px;padding:4px 10px;font-size:0.65rem;font-weight:700;color:orange;margin-bottom:14px;}
 .fb-badge.ok{background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.2);color:var(--green);}
 
 .topbar{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:linear-gradient(to bottom,rgba(0,0,0,0.85) 0%,transparent 100%);}
 .topbtn{height:38px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0 12px;}
-.prof-chip{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:100px;padding:4px 12px 4px 4px;cursor:pointer;}
-.prof-av{width:30px;height:30px;border-radius:50%;overflow:hidden;border:2px solid var(--yellow);}
 
 .locate-btn{position:fixed;right:16px;z-index:500;width:46px;height:46px;background:white;border-radius:50%;border:none;cursor:pointer;font-size:1.1rem;box-shadow:0 4px 18px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;}
 
 .bsheet{position:fixed;bottom:0;left:0;right:0;z-index:400;background:rgba(10,10,10,0.97);backdrop-filter:blur(28px);border-radius:24px 24px 0 0;border-top:1px solid rgba(255,255,255,0.07);padding:0 18px 30px;max-height:80vh;overflow-y:auto;}
 .handle{width:36px;height:4px;background:rgba(255,255,255,0.12);border-radius:4px;margin:12px auto 18px;}
-.scr{display:none;}.scr.on{display:block;animation:fUp 0.3s ease;}
 .mbtn{width:100%;border:none;border-radius:15px;padding:16px;font-size:0.96rem;font-weight:800;cursor:pointer;}
-.mbtn.y{background:var(--yellow);color:#000;} .mbtn.g{background:var(--green);color:#fff;}
-.mbtn.ro{background:rgba(239,68,68,0.08);color:var(--red);border:1px solid rgba(239,68,68,0.2);}
+.mbtn.y{background:var(--yellow);color:#000;}
 
 .loc-boxes{display:flex;flex-direction:column;gap:9px;margin-bottom:15px;}
-.loc-box{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.07);border-radius:14px;padding:12px 14px;cursor:pointer;}
+.loc-box{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.07);border-radius:14px;padding:12px 14px;}
 
 .toast{position:fixed;top:84px;left:50%;transform:translateX(-50%);background:rgba(20,20,20,0.97);border:1px solid rgba(255,255,255,0.09);border-radius:100px;padding:10px 20px;font-size:0.8rem;font-weight:600;z-index:9999;animation:tin 0.3s ease,tout 0.3s ease 2.6s forwards;white-space:nowrap;}
 @keyframes tin{from{opacity:0;top:64px}to{opacity:1;top:84px}}
 @keyframes tout{to{opacity:0}}
 
-/* Uber Style Live Marker */
+/* Live Pulsing Marker */
 .live-pulse-marker { position: relative; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
 .live-pulse-dot { width: 14px; height: 14px; background-color: #3b82f6; border: 2px solid white; border-radius: 50%; z-index: 2; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
 .live-pulse-ring { position: absolute; width: 100%; height: 100%; background-color: #3b82f6; border-radius: 50%; animation: pulseRing 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; z-index: 1; }
@@ -109,10 +98,30 @@ body.light-mode .auth-tagline { color: #475569; }
 </style>
 
 <script>
-  var mmap = null;
-  var liveMarker = null;
-  var JDP_CENTER = [19.0760, 82.0150]; // Jagdalpur exact center
-  
+  let currentUser = null;
+  let mmap = null;
+  let liveMarker = null;
+  const JDP_CENTER = [19.0760, 82.0150]; // Jagdalpur City Center
+  let isLoaded = false;
+
+  // Global Toast Function
+  function toast(msg) {
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2500);
+  }
+
+  // FAILSAFE: This guarantees the loader will vanish and auth will show.
+  function finishLoad() {
+    if (isLoaded) return; // Prevent double execution
+    isLoaded = true;
+    document.getElementById('loader').style.display = 'none';
+    if (!currentUser) document.getElementById('authScreen').style.display = 'flex';
+  }
+
+  // Global Map Ready Callback
   function onMapReady() {
     try {
       mmap = new mappls.Map('map', {
@@ -120,26 +129,30 @@ body.light-mode .auth-tagline { color: #475569; }
         zoom: 15,
         search: false,
         zoomControl: false,
-        location: true // Attempts to locate user naturally
+        location: true 
       });
       
       mmap.addListener('load', function() {
         finishLoad();
-        locateMe(); // Get live accurate GPS immediately
       });
     } catch(e) {
-      console.error("Map Load Error: ", e);
-      document.getElementById('ldTxt').innerText = "Map load failed. Check internet.";
+      console.error("Map Error", e);
+      finishLoad(); // Failsafe
     }
   }
+
+  // Force close loader after 4.5 seconds no matter what
+  setTimeout(() => {
+    finishLoad();
+  }, 4500);
 </script>
 
 <script src="https://apis.mappls.com/advancedmaps/api/kwzjopzmxtgmraerxyxpsrqqrxhdivkycqnc/map_sdk?layer=vector&v=3.0&callback=onMapReady" defer async></script>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBRPV3mosWr3YFnW6xCfJaqC1bV4MhJm_Y",
@@ -154,9 +167,10 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Make Firebase functions available globally
 window.FB = { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, doc, setDoc, getDoc, serverTimestamp };
-window.dispatchEvent(new Event('firebaseReady'));
+
+document.getElementById('fbBadge').className = 'fb-badge ok';
+document.getElementById('fbBadge').textContent = '✅ Firebase Live';
 </script>
 </head>
 <body>
@@ -174,7 +188,7 @@ window.dispatchEvent(new Event('firebaseReady'));
     <img src="https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=800&q=80">
     <div class="auth-hero-ov">
       <div class="auth-logo-name" style="color:white;">JDP CABS</div>
-      <div style="color:rgba(255,255,255,0.7); font-size: 0.85rem;">Local City, Premium Rides</div>
+      <div style="color:rgba(255,255,255,0.7); font-size: 0.85rem;">Jagdalpur's Premium Rides</div>
     </div>
   </div>
 
@@ -182,8 +196,8 @@ window.dispatchEvent(new Event('firebaseReady'));
     <div class="fb-badge" id="fbBadge">⏳ Firebase linking...</div>
 
     <div class="role-toggle">
-      <button class="rtab active r" id="rTab" onclick="setAuthRole('rider')">🧍 Rider hoon</button>
-      <button class="rtab d" id="dTab" onclick="setAuthRole('driver')">🚗 Driver hoon</button>
+      <button class="rtab active r" id="rTab" onclick="setAuthRole('rider')">🧍 Rider</button>
+      <button class="rtab d" id="dTab" onclick="setAuthRole('driver')">🚗 Driver</button>
     </div>
 
     <div class="auth-tabs">
@@ -205,19 +219,19 @@ window.dispatchEvent(new Event('firebaseReady'));
 
     <div class="auth-form" id="riderRegForm">
       <div class="frow">
-        <div class="fg"><label class="fl">First Name</label><input type="text" class="fi" id="rFn" placeholder="Rahul"></div>
-        <div class="fg"><label class="fl">Mobile</label><input type="tel" class="fi" id="rPhone" placeholder="9876543210"></div>
+        <div class="fg"><label class="fl">Name</label><input type="text" class="fi" id="rFn" placeholder="Name"></div>
+        <div class="fg"><label class="fl">Mobile</label><input type="tel" class="fi" id="rPhone" placeholder="Mobile"></div>
       </div>
-      <div class="fg"><label class="fl">Create Password</label><input type="password" class="fi" id="rPass" placeholder="Min 6 chars"></div>
-      <button class="auth-submit y" onclick="doRiderRegister()">✅ Create Rider Account</button>
+      <div class="fg"><label class="fl">Create Password</label><input type="password" class="fi" id="rPass" placeholder="Password"></div>
+      <button class="auth-submit y" onclick="doRiderRegister()">✅ Create Account</button>
     </div>
 
     <div class="auth-form" id="driverRegForm">
       <div class="frow">
-        <div class="fg"><label class="fl">First Name</label><input type="text" class="fi gf" id="dFn" placeholder="Ramesh"></div>
-        <div class="fg"><label class="fl">Mobile</label><input type="tel" class="fi gf" id="dPhone" placeholder="9876543210"></div>
+        <div class="fg"><label class="fl">Name</label><input type="text" class="fi gf" id="dFn" placeholder="Name"></div>
+        <div class="fg"><label class="fl">Mobile</label><input type="tel" class="fi gf" id="dPhone" placeholder="Mobile"></div>
       </div>
-      <div class="fg"><label class="fl">Vehicle Number</label><input type="text" class="fi gf" id="dVeh" placeholder="CG 17 AZ 1234"></div>
+      <div class="fg"><label class="fl">Vehicle No</label><input type="text" class="fi gf" id="dVeh" placeholder="CG 17 XX 0000"></div>
       <div class="fg">
         <label class="fl">Vehicle Type</label>
         <div class="vgrid">
@@ -225,8 +239,8 @@ window.dispatchEvent(new Event('firebaseReady'));
           <div class="vcard" onclick="selV(this,'Mini')"><div class="vcard-ico">🚗</div><div class="vcard-name">Mini Cab</div></div>
         </div>
       </div>
-      <div class="fg"><label class="fl">Create Password</label><input type="password" class="fi gf" id="dPass" placeholder="Min 6 chars"></div>
-      <button class="auth-submit g" onclick="doDriverRegister()">✅ Create Driver Account</button>
+      <div class="fg"><label class="fl">Create Password</label><input type="password" class="fi gf" id="dPass" placeholder="Password"></div>
+      <button class="auth-submit g" onclick="doDriverRegister()">✅ Register Driver</button>
     </div>
   </div>
 </div>
@@ -243,44 +257,24 @@ window.dispatchEvent(new Event('firebaseReady'));
 
 <div class="bsheet" id="bsheet" style="display:none">
   <div class="handle"></div>
-  <div class="scr on" id="scrRHome">
-    <div style="font-size:0.8rem; color:var(--muted); font-weight: 700; margin-bottom:10px;">WHERE TO, <span id="userNameDisplay">RIDER</span>?</div>
-    <div class="loc-boxes">
-      <div class="loc-box"><div style="width:10px;height:10px;background:var(--green);border-radius:50%;"></div><div style="flex:1"><div style="font-weight:700; font-size: 0.9rem;" id="puLbl">Live GPS Location</div><div style="font-size:0.7rem; color:var(--muted)">Jagdalpur, Bastar</div></div></div>
-      <div class="loc-box"><div style="width:10px;height:10px;background:var(--red);border-radius:50%;"></div><div style="flex:1"><input type="text" id="dropInput" placeholder="Enter Drop Location" style="background:transparent; border:none; color:var(--text); width:100%; font-family:inherit; font-weight:600; font-size: 0.9rem; outline:none;"></div></div>
-    </div>
-    <button class="mbtn y" onclick="alert('Live booking engine will connect here!')">Find Driver 🚗</button>
+  <div style="font-size:0.8rem; color:var(--muted); font-weight: 700; margin-bottom:10px;">WHERE TO, <span id="userNameDisplay">RIDER</span>?</div>
+  <div class="loc-boxes">
+    <div class="loc-box"><div style="width:10px;height:10px;background:var(--green);border-radius:50%;"></div><div style="flex:1"><div style="font-weight:700; font-size: 0.9rem;" id="puLbl">Live GPS Location</div><div style="font-size:0.7rem; color:var(--muted)">Jagdalpur</div></div></div>
+    <div class="loc-box"><div style="width:10px;height:10px;background:var(--red);border-radius:50%;"></div><div style="flex:1"><input type="text" placeholder="Enter Drop Location" style="background:transparent; border:none; color:var(--text); width:100%; font-family:inherit; font-weight:600; font-size: 0.9rem; outline:none;"></div></div>
   </div>
+  <button class="mbtn y" onclick="alert('Ready for booking integration!')">Find Driver 🚗</button>
 </div>
 
 <script>
-// ═══════ APP LOGIC & FIXES ═══════
-let currentUser = null;
 let authRole = 'rider';
 let selectedVehicle = 'Auto';
 
+// Simple progress bar animation
+let ldProg = 0;
+setInterval(() => { if(ldProg < 95) ldProg += 15; document.getElementById('ldBar').style.width = ldProg + '%'; }, 300);
+
 function toggleTheme() { document.body.classList.toggle('light-mode'); }
 
-// 1. Loading Animation Fix
-let ldProg = 0;
-const ldIv = setInterval(() => { ldProg += 15; if(ldProg > 88) ldProg = 88; document.getElementById('ldBar').style.width = ldProg + '%'; }, 300);
-
-function finishLoad() {
-  clearInterval(ldIv); 
-  document.getElementById('ldBar').style.width = '100%';
-  setTimeout(() => { 
-    document.getElementById('loader').style.display = 'none'; 
-    if(!currentUser) document.getElementById('authScreen').style.display = 'flex'; 
-  }, 500);
-}
-
-// 2. Firebase Link Status
-window.addEventListener('firebaseReady', () => {
-  document.getElementById('fbBadge').className = 'fb-badge ok';
-  document.getElementById('fbBadge').textContent = '✅ Firebase Live';
-});
-
-// 3. UI Tab Switches
 function setAuthRole(r) {
   authRole = r;
   document.getElementById('rTab').className = 'rtab' + (r === 'rider' ? ' active r' : '');
@@ -307,11 +301,10 @@ function selV(el, type) {
   selectedVehicle = type;
 }
 
-// 4. Live Authentication Fixes
 async function doLogin() {
   const id = document.getElementById('loginId').value.trim();
   const pass = document.getElementById('loginPass').value;
-  if(!id || !pass) return alert("Please enter Mobile and Password");
+  if(!id || !pass) return toast("Enter Phone and Password");
   
   let email = id + '@jdpcabs.in';
   try {
@@ -321,14 +314,14 @@ async function doLogin() {
       currentUser = snap.data();
       launchApp();
     }
-  } catch(e) { alert("Login Error: Check credentials."); }
+  } catch(e) { toast("Login Failed!"); }
 }
 
 async function doRiderRegister() {
   const fn = document.getElementById('rFn').value.trim();
   const phone = document.getElementById('rPhone').value.trim();
   const pass = document.getElementById('rPass').value;
-  if(!fn || !phone || !pass) return alert("Fill all details!");
+  if(!fn || !phone || !pass) return toast("Fill all details!");
 
   let email = phone + '@jdpcabs.in';
   try {
@@ -337,7 +330,7 @@ async function doRiderRegister() {
     await window.FB.setDoc(window.FB.doc(window.FB.db, 'users', cred.user.uid), uData);
     currentUser = uData;
     launchApp();
-  } catch(e) { alert("Registration Failed: " + e.message); }
+  } catch(e) { toast("Error: " + e.message); }
 }
 
 async function doDriverRegister() {
@@ -345,7 +338,7 @@ async function doDriverRegister() {
   const phone = document.getElementById('dPhone').value.trim();
   const veh = document.getElementById('dVeh').value.trim();
   const pass = document.getElementById('dPass').value;
-  if(!fn || !phone || !veh || !pass) return alert("Fill all details!");
+  if(!fn || !phone || !veh || !pass) return toast("Fill all details!");
 
   let email = phone + '@jdpcabs.in';
   try {
@@ -354,11 +347,11 @@ async function doDriverRegister() {
     await window.FB.setDoc(window.FB.doc(window.FB.db, 'users', cred.user.uid), uData);
     currentUser = uData;
     launchApp();
-  } catch(e) { alert("Registration Failed: " + e.message); }
+  } catch(e) { toast("Error: " + e.message); }
 }
 
 async function doLogout() {
-  await window.FB.signOut(window.FB.auth);
+  if(window.FB) await window.FB.signOut(window.FB.auth);
   currentUser = null;
   document.getElementById('topbar').style.display = 'none';
   document.getElementById('bsheet').style.display = 'none';
@@ -375,24 +368,19 @@ function launchApp() {
   if(currentUser && currentUser.name) {
     document.getElementById('userNameDisplay').textContent = currentUser.name.toUpperCase();
   }
-  
-  // Resize Map to prevent grey screen after hiding Auth UI
   if(mmap) setTimeout(() => mmap.resize(), 300);
+  locateMe(); // Get location automatically after login
 }
 
-// 5. LIVE GPS LOCATOR (No Demo)
 function locateMe() {
-  toast('Fetching Live GPS...');
   if (navigator.geolocation && mmap) {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const liveLat = position.coords.latitude;
         const liveLng = position.coords.longitude;
         
-        // Remove old marker if exists
         if(liveMarker) liveMarker.remove();
         
-        // Add Live Pulsing UI Marker
         liveMarker = new mappls.Marker({
             map: mmap,
             position: { lat: liveLat, lng: liveLng },
@@ -404,19 +392,9 @@ function locateMe() {
         mmap.setZoom(16);
         toast('📍 Location Locked');
       },
-      (error) => {
-        toast('⚠️ Please enable GPS/Location in browser!');
-      }
+      (error) => { toast('⚠️ Enable GPS for accuracy'); }
     );
   }
-}
-
-function toast(msg) {
-  const el = document.createElement('div');
-  el.className = 'toast';
-  el.textContent = msg;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 2500);
 }
 </script>
 </body>
