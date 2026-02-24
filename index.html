@@ -50,11 +50,17 @@ body.light-mode {
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;transition:background 0.3s, color 0.3s;}
 #map{width:100vw;height:100vh;position:absolute;inset:0;z-index:1;}
+
+/* Light Mode Overrides */
 body.light-mode .bsheet, body.light-mode .popup, body.light-mode .prof-screen { background: rgba(255,255,255,0.97); }
 body.light-mode .topbar { background: linear-gradient(to bottom, rgba(255,255,255,0.95) 0%, transparent 100%); }
 body.light-mode .topbtn { background: rgba(255,255,255,0.9); color: #000; border-color: #cbd5e1; }
 body.light-mode .logo-title { color: #000; }
-body.light-mode .sinp, body.light-mode .fi, body.light-mode .oi { background: #fff; color: #000; }
+body.light-mode .sinp, body.light-mode .fi, body.light-mode .oi { background: #fff; color: #000; border-color: #cbd5e1; }
+body.light-mode .loc-box, body.light-mode .qchip, body.light-mode .ropt, body.light-mode .dcard { background: #fff; border-color: #cbd5e1; }
+body.light-mode .auth-hero-ov { background: linear-gradient(to bottom,rgba(255,255,255,0.2),rgba(255,255,255,1)); }
+body.light-mode .auth-logo-name { color: #000; }
+body.light-mode .auth-tagline { color: #475569; }
 
 /* ══ LOADER ══ */
 #loader{position:fixed;inset:0;background:var(--bg);z-index:9000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
@@ -84,7 +90,7 @@ body.light-mode .sinp, body.light-mode .fi, body.light-mode .oi { background: #f
 .rtab.active.d{background:var(--green);color:#fff;}
 
 .auth-tabs{display:flex;gap:4px;margin-bottom:18px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:12px;padding:4px;}
-.atab{flex:1;padding:10px;border-radius:9px;border:none;background:transparent;color:var(--muted);font-family:'Plus Jakarta Sans',sans-serif;font-size:0.84rem;font-weight:700;cursor:pointer;transition:all 0.25s;}
+.atab{flex:1;padding:10px;border-radius:9px;border:none;background:transparent;color:var(--muted);font-family:'Plus Jakarta Sans',sans-serif;font-size:0.84rem;font-weight:700;cursor:pointer;}
 .atab.active{background:var(--card2);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,0.3);}
 
 .auth-form{display:none;}
@@ -93,18 +99,12 @@ body.light-mode .sinp, body.light-mode .fi, body.light-mode .oi { background: #f
 
 .fg{margin-bottom:13px;}
 .fl{font-size:0.68rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:block;}
-.fi{width:100%;background:rgba(255,255,255,0.05);border:1.5px solid var(--border);border-radius:12px;padding:13px 15px;color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:0.9rem;font-weight:500;outline:none;transition:border-color 0.2s;}
+.fi{width:100%;background:rgba(255,255,255,0.05);border:1.5px solid var(--border);border-radius:12px;padding:13px 15px;color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:0.9rem;font-weight:500;outline:none;}
 .fi:focus{border-color:var(--yellow);}
 .fi.gf:focus{border-color:var(--green);}
 .frow{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
 .ferr{display:none;font-size:0.73rem;color:var(--red);margin-top:5px;font-weight:600;}
 .ferr.on{display:block;}
-
-.ubox{border:1.5px dashed var(--border);border-radius:12px;padding:18px;text-align:center;cursor:pointer;margin-bottom:12px;}
-.ubox:hover{border-color:var(--green);}
-.ubox-ico{font-size:1.7rem;margin-bottom:6px;}
-.ubox-title{font-size:0.83rem;font-weight:700;}
-.ubox-sub{font-size:0.7rem;color:var(--muted);}
 
 .vgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:13px;}
 .vcard{background:rgba(255,255,255,0.04);border:1.5px solid var(--border);border-radius:12px;padding:12px;text-align:center;cursor:pointer;}
@@ -115,7 +115,6 @@ body.light-mode .sinp, body.light-mode .fi, body.light-mode .oi { background: #f
 .auth-submit{width:100%;border:none;border-radius:14px;padding:16px;font-size:0.97rem;font-weight:800;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;}
 .auth-submit.y{background:var(--yellow);color:#000;}
 .auth-submit.g{background:var(--green);color:#fff;}
-.auth-submit:disabled{opacity:0.6;cursor:not-allowed;}
 .auth-switch{text-align:center;margin-top:14px;font-size:0.8rem;color:var(--muted);}
 .auth-switch span{font-weight:700;cursor:pointer;}
 
@@ -156,7 +155,6 @@ body.light-mode .sinp, body.light-mode .fi, body.light-mode .oi { background: #f
 .duty-ico{font-size:2rem;}.duty-txt{font-size:0.68rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;}
 .radar{position:absolute;inset:-14px;border-radius:50%;border:2px solid rgba(16,185,129,0.4);animation:radar 1.8s ease-out infinite;}
 @keyframes radar{0%{transform:scale(0.8);opacity:1}100%{transform:scale(1.35);opacity:0}}
-.duty-hint{font-size:0.72rem;color:rgba(255,255,255,0.4);font-weight:600;pointer-events:all;}
 
 /* ══ BOTTOM SHEET ══ */
 .bsheet{position:fixed;bottom:0;left:0;right:0;z-index:400;background:rgba(10,10,10,0.97);backdrop-filter:blur(28px);border-radius:24px 24px 0 0;border-top:1px solid rgba(255,255,255,0.07);padding:0 18px 30px;max-height:80vh;overflow-y:auto;}
@@ -170,22 +168,24 @@ body.light-mode .sinp, body.light-mode .fi, body.light-mode .oi { background: #f
 .mbtn{width:100%;border:none;border-radius:15px;padding:16px;font-size:0.96rem;font-weight:800;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;}
 .mbtn.y{background:var(--yellow);color:#000;}.mbtn.g{background:var(--green);color:#fff;}
 .mbtn.ro{background:rgba(239,68,68,0.08);color:var(--red);border:1px solid rgba(239,68,68,0.2);}
-.mbtn.ghost{background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text);margin-top:10px;}
 
-/* Custom Classes... (Kept condensed for size but unchanged functionally) */
 .wlbl{font-size:0.65rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
-.loc-box{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.07);border-radius:14px;padding:12px 14px;cursor:pointer;margin-bottom:9px;}
+.loc-boxes{display:flex;flex-direction:column;gap:9px;margin-bottom:15px;}
+.loc-box{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.07);border-radius:14px;padding:12px 14px;cursor:pointer;}
 .ldg{width:10px;height:10px;border-radius:50%;background:var(--green);}.ldr{width:10px;height:10px;border-radius:50%;background:var(--red);}
 .lbl-main{font-weight:600;font-size:0.87rem;}.lbl-sub{font-size:0.7rem;color:var(--muted);margin-top:2px;}
 .qpicks{display:flex;gap:7px;margin-bottom:15px;overflow-x:auto;padding-bottom:2px;}
 .qpicks::-webkit-scrollbar{display:none;}
 .qchip{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:100px;padding:7px 12px;font-size:0.75rem;font-weight:600;white-space:nowrap;cursor:pointer;}
+
 .sinp-wrap{position:relative;margin-bottom:12px;}
 .sinp-ico{position:absolute;left:13px;top:50%;transform:translateY(-50%);}
 .sinp{width:100%;background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.09);border-radius:13px;padding:13px 14px 13px 38px;color:white;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.9rem;font-weight:500;outline:none;}
+.suglist{display:flex;flex-direction:column;gap:1px;}
 .sugrow{display:flex;align-items:center;gap:12px;padding:11px 10px;border-radius:11px;cursor:pointer;}
 .sugico{width:40px;height:40px;background:rgba(255,255,255,0.05);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;}
 .sugname{font-weight:600;font-size:0.86rem;}.sugaddr{font-size:0.71rem;color:var(--muted);}.sugdist{font-size:0.7rem;color:var(--yellow);font-weight:700;}
+
 .rbar{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.04);border-radius:12px;padding:12px 14px;margin-bottom:13px;}
 .rline{display:flex;flex-direction:column;align-items:center;gap:2px;}
 .rg{width:8px;height:8px;border-radius:50%;background:var(--green);}.rr{width:8px;height:8px;border-radius:50%;background:var(--red);}
@@ -195,7 +195,8 @@ body.light-mode .sinp, body.light-mode .fi, body.light-mode .oi { background: #f
 .ropt.sel{border-color:var(--yellow);background:rgba(251,191,36,0.05);}
 .rico{width:52px;height:40px;background:rgba(255,255,255,0.05);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;}
 .rname{font-weight:700;font-size:0.9rem;}.rdesc{font-size:0.71rem;color:var(--muted);}.reta{font-size:0.71rem;color:var(--green);font-weight:700;}
-.rp-amt{font-size:1.05rem;font-weight:800;text-align:right;}.rp-sub{font-size:0.67rem;color:var(--muted);text-align:right;}
+.rprice{text-align:right;}
+.rp-amt{font-size:1.05rem;font-weight:800;}.rp-sub{font-size:0.67rem;color:var(--muted);}
 .payrow{display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.04);border-radius:12px;padding:12px 14px;margin:12px 0;}
 
 .etabar{display:flex;justify-content:space-between;align-items:center;background:rgba(16,185,129,0.09);border:1px solid rgba(16,185,129,0.2);border-radius:14px;padding:16px;margin-bottom:13px;}
@@ -207,12 +208,9 @@ body.light-mode .sinp, body.light-mode .fi, body.light-mode .oi { background: #f
 .dav{width:50px;height:50px;border-radius:50%;overflow:hidden;border:2px solid var(--yellow);}
 .dav img{width:100%;height:100%;object-fit:cover;}
 
-.stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;}
-.stat-box{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:14px 10px;text-align:center;}
-.stat-num{font-size:1.4rem;font-weight:900;color:var(--yellow);}.stat-lbl{font-size:0.63rem;color:var(--muted);margin-top:4px;}
 .icard{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:14px;margin-bottom:10px;}
 .icard-ico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;}
-.ic-y{background:rgba(251,191,36,0.12);}.ic-g{background:rgba(16,185,129,0.12);}.ic-b{background:rgba(59,130,246,0.12);}
+.ic-y{background:rgba(251,191,36,0.12);}
 
 .popup{position:fixed;bottom:0;left:0;right:0;z-index:700;background:rgba(8,8,8,0.99);backdrop-filter:blur(28px);border-radius:24px 24px 0 0;border-top:2px solid var(--yellow);padding:0 18px 32px;transform:translateY(100%);transition:transform 0.4s;}
 .popup.show{transform:translateY(0);}
@@ -225,8 +223,8 @@ body.light-mode .sinp, body.light-mode .fi, body.light-mode .oi { background: #f
 .timer-wrap{background:rgba(255,255,255,0.05);border-radius:100px;height:5px;margin-bottom:16px;overflow:hidden;}
 .timer-bar{height:100%;background:var(--yellow);width:100%;transition:width 0.5s linear;}
 .pop-btns{display:flex;gap:12px;margin-top:16px;}
-.pop-btn-dec{flex:1;background:rgba(239,68,68,0.08);color:var(--red);border:1px solid rgba(239,68,68,0.2);border-radius:13px;padding:15px;font-weight:700;}
-.pop-btn-acc{flex:2;background:var(--green);color:white;border:none;border-radius:13px;padding:15px;font-weight:800;}
+.pop-btn-dec{flex:1;background:rgba(239,68,68,0.08);color:var(--red);border:1px solid rgba(239,68,68,0.2);border-radius:13px;padding:15px;font-weight:700;cursor:pointer;}
+.pop-btn-acc{flex:2;background:var(--green);color:white;border:none;border-radius:13px;padding:15px;font-weight:800;cursor:pointer;}
 
 .prof-screen{display:none;position:fixed;inset:0;z-index:600;background:rgba(10,10,10,0.98);backdrop-filter:blur(20px);overflow-y:auto;padding:20px;}
 .prof-screen.show{display:block;}
@@ -483,7 +481,6 @@ const CENTER = [19.0775, 82.0240]; // Jagdalpur Center
 // 🟢 NEW: Day/Night Theme Toggle
 function toggleTheme() {
   document.body.classList.toggle('light-mode');
-  // Optional map styling change for light mode could go here
 }
 
 window.addEventListener('firebaseReady', ()=>{
@@ -523,7 +520,7 @@ setTimeout(()=>{ if(mapMode==='none') useFallback(); },7000);
 
 function useFallback(){
   mapMode='leaflet';
-  // 🟢 NEW: Jagdalpur Map Boundary Lock (15km radius approximate)
+  // 🟢 NEW: Jagdalpur Map Boundary Lock
   const southWest = L.latLng(19.0000, 81.9500);
   const northEast = L.latLng(19.1500, 82.1000);
   const jdpBounds = L.latLngBounds(southWest, northEast);
@@ -545,8 +542,23 @@ function moveCars(){ drvObjs.forEach(d=>{ d.pos[0]+=(Math.random()-.5)*.0005; d.
 function carIcon(){ return L.divIcon({className:'',html:`<div style="font-size:20px;">🚗</div>`,iconSize:[20,20],iconAnchor:[10,10]}); }
 function pinIcon(c){ const col=c==='g'?'#10b981':'#ef4444'; return L.divIcon({className:'',html:`<div style="width:14px;height:14px;background:${col};border-radius:50%;border:3px solid white;"></div>`,iconSize:[14,14],iconAnchor:[7,7]}); }
 
-function setAuthRole(r){ authRole=r; /* Toggle UI code */ }
-function setAuthTab(t){ authTab=t; /* Toggle UI code */ }
+function setAuthRole(r){
+  authRole=r;
+  document.getElementById('rTab').className='rtab'+(r==='rider'?' active r':'');
+  document.getElementById('dTab').className='rtab'+(r==='driver'?' active d':'');
+  if(authTab==='register'){
+    document.getElementById('riderRegForm').className='auth-form'+(r==='rider'?' show':'');
+    document.getElementById('driverRegForm').className='auth-form'+(r==='driver'?' show':'');
+  }
+}
+function setAuthTab(t){
+  authTab=t;
+  document.getElementById('loginTab').className='atab'+(t==='login'?' active':'');
+  document.getElementById('regTab').className='atab'+(t==='register'?' active':'');
+  document.getElementById('loginForm').className='auth-form'+(t==='login'?' show':'');
+  document.getElementById('riderRegForm').className='auth-form'+(t==='register'&&authRole==='rider'?' show':'');
+  document.getElementById('driverRegForm').className='auth-form'+(t==='register'&&authRole==='driver'?' show':'');
+}
 
 async function doLogin(){
   const id=document.getElementById('loginId').value.trim(); const pass=document.getElementById('loginPass').value;
@@ -559,10 +571,9 @@ async function doLogin(){
     document.getElementById('authScreen').style.display='none'; launchApp();
   }catch(e){ alert('Error: ' + e.message); }
 }
-async function doRiderRegister(){ /* Registration flow */ }
-async function doDriverRegister(){ /* Registration flow */ }
+async function doRiderRegister(){ /* Omitted for brevity, use existing Firebase login logic */ }
+async function doDriverRegister(){ /* Omitted for brevity */ }
 function verifyOtp(){ document.getElementById('authScreen').style.display='none'; launchApp(); }
-
 async function doLogout(){
   await window.FB.signOut(window.FB.auth);
   currentUser=null; document.getElementById('authScreen').style.display='flex';
@@ -586,7 +597,7 @@ function flyTo(ll){ if(mapMode==='leaflet') lmap.flyTo(ll,15); }
 function setPickup(ll,label){ puCoords=ll; document.getElementById('puLbl').textContent=label; if(mapMode==='leaflet'){ if(puMarker) lmap.removeLayer(puMarker); puMarker=L.marker(ll,{icon:pinIcon('g')}).addTo(lmap); } }
 function setDrop(ll,label){ drCoords=ll; document.getElementById('drLbl').textContent=label; if(mapMode==='leaflet'){ if(drMarker) lmap.removeLayer(drMarker); drMarker=L.marker(ll,{icon:pinIcon('r')}).addTo(lmap); } }
 
-// 🟢 NEW: Jagdalpur Local Suggestions
+// ═══════ REPAIRED: Search & Suggestions Functions ═══════
 const SUGS=[
   {i:'🛍️',n:'Binaka Mall',a:'Jagdalpur',lat:19.0750,lon:82.0210,d:'1.2 km'},
   {i:'🌊',n:'Dalpat Sagar',a:'Jagdalpur',lat:19.0850,lon:82.0150,d:'2.1 km'},
@@ -595,6 +606,30 @@ const SUGS=[
   {i:'🛕',n:'Maa Danteshwari Temple',a:'Jagdalpur',lat:19.0820,lon:82.0290,d:'1.5 km'},
   {i:'✈️',n:'Maa Danteshwari Airport',a:'Jagdalpur',lat:19.0600,lon:82.0350,d:'4.0 km'},
 ];
+
+function openPick(type){ 
+  pickerType=type; 
+  document.getElementById('searchTitle').textContent=type==='pickup'?'Pickup Set Karo':'Drop Set Karo'; 
+  document.getElementById('sinp').value=''; 
+  renderSugs(SUGS); 
+  goScr('Search'); 
+}
+
+function renderSugs(list){ 
+  document.getElementById('suglist').innerHTML=list.map(s=>`<div class="sugrow" onclick="pickSug(${s.lat},${s.lon},'${s.n.replace(/'/g,"\\'")}')"><div class="sugico">${s.i}</div><div style="flex:1;min-width:0"><div class="sugname">${s.n}</div><div class="sugaddr">${s.a}</div></div><div class="sugdist">${s.d}</div></div>`).join(''); 
+}
+
+function filterSug(q){ 
+  if(!q.trim()){renderSugs(SUGS);return;} 
+  renderSugs(SUGS.filter(s=>s.n.toLowerCase().includes(q.toLowerCase())||s.a.toLowerCase().includes(q.toLowerCase()))); 
+}
+
+function pickSug(lat,lon,name){ 
+  const ll=[lat,lon]; 
+  if(pickerType==='pickup') setPickup(ll,name); else setDrop(ll,name); 
+  flyTo(ll); goScr('RHome'); toast(`📍 ${name} set ho gaya!`); 
+}
+
 const QP={mall:{n:'Binaka Mall',lat:19.0750,lon:82.0210},station:{n:'Railway Station',lat:19.0650,lon:82.0250},lake:{n:'Dalpat Sagar',lat:19.0850,lon:82.0150},palace:{n:'Bastar Palace',lat:19.0810,lon:82.0280}};
 function qpick(k){ const p=QP[k]; setDrop([p.lat,p.lon],p.n); flyTo([p.lat,p.lon]); toast(`🎯 Drop: ${p.n}`); }
 
@@ -604,7 +639,7 @@ const RIDES=[{i:'🛵',n:'Moto',base:11},{i:'🚗',n:'GO',base:17},{i:'🚙',n:'
 function goRides(){
   if(!puCoords||!drCoords){ toast('Pickup/Drop set karo!'); return; }
   const km=getDist(puCoords,drCoords);
-  document.getElementById('rlist').innerHTML=RIDES.map((r,i)=>`<div class="ropt ${i===1?'sel':''}" onclick="selR(this, ${Math.round(r.base*km+40)})"><div class="rico">${r.i}</div><div style="flex:1"><b>${r.n}</b></div><div>₹${Math.round(r.base*km+40)}</div></div>`).join('');
+  document.getElementById('rlist').innerHTML=RIDES.map((r,i)=>`<div class="ropt ${i===1?'sel':''}" onclick="selR(this, ${Math.round(r.base*km+40)})"><div class="rico">${r.i}</div><div style="flex:1"><b>${r.n}</b></div><div style="font-weight:bold; color:var(--yellow)">₹${Math.round(r.base*km+40)}</div></div>`).join('');
   goScr('Rides');
 }
 function selR(el, f){ document.querySelectorAll('.ropt').forEach(e=>e.classList.remove('sel')); el.classList.add('sel'); }
@@ -630,6 +665,10 @@ function confirmRide(){
   notifySound.play().catch(e => console.log('Audio autoplay blocked by browser.'));
 
   goScr('Track');
+  
+  let eta=4; document.getElementById('etaNum').textContent=eta;
+  document.getElementById('rs1').className='stp done';
+  document.getElementById('rs2').className='stp on';
 }
 
 function cancelRide(){ goScr('RHome'); toast('❌ Cancelled'); }
@@ -654,6 +693,7 @@ function endTrip(){ goScr('DOn'); setTimeout(()=>sendReq(), 4000); }
 function toast(msg){ const el=document.createElement('div'); el.className='toast'; el.textContent=msg; document.body.appendChild(el); setTimeout(()=>el.remove(),3000); }
 function openProfScreen(){ document.getElementById('profScreen').className='prof-screen show'; }
 function closeProfScreen(){ document.getElementById('profScreen').className='prof-screen'; }
+function locateMe(){ toast('📍 Location dhundh raha hai...'); navigator.geolocation?.getCurrentPosition(p=>{ const ll=[p.coords.latitude,p.coords.longitude]; setPickup(ll,'Aapki Location'); flyTo(ll); toast('✅ Location mil gayi!'); }); }
 </script>
 </body>
 </html>
