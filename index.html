@@ -374,19 +374,55 @@ body.lm .rpc{background:#fff;}
     </div>
     <div class="afrm" id="dRegForm">
       <div id="dRegErr" class="eb"></div>
-      <div class="fr">
-        <div class="fg"><label class="fl">Full Name</label><input type="text" class="fi gf" id="dFn" placeholder="Aapka Naam"></div>
-        <div class="fg"><label class="fl">Mobile</label><input type="tel" class="fi gf" id="dPh" placeholder="9876543210" maxlength="10"></div>
-      </div>
-      <div class="fg"><label class="fl">Vehicle Number</label><input type="text" class="fi gf" id="dVeh" placeholder="CG 17 XX 0000"></div>
-      <div class="fg"><label class="fl">Vehicle Type</label>
-        <div class="vg">
-          <div class="vc on" id="vAuto" onclick="selVeh('auto')"><div style="font-size:1.6rem">🛺</div><div style="font-size:.73rem;font-weight:700;margin-top:3px">Auto</div></div>
-          <div class="vc" id="vCab" onclick="selVeh('cab')"><div style="font-size:1.6rem">🚗</div><div style="font-size:.73rem;font-weight:700;margin-top:3px">Mini Cab</div></div>
+
+      <!-- STEP 1: Basic Info -->
+      <div id="dStep1">
+        <div style="font-size:.6rem;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.08em;margin-bottom:9px;display:flex;align-items:center;gap:5px">
+          <span style="background:var(--green);color:#000;border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-size:.55rem">1</span>
+          Basic Information
         </div>
+        <div class="fr">
+          <div class="fg"><label class="fl">Full Name</label><input type="text" class="fi gf" id="dFn" placeholder="Aapka Naam"></div>
+          <div class="fg"><label class="fl">Mobile</label><input type="tel" class="fi gf" id="dPh" placeholder="9876543210" maxlength="10"></div>
+        </div>
+        <div class="fg"><label class="fl">Vehicle Number</label><input type="text" class="fi gf" id="dVeh" placeholder="CG 17 XX 0000"></div>
+        <div class="fg"><label class="fl">Vehicle Type</label>
+          <div class="vg">
+            <div class="vc on" id="vAuto" onclick="selVeh('auto')"><div style="font-size:1.6rem">🛺</div><div style="font-size:.73rem;font-weight:700;margin-top:3px">Auto</div></div>
+            <div class="vc" id="vCab" onclick="selVeh('cab')"><div style="font-size:1.6rem">🚗</div><div style="font-size:.73rem;font-weight:700;margin-top:3px">Mini Cab</div></div>
+          </div>
+        </div>
+        <div class="fg"><label class="fl">Password</label><input type="password" class="fi gf" id="dPw" placeholder="min 6 chars"></div>
+        <button class="asub" style="background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="showKycStep()">Next: KYC Documents →</button>
       </div>
-      <div class="fg"><label class="fl">Password</label><input type="password" class="fi gf" id="dPw" placeholder="min 6 chars"></div>
-      <button class="asub g" onclick="doDriverReg()">✅ Register as Driver</button>
+
+      <!-- STEP 2: KYC Documents -->
+      <div id="dStep2" style="display:none;animation:fup .3s ease">
+        <div style="font-size:.6rem;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.08em;margin-bottom:9px;display:flex;align-items:center;gap:5px">
+          <span style="background:var(--green);color:#000;border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-size:.55rem">2</span>
+          KYC Verification Documents
+        </div>
+        <div style="background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:9px 12px;font-size:.71rem;color:rgba(245,158,11,.9);margin-bottom:13px">
+          ⚠️ Ye documents sirf verification ke liye hain. Admin review ke baad account activate hoga.
+        </div>
+        <div class="fg"><label class="fl">🪪 Aadhaar Card Number</label><input type="tel" class="fi gf" id="dAadhar" placeholder="XXXX XXXX XXXX" maxlength="14" oninput="fmtAadhar(this)"></div>
+        <div class="fg"><label class="fl">📄 PAN Card Number</label><input type="text" class="fi gf" id="dPan" placeholder="ABCDE1234F" maxlength="10" style="text-transform:uppercase"></div>
+        <div class="fg"><label class="fl">🚗 Driving Licence Number</label><input type="text" class="fi gf" id="dDl" placeholder="CG1720XXXXXXX" style="text-transform:uppercase"></div>
+
+        <div style="font-size:.6rem;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.08em;margin:13px 0 9px;display:flex;align-items:center;gap:5px">
+          <span style="background:var(--blue);color:#fff;border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-size:.55rem">3</span>
+          Bank Account Details
+        </div>
+        <div class="fg"><label class="fl">🏦 Account Holder Name</label><input type="text" class="fi gf" id="dBankName" placeholder="Aapka Naam (Bank mein)"></div>
+        <div class="fg"><label class="fl">Account Number</label><input type="tel" class="fi gf" id="dAccNo" placeholder="00000000000000"></div>
+        <div class="fg"><label class="fl">IFSC Code</label><input type="text" class="fi gf" id="dIfsc" placeholder="SBIN0001234" maxlength="11" style="text-transform:uppercase"></div>
+
+        <div style="display:grid;grid-template-columns:1fr 1.5fr;gap:8px">
+          <button class="asub" style="background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--border)" onclick="document.getElementById('dStep1').style.display='block';document.getElementById('dStep2').style.display='none'">← Back</button>
+          <button class="asub g" onclick="doDriverReg()">✅ Submit Registration</button>
+        </div>
+        <div style="text-align:center;font-size:.65rem;color:var(--muted);margin-top:9px">🔒 Aapki details securely store hoti hain</div>
+      </div>
     </div>
   </div>
 </div>
@@ -579,6 +615,9 @@ body.lm .rpc{background:#fff;}
     <div style="font-size:2.8rem;margin-bottom:9px">😴</div>
     <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.1rem;margin-bottom:5px">You are Offline</div>
     <div style="font-size:.8rem;color:var(--muted);margin-bottom:16px">Go online to receive ride requests in Jagdalpur</div>
+    <div id="kycPendingWarn" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:11px;padding:9px 12px;font-size:.74rem;color:rgba(245,158,11,.9);margin-bottom:11px;text-align:left">
+      ⏳ <b>KYC Verification Pending</b><br>Admin aapke documents review kar raha hai. Verify hone ke baad aap rides accept kar payenge.
+    </div>
     <button class="mbtn g" onclick="document.getElementById('onTog').checked=true;toggleOnline()">🟢 Go Online & Earn</button>
   </div>
 
@@ -771,7 +810,7 @@ let curReqId = null, curReqData = null;
 let navPhase = 'pickup';
 let dEarnings = 0, dRides = 0;
 let onlineStart = null;
-let reqTimer = 20, reqInterval = null;
+let reqTimer = 60, reqInterval = null;
 let onlineTimeInterval = null;
 
 const routeCache = {};
@@ -1157,17 +1196,36 @@ async function updateNearbyRidersCount() {
 async function revGeo(lat, lng) {
   try {
     const r = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=16&addressdetails=1`,
-      { headers:{ 'Accept-Language':'en', 'User-Agent':'JDPCabsApp/1.0' } }
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=18&addressdetails=1`,
+      { headers:{ 'Accept-Language':'hi,en', 'User-Agent':'JDPCabsApp/1.0' } }
     );
     const d = await r.json();
     if (d?.address) {
       const a = d.address;
-      const parts = [a.neighbourhood||a.suburb||a.quarter, a.town||a.city||a.village||a.county, a.state_district].filter(Boolean);
-      return parts.length ? parts.join(', ') : (d.display_name?.split(',').slice(0,3).join(',') || `${lat.toFixed(4)},${lng.toFixed(4)}`);
+      // Try to get most specific address first
+      const road = a.road || a.pedestrian || a.footway || a.path || '';
+      const area = a.neighbourhood || a.suburb || a.quarter || a.village_green || '';
+      const locality = a.village || a.suburb || a.town || a.city_district || '';
+      const city = a.town || a.city || a.county || '';
+      
+      // Build layered address (specific → general)
+      let parts = [];
+      if (road) parts.push(road);
+      if (area && area !== road) parts.push(area);
+      if (locality && locality !== area) parts.push(locality);
+      if (!parts.length) parts.push(city || a.state_district || 'Jagdalpur');
+      
+      // Check if near any known landmark
+      const nearLandmark = JAGDALPUR_LANDMARKS.find(lm => {
+        const dist = distKmCalc(lat, lng, lm.lat, lm.lng);
+        return dist < 0.25; // within 250m
+      });
+      if (nearLandmark) parts.unshift(`Near ${nearLandmark.name}`);
+      
+      return parts.slice(0,3).join(', ');
     }
   } catch(e) {}
-  return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
 }
 
 async function geocodeAddress(address) {
@@ -1227,7 +1285,11 @@ function startGPS() {
     if (CU?.role === 'driver' && isOnline && window.FB_READY) {
       try {
         await window.FB.updateDoc(window.FB.doc(window.FB.db,'users',CU.uid), { lat:myLat, lng:myLng, lastSeen:window.FB.serverTimestamp() });
-        document.getElementById('dLocText').textContent = `📍 ${myLat.toFixed(5)}, ${myLng.toFixed(5)}`;
+        // Show address instead of raw coordinates
+        revGeo(myLat, myLng).then(addr => {
+          const el = document.getElementById('dLocText');
+          if(el) el.textContent = `📍 ${addr}`;
+        });
         updateNearbyRidersCount();
       } catch(e) {}
     }
@@ -1237,19 +1299,26 @@ function startGPS() {
   navigator.geolocation.getCurrentPosition(async (pos) => {
     myLat = pos.coords.latitude; myLng = pos.coords.longitude;
     pickLat = myLat; pickLng = myLng;
-    document.getElementById('pAddr').textContent = 'Getting address...';
+    const pAddrEl = document.getElementById('pAddr');
+    const pSubEl = document.getElementById('pSub');
+    if(pAddrEl) pAddrEl.textContent = 'Getting address...';
+    if(pSubEl) pSubEl.innerHTML = '<div class="lspin"></div><span>Detecting location...</span>';
     const addr = await revGeo(myLat, myLng);
     pickAddr = addr;
-    document.getElementById('pAddr').textContent = addr;
-    document.getElementById('pSub').innerHTML = `<span style="color:var(--green);font-size:.66rem">📍 ${myLat.toFixed(5)}, ${myLng.toFixed(5)}</span>`;
-    if (leafMap) leafMap.setView([myLat, myLng], 15, { animate:true });
+    if(pAddrEl) pAddrEl.textContent = addr;
+    // Show accuracy info
+    const acc = pos.coords.accuracy ? Math.round(pos.coords.accuracy) : '?';
+    if(pSubEl) pSubEl.innerHTML = `<span style="color:var(--green);font-size:.66rem">📍 Accuracy: ±${acc}m · GPS Live</span>`;
+    if (leafMap) leafMap.setView([myLat, myLng], 16, { animate:true });
     updateMyMarker(myLat, myLng);
     updateMyZone();
     toast('📍 Location detected!');
   }, err => {
-    document.getElementById('pAddr').textContent = 'Location unavailable — enable GPS';
-    document.getElementById('pSub').innerHTML = '<span style="color:var(--red)">Tap 🔄 to retry</span>';
-  }, { enableHighAccuracy:true, timeout:10000 });
+    const pAddrEl = document.getElementById('pAddr');
+    const pSubEl = document.getElementById('pSub');
+    if(pAddrEl) pAddrEl.textContent = 'Location unavailable — enable GPS';
+    if(pSubEl) pSubEl.innerHTML = '<span style="color:var(--red)">Tap 🔄 to retry</span>';
+  }, { enableHighAccuracy:true, timeout:15000 });
 }
 
 function refreshGPS() {
@@ -1403,20 +1472,55 @@ async function doRiderReg() {
     CU={uid:c.user.uid,...ud};launch();
   }catch(e){showErr('rRegErr',e.code==='auth/email-already-in-use'?'Mobile already registered. Login.':'Registration failed.');}
 }
+function fmtAadhar(el) {
+  let v = el.value.replace(/\D/g,'').slice(0,12);
+  el.value = v.replace(/(\d{4})(?=\d)/g,'$1 ').trim();
+}
+function showKycStep() {
+  const fn=document.getElementById('dFn').value.trim(),ph=document.getElementById('dPh').value.trim();
+  const veh=document.getElementById('dVeh').value.trim().toUpperCase(),pw=document.getElementById('dPw').value;
+  if(!fn||!ph||!veh||!pw) return showErr('dRegErr','Fill all basic fields first');
+  if(ph.length!==10) return showErr('dRegErr','Valid 10-digit mobile required');
+  if(pw.length<6) return showErr('dRegErr','Password min 6 chars');
+  if(veh.length<5) return showErr('dRegErr','Valid vehicle number required');
+  document.getElementById('dStep1').style.display='none';
+  document.getElementById('dStep2').style.display='block';
+}
 async function doDriverReg() {
   if (!window.FB_READY) return toast('Firebase not ready');
   const fn=document.getElementById('dFn').value.trim(),ph=document.getElementById('dPh').value.trim();
   const veh=document.getElementById('dVeh').value.trim().toUpperCase(),pw=document.getElementById('dPw').value;
-  if(!fn||!ph||!veh||!pw) return showErr('dRegErr','Fill all fields');
+  const aadhar=document.getElementById('dAadhar').value.replace(/\s/g,'');
+  const pan=document.getElementById('dPan').value.trim().toUpperCase();
+  const dl=document.getElementById('dDl').value.trim().toUpperCase();
+  const bankName=document.getElementById('dBankName').value.trim();
+  const accNo=document.getElementById('dAccNo').value.trim();
+  const ifsc=document.getElementById('dIfsc').value.trim().toUpperCase();
+
+  if(!fn||!ph||!veh||!pw) return showErr('dRegErr','Basic details missing');
   if(ph.length!==10) return showErr('dRegErr','Valid 10-digit mobile required');
   if(pw.length<6) return showErr('dRegErr','Password min 6 chars');
-  if(veh.length<5) return showErr('dRegErr','Valid vehicle number required');
+  if(aadhar.length!==12) return showErr('dRegErr','Aadhaar 12 digits required');
+  if(pan.length!==10) return showErr('dRegErr','PAN card 10 characters required');
+  if(!dl) return showErr('dRegErr','Driving Licence number required');
+  if(!bankName||!accNo||!ifsc) return showErr('dRegErr','Bank details required');
+  if(ifsc.length!==11) return showErr('dRegErr','IFSC code 11 characters hona chahiye');
+
   try{
     const c=await window.FB.createUserWithEmailAndPassword(window.FB.auth,ph+'@jdpcabs.in',pw);
-    const ud={name:fn,phone:ph,role:'driver',vehicleNo:veh,vehicleType:selVehType,rating:5.0,isOnline:false,earnings:0,ridesCompleted:0,createdAt:window.FB.serverTimestamp()};
+    const ud={
+      name:fn, phone:ph, role:'driver', vehicleNo:veh, vehicleType:selVehType,
+      rating:5.0, isOnline:false, earnings:0, ridesCompleted:0,
+      kycStatus:'pending',
+      kyc:{ aadhaar:aadhar, pan:pan, drivingLicence:dl },
+      bank:{ accountHolderName:bankName, accountNumber:accNo, ifsc:ifsc },
+      createdAt:window.FB.serverTimestamp()
+    };
     await window.FB.setDoc(window.FB.doc(window.FB.db,'users',c.user.uid),ud);
-    CU={uid:c.user.uid,...ud};launch();
-  }catch(e){showErr('dRegErr',e.code==='auth/email-already-in-use'?'Mobile already registered. Login.':'Registration failed.');}
+    CU={uid:c.user.uid,...ud};
+    toast('✅ Registration submitted! Admin verification pending.');
+    launch();
+  }catch(e){showErr('dRegErr',e.code==='auth/email-already-in-use'?'Mobile already registered. Login.':'Registration failed: '+e.message);}
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1449,6 +1553,11 @@ function launchDriver() {
   if(CU) document.getElementById('dName').textContent=CU.name;
   dEarnings=CU.earnings||0; dRides=CU.ridesCompleted||0;
   updateDStats(); showDCard('off');
+  // Show KYC pending warning
+  if(CU.kycStatus==='pending'){
+    const w=document.getElementById('kycPendingWarn');
+    if(w) w.style.display='block';
+  }
   // Auto show landmarks for driver
   landmarksVisible = true;
   landmarkMarkers.forEach(mk => { try { mk.addTo(leafMap); } catch(e){} });
@@ -1541,7 +1650,7 @@ function showReqPopup(data) {
   document.getElementById('reqETA') && (document.getElementById('reqETA').textContent=(data.etaMin||'--')+'min');
   document.getElementById('reqPopup').classList.add('sh');
 
-  reqTimer=20;
+  reqTimer=60;
   document.getElementById('tNum').textContent=reqTimer;
   const circ=document.getElementById('tCircle');
   circ.style.stroke='var(--yellow)';
@@ -1552,8 +1661,8 @@ function showReqPopup(data) {
   reqInterval=setInterval(()=>{
     reqTimer--;
     document.getElementById('tNum').textContent=reqTimer;
-    circ.style.strokeDashoffset=163*(1-reqTimer/20);
-    if(reqTimer<=5){circ.style.stroke='var(--red)';document.getElementById('tNum').style.color='var(--red)';}
+    circ.style.strokeDashoffset=163*(1-reqTimer/60);
+    if(reqTimer<=10){circ.style.stroke='var(--red)';document.getElementById('tNum').style.color='var(--red)';}
     if(reqTimer<=0){clearInterval(reqInterval);hideReqPopup();curReqId=null;curReqData=null;toast('⏰ Request expired');}
   },1000);
 }
