@@ -291,6 +291,27 @@ body.lm .rpc{background:#fff;}
 /* ══ ASSIGNED ANIMATION ══ */
 @keyframes assignBounce{0%{transform:scale(1)}20%{transform:scale(1.05)}40%{transform:scale(.98)}60%{transform:scale(1.03)}80%{transform:scale(.99)}100%{transform:scale(1)}}
 .assign-bounce{animation:assignBounce .6s ease;}
+
+/* ══ DRIVER PHOTO UPLOAD ══ */
+.photo-upload-box{display:flex;flex-direction:column;align-items:center;gap:10px;background:rgba(255,255,255,.03);border:2px dashed rgba(16,185,129,.35);border-radius:16px;padding:16px;margin-bottom:13px;cursor:pointer;transition:all .2s;}
+.photo-upload-box:hover,.photo-upload-box.has-photo{border-color:var(--green);background:rgba(16,185,129,.05);}
+.photo-preview{width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--green);display:none;box-shadow:0 4px 16px rgba(16,185,129,.35);}
+.photo-placeholder{width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:2rem;border:2px solid rgba(255,255,255,.1);}
+.photo-upload-lbl{font-size:.75rem;font-weight:700;color:var(--green);}
+.photo-upload-sub{font-size:.62rem;color:var(--muted);text-align:center;}
+/* Driver photo in rider panel */
+.dava-photo{width:52px;height:52px;border-radius:50%;object-fit:cover;border:2.5px solid var(--green);box-shadow:0 3px 12px rgba(16,185,129,.3);flex-shrink:0;}
+.dava-verified{position:relative;flex-shrink:0;}
+.dava-verified::after{content:'✅';position:absolute;bottom:-2px;right:-4px;font-size:.65rem;background:var(--card);border-radius:50%;padding:1px;}
+
+/* ══ CALL BUTTON ══ */
+.call-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;border:none;border-radius:13px;padding:13px;font-size:.92rem;font-weight:800;cursor:pointer;font-family:'Syne',sans-serif;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;box-shadow:0 5px 18px rgba(22,163,74,.4);transition:transform .1s,box-shadow .2s;margin-top:8px;text-decoration:none;}
+.call-btn:active{transform:scale(.97);box-shadow:0 2px 8px rgba(22,163,74,.3);}
+.call-btn .call-pulse{width:9px;height:9px;background:#fff;border-radius:50%;animation:dpulse 1.2s infinite;}
+.call-btn-mini{display:inline-flex;align-items:center;justify-content:center;gap:5px;border:none;border-radius:99px;padding:7px 14px;font-size:.75rem;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;box-shadow:0 3px 12px rgba(22,163,74,.4);transition:transform .1s;text-decoration:none;}
+.call-btn-mini:active{transform:scale(.96);}
+.call-ring{display:inline-block;animation:callring .6s infinite alternate;}
+@keyframes callring{0%{transform:rotate(-15deg)}100%{transform:rotate(15deg)}}
 </style>
 </head>
 <body>
@@ -405,6 +426,18 @@ body.lm .rpc{background:#fff;}
         <div style="background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:9px 12px;font-size:.71rem;color:rgba(245,158,11,.9);margin-bottom:13px">
           ⚠️ Ye documents sirf verification ke liye hain. Admin review ke baad account activate hoga.
         </div>
+
+        <!-- 📸 DRIVER PHOTO UPLOAD -->
+        <label class="fl">📸 Driver Profile Photo <span style="color:var(--red)">*</span></label>
+        <div class="photo-upload-box" id="photoUploadBox" onclick="document.getElementById('dPhotoInput').click()">
+          <img id="dPhotoPreview" class="photo-preview" alt="Driver Photo">
+          <div class="photo-placeholder" id="photoPlaceholder">🤳</div>
+          <div class="photo-upload-lbl" id="photoUploadLbl">Tap to upload selfie / photo</div>
+          <div class="photo-upload-sub">Camera se selfie ya gallery se photo chune<br>JPG/PNG • Max 5MB • Square photo best hogi</div>
+        </div>
+        <input type="file" id="dPhotoInput" accept="image/*" capture="user" style="display:none" onchange="handleDriverPhoto(this)">
+        <div id="photoStatus" style="font-size:.68rem;color:var(--green);text-align:center;margin-bottom:10px;display:none">✅ Photo ready!</div>
+
         <div class="fg"><label class="fl">🪪 Aadhaar Card Number</label><input type="tel" class="fi gf" id="dAadhar" placeholder="XXXX XXXX XXXX" maxlength="14" oninput="fmtAadhar(this)"></div>
         <div class="fg"><label class="fl">📄 PAN Card Number</label><input type="text" class="fi gf" id="dPan" placeholder="ABCDE1234F" maxlength="10" style="text-transform:uppercase"></div>
         <div class="fg"><label class="fl">🚗 Driving Licence Number</label><input type="text" class="fi gf" id="dDl" placeholder="CG1720XXXXXXX" style="text-transform:uppercase"></div>
@@ -564,7 +597,11 @@ body.lm .rpc{background:#fff;}
   <div class="scr" id="sAssigned">
     <div id="assignedBanner" style="background:rgba(16,185,129,.1);color:var(--green);padding:9px;border-radius:11px;text-align:center;font-weight:800;margin-bottom:13px;border:1px solid rgba(16,185,129,.25);font-size:.88rem">✅ Driver Assigned!</div>
     <div class="dcard" id="driverCard">
-      <div class="dava">👨🏽‍✈️</div>
+      <!-- Driver photo or emoji fallback -->
+      <div class="dava-verified" id="dAvaWrap">
+        <img id="dAvaPhoto" class="dava-photo" src="" alt="" style="display:none">
+        <div class="dava" id="dAvaEmoji">👨🏽‍✈️</div>
+      </div>
       <div style="flex:1">
         <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.02rem" id="aDName">--</div>
         <div style="font-size:.76rem;color:var(--muted);margin-top:2px" id="aVeh">--</div>
@@ -572,13 +609,25 @@ body.lm .rpc{background:#fff;}
           <span class="star">★★★★★</span>
           <span style="font-size:.7rem;font-weight:700;color:var(--muted);margin-left:2px">4.8</span>
         </div>
+        <!-- Phone number display -->
+        <div id="aDriverPhone" style="font-size:.72rem;color:var(--muted);margin-top:3px;display:none">
+          📞 <span id="aDriverPhoneNum">--</span>
+        </div>
       </div>
       <div class="otp">
         <div style="font-size:.58rem;color:var(--muted);font-weight:700;letter-spacing:.04em;text-transform:uppercase">OTP</div>
         <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.35rem;color:var(--yellow)" id="rideOTP">----</div>
       </div>
     </div>
-    <div class="lbadge b"><div class="lbd"></div><span id="driverTrackText">🚗 Tracking driver on map...</span></div>
+
+    <!-- 📞 CALL DRIVER BUTTON -->
+    <a id="callDriverBtn" href="#" class="call-btn" onclick="callDriver();return false;">
+      <span class="call-ring">📞</span>
+      <span>Call Driver</span>
+      <span id="callDriverNumLabel" style="font-size:.72rem;opacity:.85;font-weight:600"></span>
+    </a>
+
+    <div class="lbadge b" style="margin-top:8px"><div class="lbd"></div><span id="driverTrackText">🚗 Tracking driver on map...</span></div>
     <div class="lbadge g"><div class="lbd"></div><span id="driverDistText">Calculating distance...</span></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <button class="mbtn g" style="margin-top:0" onclick="locateMe()">📍 My Location</button>
@@ -667,7 +716,20 @@ body.lm .rpc{background:#fff;}
         <div style="font-size:.62rem;color:var(--muted)">Fare</div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px">
+
+    <!-- 📞 RIDER INFO + CALL BUTTON -->
+    <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:10px 13px;margin-bottom:9px">
+      <div>
+        <div style="font-size:.6rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em">RIDER</div>
+        <div style="font-weight:800;font-size:.9rem;margin-top:2px" id="navRiderName">--</div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:1px" id="navRiderPhone">--</div>
+      </div>
+      <a id="callRiderBtn" href="#" class="call-btn-mini" onclick="callRider();return false;">
+        <span class="call-ring">📞</span> Call Rider
+      </a>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:0">
       <button class="mbtn g" style="margin-top:0" id="navActBtn" onclick="driverNext()">✅ Rider Picked Up</button>
       <button class="mbtn ro" style="margin-top:0" onclick="driverCancel()">Cancel</button>
     </div>
@@ -1476,6 +1538,48 @@ function fmtAadhar(el) {
   let v = el.value.replace(/\D/g,'').slice(0,12);
   el.value = v.replace(/(\d{4})(?=\d)/g,'$1 ').trim();
 }
+
+// ✅ Driver photo compress + preview
+let driverPhotoBase64 = '';
+function handleDriverPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { toast('❌ Photo 5MB se chhota hona chahiye'); return; }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      // Compress to 200x200 thumbnail
+      const canvas = document.createElement('canvas');
+      const SIZE = 200;
+      let w = img.width, h = img.height;
+      // Crop to square from center
+      const min = Math.min(w, h);
+      const sx = (w - min) / 2, sy = (h - min) / 2;
+      canvas.width = SIZE; canvas.height = SIZE;
+      const ctx = canvas.getContext('2d');
+      // Circle clip
+      ctx.beginPath();
+      ctx.arc(SIZE/2, SIZE/2, SIZE/2, 0, Math.PI*2);
+      ctx.clip();
+      ctx.drawImage(img, sx, sy, min, min, 0, 0, SIZE, SIZE);
+      driverPhotoBase64 = canvas.toDataURL('image/jpeg', 0.75);
+
+      // Show preview
+      const prevEl = document.getElementById('dPhotoPreview');
+      prevEl.src = driverPhotoBase64;
+      prevEl.style.display = 'block';
+      document.getElementById('photoPlaceholder').style.display = 'none';
+      document.getElementById('photoUploadLbl').textContent = '✅ Photo selected — tap to change';
+      document.getElementById('photoUploadBox').classList.add('has-photo');
+      document.getElementById('photoStatus').style.display = 'block';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
 function showKycStep() {
   const fn=document.getElementById('dFn').value.trim(),ph=document.getElementById('dPh').value.trim();
   const veh=document.getElementById('dVeh').value.trim().toUpperCase(),pw=document.getElementById('dPw').value;
@@ -1500,6 +1604,7 @@ async function doDriverReg() {
   if(!fn||!ph||!veh||!pw) return showErr('dRegErr','Basic details missing');
   if(ph.length!==10) return showErr('dRegErr','Valid 10-digit mobile required');
   if(pw.length<6) return showErr('dRegErr','Password min 6 chars');
+  if(!driverPhotoBase64) return showErr('dRegErr','📸 Profile photo zaroori hai — please upload karo');
   if(aadhar.length!==12) return showErr('dRegErr','Aadhaar 12 digits required');
   if(pan.length!==10) return showErr('dRegErr','PAN card 10 characters required');
   if(!dl) return showErr('dRegErr','Driving Licence number required');
@@ -1511,6 +1616,7 @@ async function doDriverReg() {
     const ud={
       name:fn, phone:ph, role:'driver', vehicleNo:veh, vehicleType:selVehType,
       rating:5.0, isOnline:false, earnings:0, ridesCompleted:0,
+      photoBase64: driverPhotoBase64,
       kycStatus:'pending',
       kyc:{ aadhaar:aadhar, pan:pan, drivingLicence:dl },
       bank:{ accountHolderName:bankName, accountNumber:accNo, ifsc:ifsc },
@@ -1696,6 +1802,19 @@ async function acceptReq() {
   document.getElementById('navFare').textContent='₹'+(data.fare||'--');
   document.getElementById('navActBtn').textContent='✅ Rider Picked Up';
   document.getElementById('navPickup').style.opacity='1';
+
+  // ✅ Show rider contact info for driver to call
+  document.getElementById('navRiderName').textContent = data.riderName||'Rider';
+  const rPhone = data.riderPhone||'';
+  if(rPhone){
+    document.getElementById('navRiderPhone').textContent = '📞 '+rPhone;
+    document.getElementById('callRiderBtn').href = 'tel:'+rPhone;
+  } else {
+    document.getElementById('navRiderPhone').textContent = 'Phone not available';
+    document.getElementById('callRiderBtn').style.opacity = '0.4';
+    document.getElementById('callRiderBtn').onclick = function(e){ e.preventDefault(); toast('❌ Rider phone number available nahi hai'); return false; };
+  }
+
   showDCard('nav');
 
   if(leafMap&&myLat&&data.pickupLat){
@@ -1925,6 +2044,23 @@ async function confirmBook() {
   }catch(e){toast('❌ Booking failed. Check internet.');goScr('sHome');}
 }
 
+// ✅ Separate async function to fetch and show driver photo safely
+async function fetchAndShowDriverPhoto(driverId) {
+  if(!driverId || !window.FB_READY) return;
+  try {
+    const dSnap = await window.FB.getDoc(window.FB.doc(window.FB.db,'users',driverId));
+    if(dSnap.exists()){
+      const dData = dSnap.data();
+      if(dData.photoBase64){
+        const photoEl = document.getElementById('dAvaPhoto');
+        const emojiEl = document.getElementById('dAvaEmoji');
+        if(photoEl){ photoEl.src = dData.photoBase64; photoEl.style.display = 'block'; }
+        if(emojiEl){ emojiEl.style.display = 'none'; }
+      }
+    }
+  } catch(e) {}
+}
+
 function listenToRide(id) {
   if(rideListener){rideListener();rideListener=null;}
   rideListener=window.FB.onSnapshot(window.FB.doc(window.FB.db,'rides',id), snap=>{
@@ -1934,6 +2070,19 @@ function listenToRide(id) {
       document.getElementById('aDName').textContent=data.driverName||'--';
       document.getElementById('aVeh').textContent=`${data.driverVehicle||'--'} • ${data.cabType||'--'}`;
       document.getElementById('rideOTP').textContent=data.otp||'----';
+
+      // ✅ Store driver phone and show call button
+      const dPhone = data.driverPhone||'';
+      if(dPhone){
+        document.getElementById('aDriverPhoneNum').textContent=dPhone;
+        document.getElementById('aDriverPhone').style.display='block';
+        document.getElementById('callDriverBtn').href='tel:'+dPhone;
+        document.getElementById('callDriverNumLabel').textContent=dPhone;
+      }
+
+      // ✅ Fetch driver photo — called as separate async function (no await here)
+      if(data.driverId) fetchAndShowDriverPhoto(data.driverId);
+
       goScr('sAssigned');
       playDriverAssigned();
       const banner=document.getElementById('assignedBanner');
@@ -2014,6 +2163,34 @@ async function doLogout() {
   }
   if(window.FB_READY){try{await window.FB.signOut(window.FB.auth);}catch(e){}}
   location.reload();
+}
+
+// ═══════════════════════════════════════════════════════
+// 📞 CALL FUNCTIONS
+// ═══════════════════════════════════════════════════════
+function callDriver() {
+  const btn = document.getElementById('callDriverBtn');
+  const phone = btn?.href?.replace('tel:','').replace('#','');
+  if (!phone || phone === '#' || phone === '') {
+    toast('❌ Driver ka phone number available nahi hai');
+    return;
+  }
+  // Animate button
+  btn.style.transform = 'scale(0.96)';
+  setTimeout(() => { btn.style.transform = ''; }, 200);
+  window.location.href = 'tel:' + phone;
+}
+
+function callRider() {
+  const btn = document.getElementById('callRiderBtn');
+  const phone = btn?.href?.replace('tel:','').replace('#','');
+  if (!phone || phone === '#' || phone === '') {
+    toast('❌ Rider ka phone number available nahi hai');
+    return;
+  }
+  btn.style.transform = 'scale(0.96)';
+  setTimeout(() => { btn.style.transform = ''; }, 200);
+  window.location.href = 'tel:' + phone;
 }
 
 function toast(msg) {
