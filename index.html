@@ -4,6 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>JDP CABS — Jagdalpur Live</title>
+
+<!-- ✅ PWA Meta Tags -->
+<meta name="theme-color" content="#f59e0b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="JDP Cabs">
+<meta name="application-name" content="JDP Cabs">
+<meta name="description" content="Jagdalpur ka smartest cab booking — live tracking, instant ride">
+
+<!-- ✅ Icons -->
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<!-- ✅ Security Headers via meta -->
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -304,6 +321,45 @@ body.lm .rpc{background:#fff;}
 .dava-verified{position:relative;flex-shrink:0;}
 .dava-verified::after{content:'✅';position:absolute;bottom:-2px;right:-4px;font-size:.65rem;background:var(--card);border-radius:50%;padding:1px;}
 
+/* ══ NEW FEATURES CSS ══ */
+#histModal,#ratingModal,#receiptModal,#cancelModal,#msgModal,#promoModal{position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.82);display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);}
+#histModal.sh,#ratingModal.sh,#receiptModal.sh,#cancelModal.sh,#msgModal.sh,#promoModal.sh{display:flex;animation:fup .3s ease;}
+.modal-box{background:var(--bg);border-radius:26px 26px 0 0;border-top:1px solid rgba(255,255,255,.1);padding:20px 18px 44px;width:100%;max-width:500px;max-height:88vh;overflow-y:auto;}
+.modal-box::-webkit-scrollbar{display:none;}
+body.lm .modal-box{background:#f0f4fb;}
+.modal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.modal-title{font-family:'Syne',sans-serif;font-weight:900;font-size:1.05rem;}
+.modal-close{width:32px;height:32px;background:rgba(255,255,255,.07);border:none;border-radius:50%;cursor:pointer;font-size:1.1rem;color:var(--muted);}
+.hist-item{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);}
+.hist-item:last-child{border-bottom:none;}
+.hist-icon{width:42px;height:42px;border-radius:50%;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;}
+.hist-info{flex:1;min-width:0;}
+.hist-route{font-weight:700;font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hist-meta{font-size:.67rem;color:var(--muted);margin-top:2px;}
+.hist-fare{font-family:'Syne',sans-serif;font-weight:900;font-size:.95rem;color:var(--yellow);}
+.hist-tag{font-size:.6rem;font-weight:800;padding:2px 8px;border-radius:99px;display:inline-block;margin-top:3px;}
+.hist-tag.done{background:rgba(16,185,129,.12);color:var(--green);}
+.hist-tag.cancel{background:rgba(239,68,68,.12);color:var(--red);}
+.star-big{font-size:2.4rem;cursor:pointer;transition:transform .15s;filter:grayscale(1);opacity:.4;display:inline-block;}
+.star-big.lit{filter:none;opacity:1;}
+.star-big:active{transform:scale(1.3);}
+.rcpt-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:.83rem;}
+.rcpt-row:last-child{border-bottom:none;}
+.fav-row{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px;}
+.fav-chip{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1.5px solid var(--border);border-radius:13px;padding:10px 12px;cursor:pointer;transition:all .2s;}
+.fav-chip.set{border-color:var(--yellow);background:rgba(245,158,11,.07);}
+body.lm .fav-chip{background:#fff;}
+#sosBtn{position:fixed;right:14px;z-index:700;width:50px;height:50px;background:var(--red);border-radius:50%;border:3px solid rgba(255,255,255,.3);cursor:pointer;font-size:1.2rem;display:none;align-items:center;justify-content:center;box-shadow:0 0 0 0 rgba(239,68,68,.7);animation:sosPulse 2s infinite;}
+@keyframes sosPulse{0%{box-shadow:0 0 0 0 rgba(239,68,68,.7)}70%{box-shadow:0 0 0 16px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
+.qmsg-chip{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:99px;padding:7px 13px;font-size:.76rem;font-weight:600;cursor:pointer;margin:4px;}
+.qmsg-chip:active{background:rgba(59,130,246,.15);border-color:var(--blue);}
+.promo-strip{background:linear-gradient(135deg,rgba(139,92,246,.12),rgba(59,130,246,.1));border:1px solid rgba(139,92,246,.3);border-radius:13px;padding:10px 13px;margin-bottom:11px;display:flex;align-items:center;gap:10px;cursor:pointer;}
+.promo-tag{background:var(--purple);color:#fff;border-radius:6px;padding:2px 8px;font-size:.6rem;font-weight:800;}
+.earn-bar-bg{height:8px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;margin-top:4px;}
+.earn-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--yellow),var(--orange));transition:width .8s;}
+.cancel-opt{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;cursor:pointer;margin-bottom:8px;transition:all .2s;}
+.cancel-opt.sel{border-color:var(--red);background:rgba(239,68,68,.07);}
+.wa-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;border-radius:13px;padding:13px;font-weight:800;font-size:.9rem;text-decoration:none;margin-top:9px;}
 /* ══ CALL BUTTON ══ */
 .call-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;border:none;border-radius:13px;padding:13px;font-size:.92rem;font-weight:800;cursor:pointer;font-family:'Syne',sans-serif;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;box-shadow:0 5px 18px rgba(22,163,74,.4);transition:transform .1s,box-shadow .2s;margin-top:8px;text-decoration:none;}
 .call-btn:active{transform:scale(.97);box-shadow:0 2px 8px rgba(22,163,74,.3);}
@@ -464,6 +520,7 @@ body.lm .rpc{background:#fff;}
 <div class="tb" id="rTop" style="display:none">
   <div style="font-family:'Syne',sans-serif;font-weight:900;color:white;font-size:.93rem;letter-spacing:.05em">JDP CABS</div>
   <div style="display:flex;gap:7px">
+    <div class="tbtn" onclick="showHistory()" title="Ride History">📋</div>
     <div class="tbtn" onclick="toggleTheme()">☀️</div>
     <div class="tbtn" id="zoneBtnR" onclick="toggleZone()">📡</div>
     <div class="tbtn" style="color:var(--red);border-color:rgba(239,68,68,.3)" onclick="doLogout()">Exit</div>
@@ -477,6 +534,31 @@ body.lm .rpc{background:#fff;}
   <!-- HOME SCREEN -->
   <div class="scr on" id="sHome">
     <div style="font-size:.68rem;color:var(--muted);font-weight:700;margin-bottom:9px;letter-spacing:.08em;text-transform:uppercase">WHERE TO, <span id="riderName">RIDER</span>?</div>
+
+    <!-- ⭐ FAVORITE LOCATIONS -->
+    <div class="fav-row">
+      <div class="fav-chip" id="favHomeChip" onclick="useFavLoc('home')">
+        <span style="font-size:1.4rem">🏠</span>
+        <div style="min-width:0">
+          <div style="font-size:.6rem;color:var(--muted);font-weight:700;text-transform:uppercase">Home</div>
+          <div style="font-size:.78rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px" id="favHomeLbl">Set location</div>
+        </div>
+      </div>
+      <div class="fav-chip" id="favWorkChip" onclick="useFavLoc('work')">
+        <span style="font-size:1.4rem">💼</span>
+        <div style="min-width:0">
+          <div style="font-size:.6rem;color:var(--muted);font-weight:700;text-transform:uppercase">Work</div>
+          <div style="font-size:.78rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px" id="favWorkLbl">Set location</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🎁 PROMO STRIP -->
+    <div class="promo-strip" id="promoStrip" onclick="openModal('promoModal')" style="display:none">
+      <span class="promo-tag">OFFER</span>
+      <div style="flex:1;font-size:.78rem;font-weight:700" id="promoStripText">🎉 Promo code available!</div>
+      <span style="font-size:.8rem;color:var(--purple)">→</span>
+    </div>
 
     <!-- Nearby drivers indicator -->
     <div id="homeDrvBadge" style="display:none;margin-bottom:10px;"></div>
@@ -627,7 +709,20 @@ body.lm .rpc{background:#fff;}
       <span id="callDriverNumLabel" style="font-size:.72rem;opacity:.85;font-weight:600"></span>
     </a>
 
-    <div class="lbadge b" style="margin-top:8px"><div class="lbd"></div><span id="driverTrackText">🚗 Tracking driver on map...</span></div>
+    <!-- ⏱️ ETA COUNTDOWN -->
+    <div style="background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);border-radius:13px;padding:12px;text-align:center;margin-top:9px">
+      <div style="font-size:.58rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em">Driver Pahunchega</div>
+      <div class="eta-big" id="etaCountdown">--</div>
+      <div style="font-size:.62rem;color:var(--muted);margin-top:1px" id="etaSubText">Calculating ETA...</div>
+    </div>
+
+    <!-- 💬 QUICK ACTIONS -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px">
+      <button class="mbtn" style="margin-top:0;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);color:var(--blue)" onclick="openModal('msgModal')">💬 Message</button>
+      <button class="mbtn" style="margin-top:0;background:rgba(37,211,102,.08);border:1px solid rgba(37,211,102,.25);color:#25d366" onclick="shareTrip()">📤 Share Trip</button>
+    </div>
+
+    <div class="lbadge b" style="margin-top:9px"><div class="lbd"></div><span id="driverTrackText">🚗 Tracking driver on map...</span></div>
     <div class="lbadge g"><div class="lbd"></div><span id="driverDistText">Calculating distance...</span></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <button class="mbtn g" style="margin-top:0" onclick="locateMe()">📍 My Location</button>
@@ -652,10 +747,21 @@ body.lm .rpc{background:#fff;}
 
 <div id="dStats">
   <div class="dsr">
-    <div class="dst"><div class="dsv" id="dsEarn">₹0</div><div class="dsl">Today</div></div>
+    <div class="dst" onclick="showEarningsBreak()" style="cursor:pointer">
+      <div class="dsv" id="dsEarn">₹0</div>
+      <div class="dsl">Today 📊</div>
+    </div>
     <div class="dst"><div class="dsv" id="dsRides">0</div><div class="dsl">Rides</div></div>
     <div class="dst"><div class="dsv" id="dsZone">--</div><div class="dsl">Zone</div></div>
     <div class="dst"><div class="dsv" id="dsTime">0h</div><div class="dsl">Online</div></div>
+  </div>
+  <!-- Earnings progress bar -->
+  <div style="padding:0 14px 10px;display:none" id="earnBarWrap">
+    <div style="display:flex;justify-content:space-between;font-size:.62rem;color:var(--muted);margin-bottom:3px">
+      <span>Daily Progress</span><span id="earnGoalPct">0%</span>
+    </div>
+    <div class="earn-bar-bg"><div class="earn-bar-fill" id="earnBarFill" style="width:0%"></div></div>
+    <div style="font-size:.6rem;color:var(--muted);text-align:right;margin-top:2px">Goal: ₹1000/day</div>
   </div>
 </div>
 
@@ -717,16 +823,20 @@ body.lm .rpc{background:#fff;}
       </div>
     </div>
 
-    <!-- 📞 RIDER INFO + CALL BUTTON -->
-    <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:10px 13px;margin-bottom:9px">
-      <div>
-        <div style="font-size:.6rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em">RIDER</div>
-        <div style="font-weight:800;font-size:.9rem;margin-top:2px" id="navRiderName">--</div>
-        <div style="font-size:.72rem;color:var(--muted);margin-top:1px" id="navRiderPhone">--</div>
+    <!-- 📞 RIDER INFO + CALL BUTTON — Always visible -->
+    <div style="background:linear-gradient(135deg,rgba(16,185,129,.12),rgba(16,185,129,.06));border:1.5px solid rgba(16,185,129,.35);border-radius:13px;padding:11px 13px;margin-bottom:9px;">
+      <div style="font-size:.58rem;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">📞 Rider Contact</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div>
+          <div style="font-weight:800;font-size:.92rem" id="navRiderName">--</div>
+          <div style="font-size:.74rem;color:var(--muted);margin-top:2px" id="navRiderPhone">Loading...</div>
+        </div>
+        <a id="callRiderBtn" href="#" onclick="callRider();return false;"
+           style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:99px;padding:10px 18px;font-size:.82rem;font-weight:800;text-decoration:none;box-shadow:0 4px 14px rgba(22,163,74,.5);flex-shrink:0;cursor:pointer;">
+          <span style="display:inline-block;animation:callring .6s infinite alternate">📞</span>
+          Call Rider
+        </a>
       </div>
-      <a id="callRiderBtn" href="#" class="call-btn-mini" onclick="callRider();return false;">
-        <span class="call-ring">📞</span> Call Rider
-      </a>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:0">
@@ -746,7 +856,7 @@ body.lm .rpc{background:#fff;}
         <circle class="rtcbg" cx="30" cy="30" r="26"/>
         <circle class="rtc" id="tCircle" cx="30" cy="30" r="26"/>
       </svg>
-      <div class="rtn" id="tNum">20</div>
+      <div class="rtn" id="tNum">60</div>
     </div>
     <div style="display:flex;gap:7px;margin-bottom:3px">
       <div style="flex:1;text-align:center;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:9px">
@@ -761,6 +871,10 @@ body.lm .rpc{background:#fff;}
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem" id="reqPickupDist">--km</div>
         <div style="font-size:.58rem;color:var(--muted);font-weight:600;margin-top:1px">PICKUP</div>
       </div>
+      <div style="flex:1;text-align:center;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:9px">
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem" id="reqETA">--m</div>
+        <div style="font-size:.58rem;color:var(--muted);font-weight:600;margin-top:1px">ETA</div>
+      </div>
     </div>
     <div class="trip-row">
       <div class="tdots"><div class="tdg"></div><div class="tdl"></div><div class="tdr"></div></div>
@@ -772,6 +886,130 @@ body.lm .rpc{background:#fff;}
     <div class="req-btns">
       <button class="mbtn ro" style="margin-top:0" onclick="declineReq()">Decline</button>
       <button class="mbtn g" style="margin-top:0" onclick="acceptReq()">✅ Accept</button>
+    </div>
+  </div>
+</div>
+
+<!-- 🆘 SOS BUTTON (visible during active ride) -->
+<button id="sosBtn" onclick="panicSOS()" title="Emergency SOS">🆘</button>
+
+<!-- ══ MODALS ══ -->
+
+<!-- RIDE HISTORY MODAL -->
+<div id="histModal" onclick="if(event.target===this)closeModal('histModal')">
+  <div class="modal-box">
+    <div class="modal-hd">
+      <div class="modal-title">📋 Ride History</div>
+      <button class="modal-close" onclick="closeModal('histModal')">✕</button>
+    </div>
+    <div id="histList"><div style="text-align:center;color:var(--muted);padding:30px">Loading...</div></div>
+  </div>
+</div>
+
+<!-- RATING MODAL -->
+<div id="ratingModal" onclick="if(event.target===this)closeModal('ratingModal')">
+  <div class="modal-box">
+    <div class="modal-hd">
+      <div class="modal-title">⭐ Rate Your Ride</div>
+    </div>
+    <div style="text-align:center">
+      <div id="rateDriverName" style="font-size:.85rem;color:var(--muted);margin-bottom:4px">Your Driver</div>
+      <div id="rateDriverPhoto" style="font-size:3rem;margin-bottom:8px">👨🏽‍✈️</div>
+      <div style="font-size:.75rem;color:var(--muted);margin-bottom:4px">Ride Experience Kaisa Tha?</div>
+      <div class="stars-wrap" id="starsWrap">
+        <span class="star-big" onclick="setRating(1)">★</span>
+        <span class="star-big" onclick="setRating(2)">★</span>
+        <span class="star-big" onclick="setRating(3)">★</span>
+        <span class="star-big" onclick="setRating(4)">★</span>
+        <span class="star-big" onclick="setRating(5)">★</span>
+      </div>
+      <div id="ratingLabel" style="font-size:.8rem;color:var(--muted);min-height:20px;margin-bottom:12px"></div>
+      <textarea id="ratingComment" class="fi" placeholder="Comment (optional)..." style="height:70px;resize:none;margin-bottom:12px"></textarea>
+      <button class="mbtn y" style="margin-top:0" onclick="submitRating()">✅ Submit Rating</button>
+      <button class="mbtn" style="margin-top:8px;background:transparent;color:var(--muted);border:1px solid var(--border)" onclick="closeModal('ratingModal')">Skip</button>
+    </div>
+  </div>
+</div>
+
+<!-- RECEIPT MODAL -->
+<div id="receiptModal" onclick="if(event.target===this)closeModal('receiptModal')">
+  <div class="modal-box">
+    <div class="modal-hd">
+      <div class="modal-title">🧾 Ride Receipt</div>
+      <button class="modal-close" onclick="closeModal('receiptModal')">✕</button>
+    </div>
+    <div style="text-align:center;margin-bottom:14px">
+      <div style="font-size:.65rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em">JDP CABS — JAGDALPUR</div>
+      <div style="font-size:.7rem;color:var(--muted);margin-top:2px" id="rcptDate">--</div>
+    </div>
+    <div id="rcptBody"></div>
+    <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.6rem;color:var(--green);text-align:center;padding:14px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin:8px 0" id="rcptTotal">₹--</div>
+    <div id="rcptShareBtns" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<!-- CANCEL REASON MODAL -->
+<div id="cancelModal" onclick="if(event.target===this)closeModal('cancelModal')">
+  <div class="modal-box">
+    <div class="modal-hd">
+      <div class="modal-title">❌ Cancel Ride</div>
+      <button class="modal-close" onclick="closeModal('cancelModal')">✕</button>
+    </div>
+    <div style="font-size:.8rem;color:var(--muted);margin-bottom:14px">Cancel karne ki wajah batao:</div>
+    <div id="cancelReasonList">
+      <div class="cancel-opt" onclick="selectCancelReason(this,'Driver bahut door hai')">🚗 Driver bahut door hai</div>
+      <div class="cancel-opt" onclick="selectCancelReason(this,'Bahut zyada wait hua')">⏰ Bahut zyada wait hua</div>
+      <div class="cancel-opt" onclick="selectCancelReason(this,'Plans change ho gaye')">🔄 Plans change ho gaye</div>
+      <div class="cancel-opt" onclick="selectCancelReason(this,'Galat location select hui')">📍 Galat location select hui</div>
+      <div class="cancel-opt" onclick="selectCancelReason(this,'Doosra cab mil gaya')">🚕 Doosra cab mil gaya</div>
+      <div class="cancel-opt" onclick="selectCancelReason(this,'Koi aur karan')">💬 Koi aur karan</div>
+    </div>
+    <button class="mbtn ro" style="margin-top:8px" id="confirmCancelBtn" onclick="confirmCancelRide()" disabled>Cancel Ride →</button>
+  </div>
+</div>
+
+<!-- QUICK MESSAGES MODAL -->
+<div id="msgModal" onclick="if(event.target===this)closeModal('msgModal')">
+  <div class="modal-box">
+    <div class="modal-hd">
+      <div class="modal-title">💬 Quick Message</div>
+      <button class="modal-close" onclick="closeModal('msgModal')">✕</button>
+    </div>
+    <div style="font-size:.8rem;color:var(--muted);margin-bottom:12px">Driver ko quick message bhejo:</div>
+    <div id="qmsgs">
+      <div class="qmsg-chip" onclick="sendQuickMsg('📍 Main pickup point par hoon')">📍 Main pickup par hoon</div>
+      <div class="qmsg-chip" onclick="sendQuickMsg('⏳ 2 minute aur wait karo please')">⏳ 2 min wait karo</div>
+      <div class="qmsg-chip" onclick="sendQuickMsg('🔴 Gate ke bahar khada hoon')">🔴 Gate ke bahar hoon</div>
+      <div class="qmsg-chip" onclick="sendQuickMsg('📞 Please call karo')">📞 Call karo</div>
+      <div class="qmsg-chip" onclick="sendQuickMsg('✅ Aa raha hoon 1 min mein')">✅ 1 min mein aa raha hoon</div>
+      <div class="qmsg-chip" onclick="sendQuickMsg('🏠 Building ke andar aao')">🏠 Andar aao</div>
+    </div>
+    <div style="margin-top:14px">
+      <textarea id="customMsgInput" class="fi" placeholder="Ya apna message type karo..." style="height:60px;resize:none;margin-bottom:9px"></textarea>
+      <button class="mbtn b" style="margin-top:0" onclick="sendCustomMsg()">📨 Send Message</button>
+    </div>
+    <div id="msgSentConfirm" style="display:none;text-align:center;color:var(--green);font-size:.8rem;margin-top:9px">✅ Message sent!</div>
+  </div>
+</div>
+
+<!-- PROMO CODE MODAL -->
+<div id="promoModal" onclick="if(event.target===this)closeModal('promoModal')">
+  <div class="modal-box">
+    <div class="modal-hd">
+      <div class="modal-title">🎁 Promo Code</div>
+      <button class="modal-close" onclick="closeModal('promoModal')">✕</button>
+    </div>
+    <input type="text" class="fi" id="promoInput" placeholder="Code daalo (e.g. JDP50)" style="text-transform:uppercase;margin-bottom:10px;letter-spacing:.08em;font-weight:700;" oninput="this.value=this.value.toUpperCase()">
+    <button class="mbtn y" style="margin-top:0" onclick="applyPromo()">✅ Apply</button>
+    <div id="promoResult" style="margin-top:10px;text-align:center;font-size:.82rem"></div>
+    <div style="margin-top:16px;font-size:.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Available Offers</div>
+    <div onclick="document.getElementById('promoInput').value='JDP50';applyPromo()" style="background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:12px;padding:10px 13px;margin-bottom:8px;cursor:pointer">
+      <div style="font-weight:800;font-size:.88rem">🎉 JDP50 — ₹50 Off</div>
+      <div style="font-size:.7rem;color:var(--muted);margin-top:2px">Pehli ride par ₹50 discount</div>
+    </div>
+    <div onclick="document.getElementById('promoInput').value='FREE1';applyPromo()" style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:12px;padding:10px 13px;cursor:pointer">
+      <div style="font-weight:800;font-size:.88rem">🚖 FREE1 — Pehli Ride Free</div>
+      <div style="font-size:.7rem;color:var(--muted);margin-top:2px">Max ₹100 tak free (New users only)</div>
     </div>
   </div>
 </div>
@@ -1647,6 +1885,7 @@ function launchRider() {
   document.getElementById('mapStats').style.display='block';
   document.getElementById('zoneLegend').style.bottom='380px';
   if(CU) document.getElementById('riderName').textContent=CU.name?.toUpperCase()||'RIDER';
+  loadFavChips();
 }
 function launchDriver() {
   document.getElementById('dTopBar').style.display='block';
@@ -1753,7 +1992,8 @@ function showReqPopup(data) {
     document.getElementById('reqDistBadge').innerHTML=`<span class="dist-badge">📍 Rider is ${pickupDist} from you</span>`;
   }
   document.getElementById('reqPickupDist').textContent=pickupDist;
-  document.getElementById('reqETA') && (document.getElementById('reqETA').textContent=(data.etaMin||'--')+'min');
+  const reqETAEl = document.getElementById('reqETA');
+  if(reqETAEl) reqETAEl.textContent = (data.etaMin||'--')+'m';
   document.getElementById('reqPopup').classList.add('sh');
 
   reqTimer=60;
@@ -1804,15 +2044,30 @@ async function acceptReq() {
   document.getElementById('navPickup').style.opacity='1';
 
   // ✅ Show rider contact info for driver to call
-  document.getElementById('navRiderName').textContent = data.riderName||'Rider';
-  const rPhone = data.riderPhone||'';
-  if(rPhone){
-    document.getElementById('navRiderPhone').textContent = '📞 '+rPhone;
-    document.getElementById('callRiderBtn').href = 'tel:'+rPhone;
+  const riderNameEl = document.getElementById('navRiderName');
+  const riderPhoneEl = document.getElementById('navRiderPhone');
+  const callBtn = document.getElementById('callRiderBtn');
+
+  if(riderNameEl) riderNameEl.textContent = data.riderName || 'Rider';
+
+  // riderPhone — try multiple fields
+  const rPhone = data.riderPhone || data.rPhone || data.phone || '';
+
+  if(rPhone && rPhone.length >= 10){
+    if(riderPhoneEl) riderPhoneEl.textContent = '📞 ' + rPhone;
+    if(callBtn){
+      callBtn.href = 'tel:' + rPhone;
+      callBtn.style.opacity = '1';
+      callBtn.style.pointerEvents = 'auto';
+    }
+    toast('🚗 Ride accepted! Rider: ' + (data.riderName||'') + ' · 📞 ' + rPhone);
   } else {
-    document.getElementById('navRiderPhone').textContent = 'Phone not available';
-    document.getElementById('callRiderBtn').style.opacity = '0.4';
-    document.getElementById('callRiderBtn').onclick = function(e){ e.preventDefault(); toast('❌ Rider phone number available nahi hai'); return false; };
+    if(riderPhoneEl) riderPhoneEl.textContent = 'Phone number nahi mila';
+    if(callBtn){
+      callBtn.style.opacity = '0.5';
+      callBtn.href = '#';
+    }
+    toast('🚗 Ride accepted! (Rider phone unavailable)');
   }
 
   showDCard('nav');
@@ -2023,8 +2278,14 @@ async function confirmBook() {
     return;
   }
 
+  // Get rider phone — try all possible fields
+  const riderPhoneVal = CU?.phone || CU?.mobile || CU?.phoneNumber || '';
+
   const rideData={
-    riderId:CU?.uid||'guest',riderName:CU?.name||'Rider',riderPhone:CU?.phone||'',
+    riderId:CU?.uid||'guest',
+    riderName:CU?.name||'Rider',
+    riderPhone: riderPhoneVal,
+    phone: riderPhoneVal,   // extra field as backup
     pickup:pickAddr||'GPS Location',pickupLat:pickLat||JDPC.lat,pickupLng:pickLng||JDPC.lng,
     drop:document.getElementById('dropIn').value.trim(),
     cabType,fare:cabFare,distanceKM:distKM,
@@ -2090,9 +2351,17 @@ function listenToRide(id) {
       setTimeout(()=>banner.classList.remove('assign-bounce'),700);
       toast('🎉 Driver accepted your ride!');
       if(data.driverId) startDriverTracking(data.driverId);
+      // ✅ Show SOS button during ride
+      showSOS(470);
+      // ✅ Start ETA countdown
+      if(data.etaMin) startEtaTimer(data.etaMin);
     }
     if(data.status==='ongoing'){
       document.getElementById('driverTrackText').textContent='🚗 Driver heading to your drop';
+      // ✅ Rider picked up — update ETA for drop
+      if(data.dropEtaMin) startEtaTimer(data.dropEtaMin);
+      const etaSub = document.getElementById('etaSubText');
+      if(etaSub) etaSub.textContent = 'Drop tak ka ETA';
     }
     if(data.status==='completed'){
       if(rideListener){rideListener();rideListener=null;}
@@ -2100,12 +2369,19 @@ function listenToRide(id) {
       if(driverMk&&leafMap){leafMap.removeLayer(driverMk);driverMk=null;}
       clearRoute();
       document.getElementById('dropIn').value='';
+      hideSOS();
+      stopEtaTimer();
       goScr('sHome');
-      toast('🎉 Ride complete! Thank you for choosing JDP Cabs!');
+      toast('🎉 Ride complete! Shukriya JDP Cabs!');
+      // ✅ Show receipt then rating
+      const rData = {...data, rideId: id, completedAt: data.completedAt || {toDate:()=>new Date()}};
+      setTimeout(() => showReceipt(rData), 600);
+      setTimeout(() => showRatingModal(id, data.driverName, data.driverId), 3000);
       rideDocId=null;
     }
     if(data.status==='cancelled_driver'){
       if(rideListener){rideListener();rideListener=null;}
+      hideSOS(); stopEtaTimer();
       goScr('sHome');
       toast('❌ Driver cancelled. Please rebook.');
       rideDocId=null;
@@ -2122,19 +2398,7 @@ async function cancelBook() {
   document.getElementById('nearbyCount').textContent='--';
   goScr('sHome');toast('Booking cancelled');
 }
-
-async function cancelRide() {
-  if(rideDocId&&window.FB_READY){
-    try{await window.FB.updateDoc(window.FB.doc(window.FB.db,'rides',rideDocId),{status:'cancelled',cancelledAt:window.FB.serverTimestamp()});}catch(e){}
-  }
-  if(rideListener){rideListener();rideListener=null;}
-  if(driverLocListener){driverLocListener();driverLocListener=null;}
-  if(driverMk&&leafMap){leafMap.removeLayer(driverMk);driverMk=null;}
-  if(dropMk&&leafMap){leafMap.removeLayer(dropMk);dropMk=null;}
-  clearRoute();
-  document.getElementById('dropIn').value='';
-  rideDocId=null;goScr('sHome');toast('Ride cancelled');
-}
+// NOTE: cancelRide() is now defined in new features section above (with reason dialog)
 
 // THEME
 function toggleTheme() {
@@ -2183,14 +2447,329 @@ function callDriver() {
 
 function callRider() {
   const btn = document.getElementById('callRiderBtn');
-  const phone = btn?.href?.replace('tel:','').replace('#','');
+  const href = btn?.getAttribute('href') || '';
+  const phone = href.replace('tel:','').trim();
+
   if (!phone || phone === '#' || phone === '') {
-    toast('❌ Rider ka phone number available nahi hai');
+    toast('❌ Rider ka phone number nahi mila — ride data mein phone save nahi tha');
     return;
   }
-  btn.style.transform = 'scale(0.96)';
-  setTimeout(() => { btn.style.transform = ''; }, 200);
+  // Visual feedback
+  if(btn){ btn.style.transform='scale(0.95)'; setTimeout(()=>btn.style.transform='',200); }
   window.location.href = 'tel:' + phone;
+}
+
+// ═══════════════════════════════════════════════════════
+// 🆕 NEW FEATURES — Uber se Better!
+// ═══════════════════════════════════════════════════════
+
+// ── Modal helpers ──
+function openModal(id){ document.getElementById(id).classList.add('sh'); }
+function closeModal(id){ document.getElementById(id).classList.remove('sh'); }
+
+// ── ⭐ RIDE HISTORY ──
+async function showHistory() {
+  openModal('histModal');
+  const listEl = document.getElementById('histList');
+  listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px">Loading...</div>';
+  if(!window.FB_READY || !CU) {
+    listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px">Login required</div>';
+    return;
+  }
+  try {
+    const q = window.FB.query(
+      window.FB.collection(window.FB.db,'rides'),
+      window.FB.where('riderId','==',CU.uid),
+      window.FB.orderBy('createdAt','desc'),
+      window.FB.limit(20)
+    );
+    const snap = await window.FB.getDocs(q);
+    if(snap.empty){ listEl.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)">🚖 Koi rides nahi mili abhi tak</div>'; return; }
+    let html = '';
+    snap.forEach(d => {
+      const r = d.data();
+      const ts = r.createdAt?.toDate ? r.createdAt.toDate() : new Date();
+      const dateStr = ts.toLocaleDateString('hi-IN',{day:'numeric',month:'short',year:'numeric'});
+      const done = r.status === 'completed';
+      html += `<div class="hist-item">
+        <div class="hist-icon">${r.cabType?.includes('Mini') ? '🚗' : '🛺'}</div>
+        <div class="hist-info">
+          <div class="hist-route">${r.pickup||'?'} → ${r.drop||'?'}</div>
+          <div class="hist-meta">${dateStr} · ${r.distanceKM||'?'}km · ${r.driverName||'Driver'}</div>
+          <span class="hist-tag ${done?'done':'cancel'}">${done?'✅ Completed':'❌ Cancelled'}</span>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div class="hist-fare">₹${r.fare||'--'}</div>
+          ${done ? `<div style="font-size:.62rem;color:var(--muted);margin-top:2px;cursor:pointer" onclick="showReceiptFromHistory(${JSON.stringify(r).replace(/"/g,'&quot;')})">🧾 Receipt</div>` : ''}
+        </div>
+      </div>`;
+    });
+    listEl.innerHTML = html;
+  } catch(e) { listEl.innerHTML = `<div style="color:var(--red);padding:12px">❌ Error: ${e.message}</div>`; }
+}
+
+// ── ⭐ STAR RATING ──
+let selectedRating = 0, lastRideData = null;
+const ratingLabels = ['','😞 Bahut Bura','😐 Theek Tha','🙂 Accha Tha','😊 Bahut Accha','🤩 Zabardast!'];
+function setRating(n) {
+  selectedRating = n;
+  document.querySelectorAll('.star-big').forEach((s,i) => {
+    s.classList.toggle('lit', i < n);
+    s.style.transform = i < n ? 'scale(1.1)' : 'scale(1)';
+  });
+  document.getElementById('ratingLabel').textContent = ratingLabels[n];
+  document.getElementById('ratingLabel').style.color = n>=4 ? 'var(--green)' : n>=3 ? 'var(--yellow)' : 'var(--red)';
+}
+async function submitRating() {
+  if(!selectedRating){ toast('⭐ Pehle rating do!'); return; }
+  const comment = document.getElementById('ratingComment').value.trim();
+  if(window.FB_READY && lastRideData?.rideId) {
+    try {
+      await window.FB.updateDoc(window.FB.doc(window.FB.db,'rides',lastRideData.rideId),{
+        riderRating: selectedRating, riderComment: comment, ratedAt: window.FB.serverTimestamp()
+      });
+      // Update driver avg rating
+      if(lastRideData.driverId) {
+        const dSnap = await window.FB.getDoc(window.FB.doc(window.FB.db,'users',lastRideData.driverId));
+        if(dSnap.exists()){
+          const ddata = dSnap.data();
+          const oldRating = ddata.rating || 5.0;
+          const totalRides = ddata.ridesCompleted || 1;
+          const newRating = parseFloat(((oldRating * (totalRides-1) + selectedRating) / totalRides).toFixed(1));
+          await window.FB.updateDoc(window.FB.doc(window.FB.db,'users',lastRideData.driverId),{rating: newRating});
+        }
+      }
+    } catch(e) {}
+  }
+  closeModal('ratingModal');
+  toast('🙏 Rating submit ho gaya! Shukriya!');
+  selectedRating = 0;
+  document.querySelectorAll('.star-big').forEach(s => { s.classList.remove('lit'); s.style.transform=''; });
+}
+function showRatingModal(rideId, driverName, driverId) {
+  lastRideData = {rideId, driverName, driverId};
+  document.getElementById('rateDriverName').textContent = driverName || 'Driver';
+  selectedRating = 0;
+  document.querySelectorAll('.star-big').forEach(s => { s.classList.remove('lit'); s.style.transform=''; });
+  document.getElementById('ratingLabel').textContent = '';
+  document.getElementById('ratingComment').value = '';
+  openModal('ratingModal');
+}
+
+// ── 🧾 RECEIPT ──
+let lastReceiptData = null;
+function showReceipt(data) {
+  lastReceiptData = data;
+  const ts = data.completedAt?.toDate ? data.completedAt.toDate() : new Date();
+  document.getElementById('rcptDate').textContent = ts.toLocaleString('hi-IN');
+  document.getElementById('rcptTotal').textContent = `₹${data.fare || '--'}`;
+  const discount = data.promoDiscount || 0;
+  document.getElementById('rcptBody').innerHTML = `
+    <div class="rcpt-row"><span style="color:var(--muted)">Pickup</span><span style="text-align:right;max-width:60%">${data.pickup||'--'}</span></div>
+    <div class="rcpt-row"><span style="color:var(--muted)">Drop</span><span style="text-align:right;max-width:60%">${data.drop||'--'}</span></div>
+    <div class="rcpt-row"><span style="color:var(--muted)">Distance</span><span>${data.distanceKM||'--'} km</span></div>
+    <div class="rcpt-row"><span style="color:var(--muted)">Vehicle</span><span>${data.cabType||'--'}</span></div>
+    <div class="rcpt-row"><span style="color:var(--muted)">Driver</span><span>${data.driverName||'--'}</span></div>
+    <div class="rcpt-row"><span style="color:var(--muted)">Base Fare</span><span>₹${data.fare||'--'}</span></div>
+    ${discount ? `<div class="rcpt-row"><span style="color:var(--green)">Promo Discount</span><span style="color:var(--green)">-₹${discount}</span></div>` : ''}
+  `;
+  document.getElementById('rcptShareBtns').innerHTML = `
+    <a class="wa-btn" href="https://wa.me/?text=${encodeURIComponent(`JDP CABS Receipt 🚖\nPickup: ${data.pickup}\nDrop: ${data.drop}\nFare: ₹${data.fare}\nDate: ${ts.toLocaleDateString()}\n\nBook: jdpcabs.web.app`)}" target="_blank">
+      <span>📤</span> WhatsApp par Share karo
+    </a>`;
+  openModal('receiptModal');
+}
+function showReceiptFromHistory(data) {
+  closeModal('histModal');
+  setTimeout(() => showReceipt(data), 300);
+}
+
+// ── 📤 SHARE TRIP ──
+function shareTrip() {
+  const driverName = document.getElementById('aDName').textContent || 'Driver';
+  const otp = document.getElementById('rideOTP').textContent || '----';
+  const pickup = document.getElementById('pAddr')?.textContent || 'Current Location';
+  const drop = document.getElementById('dropIn')?.value || 'Drop Location';
+  const msg = `🚖 Meri JDP Cab ke baare mein:\n👨‍✈️ Driver: ${driverName}\n📍 Pickup: ${pickup}\n🏁 Drop: ${drop}\n🔐 OTP: ${otp}\n\nLive Track: jdpcabs.web.app`;
+  const waUrl = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(waUrl, '_blank');
+}
+
+// ── 🏠 FAVORITE LOCATIONS ──
+let favLocations = JSON.parse(localStorage.getItem('jdpFavLocs') || '{}');
+function loadFavChips() {
+  if(favLocations.home) {
+    document.getElementById('favHomeLbl').textContent = favLocations.home.name;
+    document.getElementById('favHomeChip').classList.add('set');
+  }
+  if(favLocations.work) {
+    document.getElementById('favWorkLbl').textContent = favLocations.work.name;
+    document.getElementById('favWorkChip').classList.add('set');
+  }
+  // Show promo strip for new users
+  const promoSeen = localStorage.getItem('jdpPromoSeen');
+  if(!promoSeen) {
+    document.getElementById('promoStrip').style.display = 'flex';
+    document.getElementById('promoStripText').textContent = '🎉 JDP50 — Pehli ride ₹50 off!';
+  }
+}
+function useFavLoc(type) {
+  const fav = favLocations[type];
+  if(fav) {
+    document.getElementById('dropIn').value = fav.name;
+    toast(`${type==='home'?'🏠':'💼'} ${fav.name} set as drop`);
+    calcFare();
+  } else {
+    const addr = prompt(`${type==='home'?'🏠 Home':'💼 Work'} address daalo:`);
+    if(addr && addr.trim()) {
+      favLocations[type] = { name: addr.trim() };
+      localStorage.setItem('jdpFavLocs', JSON.stringify(favLocations));
+      document.getElementById(`fav${type==='home'?'Home':'Work'}Lbl`).textContent = addr.trim();
+      document.getElementById(`fav${type==='home'?'Home':'Work'}Chip`).classList.add('set');
+      toast(`✅ ${type==='home'?'Home':'Work'} save ho gaya!`);
+    }
+  }
+}
+
+// ── 💬 QUICK MESSAGES ──
+async function sendQuickMsg(msg) {
+  if(!rideDocId || !window.FB_READY){ toast('❌ No active ride'); return; }
+  try {
+    await window.FB.updateDoc(window.FB.doc(window.FB.db,'rides',rideDocId),{
+      lastMsg: msg, lastMsgBy: 'rider', lastMsgAt: window.FB.serverTimestamp()
+    });
+    document.getElementById('msgSentConfirm').style.display = 'block';
+    setTimeout(() => {
+      document.getElementById('msgSentConfirm').style.display = 'none';
+      closeModal('msgModal');
+    }, 1500);
+  } catch(e) { toast('❌ Message send nahi hua'); }
+}
+async function sendCustomMsg() {
+  const msg = document.getElementById('customMsgInput').value.trim();
+  if(!msg){ toast('Message khaali hai'); return; }
+  await sendQuickMsg(msg);
+  document.getElementById('customMsgInput').value = '';
+}
+
+// ── 🎁 PROMO CODE ──
+const PROMO_CODES = { 'JDP50': {discount:50, desc:'₹50 off'}, 'FREE1': {discount:100, desc:'₹100 off (pehli ride)'}, 'BASTAR10': {discount:30, desc:'₹30 off'} };
+let appliedPromo = null;
+function applyPromo() {
+  const code = document.getElementById('promoInput').value.trim().toUpperCase();
+  const resultEl = document.getElementById('promoResult');
+  if(!code){ resultEl.innerHTML = '<span style="color:var(--red)">Code daalo pehle</span>'; return; }
+  if(PROMO_CODES[code]) {
+    appliedPromo = { code, ...PROMO_CODES[code] };
+    resultEl.innerHTML = `<span style="color:var(--green)">✅ "${code}" apply hua! ${PROMO_CODES[code].desc}</span>`;
+    localStorage.setItem('jdpPromoSeen','1');
+    document.getElementById('promoStrip').style.display = 'none';
+    toast(`🎉 Promo "${code}" apply hua!`);
+    setTimeout(() => closeModal('promoModal'), 1200);
+  } else {
+    resultEl.innerHTML = '<span style="color:var(--red)">❌ Invalid code</span>';
+    appliedPromo = null;
+  }
+}
+
+// ── 📊 EARNINGS BREAKDOWN ──
+function showEarningsBreak() {
+  const wrap = document.getElementById('earnBarWrap');
+  const isVisible = wrap.style.display !== 'none';
+  wrap.style.display = isVisible ? 'none' : 'block';
+  if(!isVisible) {
+    const pct = Math.min(100, Math.round((dEarnings / 1000) * 100));
+    document.getElementById('earnGoalPct').textContent = pct + '%';
+    document.getElementById('earnBarFill').style.width = pct + '%';
+  }
+}
+
+// ── ❌ CANCEL REASON ──
+let selectedCancelReason = '';
+function cancelRide() {
+  if(document.getElementById('sAssigned').classList.contains('on')) {
+    openModal('cancelModal');
+  } else {
+    doCancelRide('');
+  }
+}
+function selectCancelReason(el, reason) {
+  document.querySelectorAll('.cancel-opt').forEach(o => o.classList.remove('sel'));
+  el.classList.add('sel');
+  selectedCancelReason = reason;
+  document.getElementById('confirmCancelBtn').disabled = false;
+  document.getElementById('confirmCancelBtn').style.opacity = '1';
+}
+async function confirmCancelRide() {
+  closeModal('cancelModal');
+  await doCancelRide(selectedCancelReason);
+  selectedCancelReason = '';
+}
+async function doCancelRide(reason) {
+  if(rideDocId && window.FB_READY){
+    try { await window.FB.updateDoc(window.FB.doc(window.FB.db,'rides',rideDocId),{
+      status:'cancelled', cancelReason: reason, cancelledAt: window.FB.serverTimestamp()
+    }); } catch(e) {}
+  }
+  if(rideListener){ rideListener(); rideListener=null; }
+  clearRoute(); rideDocId=null;
+  hideSOS();
+  stopEtaTimer();
+  goScr('sHome');
+  toast('Ride cancelled' + (reason ? `: ${reason}` : ''));
+}
+
+// ── 🆘 SOS PANIC BUTTON ──
+function showSOS(bottom) {
+  const btn = document.getElementById('sosBtn');
+  btn.style.display = 'flex';
+  btn.style.bottom = (bottom || 420) + 'px';
+}
+function hideSOS() {
+  document.getElementById('sosBtn').style.display = 'none';
+}
+function panicSOS() {
+  const driverName = document.getElementById('aDName')?.textContent || 'Unknown';
+  const vehicle = document.getElementById('aVeh')?.textContent || 'Unknown';
+  const otp = document.getElementById('rideOTP')?.textContent || '----';
+  const myLoc = myLat ? `${myLat.toFixed(5)},${myLng.toFixed(5)}` : 'Unknown';
+  if(confirm('🆘 SOS — Emergency hai kya?\n\nYeh message family ko WhatsApp par jayega:\n- Driver ka naam\n- Gaadi number\n- Aapki location\n\nContinue?')) {
+    const msg = `🆘 EMERGENCY - JDP CABS\n\nMujhe help chahiye!\nDriver: ${driverName}\nGaadi: ${vehicle}\nOTP: ${otp}\nLocation: https://maps.google.com/?q=${myLoc}\nTime: ${new Date().toLocaleString('hi-IN')}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');
+    toast('🆘 SOS WhatsApp message tayaar!');
+  }
+}
+
+// ── ⏱️ ETA LIVE COUNTDOWN ──
+let etaTimerInterval = null, etaEndTime = null;
+function startEtaTimer(minutes) {
+  stopEtaTimer();
+  const etaEl = document.getElementById('etaCountdown');
+  const subEl = document.getElementById('etaSubText');
+  if(!etaEl) return;
+  etaEndTime = Date.now() + minutes * 60000;
+  function tick() {
+    const left = etaEndTime - Date.now();
+    if(left <= 0) {
+      etaEl.textContent = '🚗 Yahan hai!';
+      subEl.textContent = 'Driver pahunch gaya!';
+      clearInterval(etaTimerInterval);
+      return;
+    }
+    const m = Math.floor(left / 60000);
+    const s = Math.floor((left % 60000) / 1000);
+    etaEl.textContent = m > 0 ? `${m}:${s.toString().padStart(2,'0')}` : `${s}s`;
+    subEl.textContent = m > 0 ? `${m} minute ${s} second remaining` : `${s} seconds remaining`;
+  }
+  tick();
+  etaTimerInterval = setInterval(tick, 1000);
+}
+function stopEtaTimer() {
+  if(etaTimerInterval){ clearInterval(etaTimerInterval); etaTimerInterval=null; }
+  const el = document.getElementById('etaCountdown');
+  if(el) el.textContent = '--';
+  const sub = document.getElementById('etaSubText');
+  if(sub) sub.textContent = 'Calculating ETA...';
 }
 
 function toast(msg) {
@@ -2199,6 +2778,68 @@ function toast(msg) {
   document.body.appendChild(el);
   setTimeout(()=>el.remove(),3200);
 }
+</script>
+
+<!-- ✅ PWA: Inline Manifest + Service Worker (works as local file too) -->
+<script>
+(function(){
+  try {
+    // ── Inline Manifest via Blob URL ──
+    const manifest = {
+      name: "JDP CABS \u2014 Jagdalpur",
+      short_name: "JDP Cabs",
+      description: "Jagdalpur ka smartest cab booking app",
+      start_url: "./",
+      display: "standalone",
+      orientation: "portrait",
+      background_color: "#07090f",
+      theme_color: "#f59e0b",
+      icons: [
+        { src: "icon-192.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
+        { src: "icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
+      ]
+    };
+    const mBlob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+    const mUrl  = URL.createObjectURL(mBlob);
+    const mLink = document.createElement('link');
+    mLink.rel = 'manifest'; mLink.href = mUrl;
+    document.head.appendChild(mLink);
+  } catch(e) {}
+
+  try {
+    // ── Inline Service Worker via Blob URL ──
+    if ('serviceWorker' in navigator) {
+      const swCode = `
+const CACHE='jdpcabs-v1';
+self.addEventListener('install', e => { self.skipWaiting(); });
+self.addEventListener('activate', e => { self.clients.claim(); });
+self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
+  const skip = ['firebase','firebaseapp','googleapis','nominatim','osrm',
+                 'openstreetmap','cartocdn','gstatic','unsplash','fonts'];
+  if (skip.some(d => url.hostname.includes(d))) return;
+  if (e.request.method !== 'GET') return;
+  e.respondWith(
+    caches.match(e.request).then(cached => {
+      if (cached) return cached;
+      return fetch(e.request).then(res => {
+        if (res && res.status === 200) {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+        }
+        return res;
+      }).catch(() => cached);
+    })
+  );
+});`;
+      const swBlob = new Blob([swCode], {type:'application/javascript'});
+      const swUrl  = URL.createObjectURL(swBlob);
+      navigator.serviceWorker.register(swUrl, {scope: './'})
+        .then(() => console.log('[JDP Cabs] SW ready'))
+        .catch(() => {});
+    }
+  } catch(e) {}
+})();
 </script>
 </body>
 </html>
