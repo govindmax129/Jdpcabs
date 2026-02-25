@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>JDP CABS — Live System</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://apis.mapmyindia.com/advancedmaps/v1/kwzjopzmxtgmraerxyxpsrqqrxhdivkycqnc/map_load?v=1.5"></script>
+
+<!-- ✅ LEAFLET.JS — FREE MAP (replaces MapMyIndia) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 
 <style>
 :root{
@@ -17,8 +20,46 @@ body.lm{--bg:#f0f4fb;--card:#fff;--card2:#e8eef8;--border:#c8d4e4;--text:#0c1929
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;}
 
-/* MAP */
+/* MAP — Full screen Uber style */
 #map{position:absolute;inset:0;z-index:1;width:100vw;height:100vh;}
+.leaflet-control-zoom{display:none!important;}
+.leaflet-control-attribution{font-size:8px!important;opacity:.4;}
+
+/* Custom Markers */
+.my-loc-pin{
+  width:22px;height:22px;position:relative;display:flex;align-items:center;justify-content:center;
+}
+.my-loc-inner{
+  width:12px;height:12px;background:#3b82f6;border:2.5px solid white;border-radius:50%;
+  box-shadow:0 0 0 0 rgba(59,130,246,.5);animation:myloc 2s infinite;z-index:2;position:relative;
+}
+.my-loc-ring{
+  position:absolute;width:22px;height:22px;border:2px solid rgba(59,130,246,.35);
+  border-radius:50%;animation:myring 2s infinite;
+}
+@keyframes myloc{
+  0%{box-shadow:0 0 0 0 rgba(59,130,246,.6)}
+  70%{box-shadow:0 0 0 10px rgba(59,130,246,0)}
+  100%{box-shadow:0 0 0 0 rgba(59,130,246,0)}
+}
+@keyframes myring{
+  0%{transform:scale(.8);opacity:.9}100%{transform:scale(2);opacity:0}
+}
+.car-marker{
+  font-size:28px;line-height:1;filter:drop-shadow(0 3px 8px rgba(0,0,0,.7));
+  transition:transform .4s cubic-bezier(.34,1.56,.64,1);
+  animation:carBob 2s ease-in-out infinite;
+}
+@keyframes carBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+.pickup-pin{font-size:26px;line-height:1;filter:drop-shadow(0 3px 6px rgba(0,0,0,.6));}
+.drop-pin{font-size:26px;line-height:1;filter:drop-shadow(0 3px 6px rgba(0,0,0,.6));}
+
+/* Leaflet popup overrides */
+.leaflet-popup-content-wrapper{
+  background:rgba(7,9,15,.95)!important;color:white!important;border:1px solid rgba(255,255,255,.1)!important;
+  border-radius:10px!important;font-family:'DM Sans',sans-serif!important;
+}
+.leaflet-popup-tip{background:rgba(7,9,15,.95)!important;}
 
 /* LOADER */
 #loader{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
@@ -196,15 +237,18 @@ body.lm #dNav{background:rgba(240,244,251,.97);}
 @keyframes tin{from{opacity:0;top:56px}to{opacity:1;top:78px}}
 @keyframes tout{to{opacity:0}}
 
-/* MARKERS */
-.pm{width:22px;height:22px;display:flex;align-items:center;justify-content:center;position:relative;}
-.pd{width:12px;height:12px;background:var(--blue);border:2.5px solid white;border-radius:50%;z-index:2;}
-.pr{position:absolute;width:100%;height:100%;background:var(--blue);border-radius:50%;animation:pr 1.6s ease-out infinite;}
-@keyframes pr{0%{transform:scale(.8);opacity:.7}100%{transform:scale(2.8);opacity:0}}
-.car-icon{font-size:1.7rem;filter:drop-shadow(0 3px 7px rgba(0,0,0,.5));transition:transform .3s;}
-
 /* NET */
 .netb{position:fixed;bottom:0;left:50%;transform:translateX(-50%);z-index:9998;background:#ef4444;color:#fff;padding:5px 16px;font-size:.73rem;font-weight:700;border-radius:99px 99px 0 0;display:none;}
+
+/* ✅ DRIVER ASSIGNED MUSIC ANIMATION */
+@keyframes assignPulse{
+  0%{transform:scale(1)}
+  25%{transform:scale(1.04)}
+  50%{transform:scale(1)}
+  75%{transform:scale(1.02)}
+  100%{transform:scale(1)}
+}
+.assigned-anim{animation:assignPulse .5s ease 3;}
 </style>
 </head>
 <body>
@@ -311,7 +355,7 @@ body.lm #dNav{background:rgba(240,244,251,.97);}
       </div>
       <div class="lb">
         <div style="width:10px;height:10px;background:var(--red);border-radius:50%;flex-shrink:0"></div>
-        <input type="text" id="dropIn" placeholder="Enter drop location"
+        <input type="text" id="dropIn" placeholder="Enter drop location (area or place name)"
           style="background:transparent;border:none;color:var(--text);width:100%;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.87rem;outline:none"
           onkeydown="if(event.key==='Enter')calcFare()">
       </div>
@@ -356,8 +400,6 @@ body.lm #dNav{background:rgba(240,244,251,.97);}
       <div class="rdr-rings"><div class="r1"></div><div class="r2"></div><div class="r3"></div><div class="r4"></div></div>
       <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.08rem">Finding nearby drivers...</div>
       <div style="color:var(--muted);font-size:.78rem;margin-top:5px">Live request sent • waiting for driver</div>
-
-      <!-- ✅ LIVE: Show nearby online drivers count -->
       <div style="margin-top:14px;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:11px;padding:10px">
         <div style="font-size:.7rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Online Drivers Nearby</div>
         <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.4rem;color:var(--blue);margin-top:3px" id="nearbyCount">--</div>
@@ -368,7 +410,7 @@ body.lm #dNav{background:rgba(240,244,251,.97);}
 
   <!-- Assigned -->
   <div class="scr" id="sAssigned">
-    <div style="background:rgba(16,185,129,.1);color:var(--green);padding:9px;border-radius:11px;text-align:center;font-weight:800;margin-bottom:13px;border:1px solid rgba(16,185,129,.25);font-size:.88rem">✅ Driver Assigned!</div>
+    <div id="assignedBanner" style="background:rgba(16,185,129,.1);color:var(--green);padding:9px;border-radius:11px;text-align:center;font-weight:800;margin-bottom:13px;border:1px solid rgba(16,185,129,.25);font-size:.88rem">✅ Driver Assigned!</div>
     <div class="dcard">
       <div class="dava">👨🏽‍✈️</div>
       <div style="flex:1">
@@ -381,11 +423,8 @@ body.lm #dNav{background:rgba(240,244,251,.97);}
         <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.35rem;color:var(--yellow)" id="rideOTP">----</div>
       </div>
     </div>
-
-    <!-- LIVE Driver tracking status -->
-    <div class="lbadge b" id="driverTrackBadge"><div class="lbd"></div><span id="driverTrackText">Tracking driver location...</span></div>
-    <div class="lbadge g" id="geoStatus"><div class="lbd" style="background:var(--green);box-shadow:0 0 6px var(--green)"></div><span>Within service zone</span></div>
-
+    <div class="lbadge b" id="driverTrackBadge"><div class="lbd"></div><span id="driverTrackText">🚗 Tracking driver on map...</span></div>
+    <div class="lbadge g" id="geoStatus"><div class="lbd" style="background:var(--green);box-shadow:0 0 6px var(--green)"></div><span>Within service zone · Jagdalpur</span></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <button class="mbtn g" style="margin-top:0" onclick="locateMe()">📍 My Location</button>
       <button class="mbtn ro" style="margin-top:0" onclick="cancelRide()">Cancel Ride</button>
@@ -434,7 +473,7 @@ body.lm #dNav{background:rgba(240,244,251,.97);}
         <div style="font-size:.7rem;color:var(--muted);margin-top:1px" id="dLocText">Sharing your location...</div>
       </div>
     </div>
-    <div class="lbadge g"><div class="lbd" style="background:var(--green);box-shadow:0 0 6px var(--green)"></div><span id="dZoneText">In Service Zone</span></div>
+    <div class="lbadge g"><div class="lbd" style="background:var(--green);box-shadow:0 0 6px var(--green)"></div><span id="dZoneText">In Service Zone · Jagdalpur</span></div>
     <div style="font-size:.72rem;color:var(--muted);text-align:center;margin-top:4px">📡 Firebase listening for new ride requests</div>
   </div>
 
@@ -512,7 +551,7 @@ body.lm #dNav{background:rgba(240,244,251,.97);}
 <!-- NET -->
 <div class="netb" id="netB">⚠️ No Internet</div>
 
-<!-- FIREBASE -->
+<!-- ✅ FIREBASE — Same config, no change needed -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -547,24 +586,30 @@ try {
 // ═══════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════
-const MMI_KEY = 'kwzjopzmxtgmraerxyxpsrqqrxhdivkycqnc';
 const JDPC = { lat: 19.0760, lng: 82.0150 }; // Jagdalpur center
-const GEO_RADIUS = 12; // km
+const GEO_RADIUS = 12; // km service zone
+
+// ✅ FREE APIs — No API key needed!
+// Map: Leaflet.js + OpenStreetMap (CartoDB Dark for Uber look)
+// Routing: OSRM — Real road distance
+// Geocode: Nominatim — OpenStreetMap geocoder
 
 // ═══════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════
-let CU = null; // currentUser
+let CU = null;
 let authRole = 'rider';
 let selVehType = 'auto';
 let isLoaded = false;
 
 // Map
-let mmi = null;
+let leafMap = null;
+let routePolyline = null;
 
 // Markers
 let myMarker = null, pickupMk = null, dropMk = null, driverMk = null, geoCircle = null;
 let prevDriverLat = null, prevDriverLng = null;
+let driverMarkerInterval = null;
 
 // GPS
 let watchId = null;
@@ -577,12 +622,12 @@ let cabType = 'JDP Auto', cabFare = 0;
 
 // Booking
 let rideDocId = null;
-let rideListener = null; // Firestore listener for ride updates
-let driverLocListener = null; // Firestore listener for driver GPS
+let rideListener = null;
+let driverLocListener = null;
 
 // Driver
 let isOnline = false;
-let newRideListener = null; // Driver listens for new requests
+let newRideListener = null;
 let curReqId = null, curReqData = null;
 let navPhase = 'pickup';
 let dEarnings = 0, dRides = 0;
@@ -591,6 +636,50 @@ let reqTimer = 20, reqInterval = null;
 
 // Cache
 const routeCache = {};
+
+// ═══════════════════════════════════════════════
+// ✅ AUDIO — Web Audio API (no external files needed)
+// Uber-style notification sound
+// ═══════════════════════════════════════════════
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playTone(freq, startTime, duration, type='sine', vol=0.4) {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime + startTime);
+    gain.gain.setValueAtTime(0, ctx.currentTime + startTime);
+    gain.gain.linearRampToValueAtTime(vol, ctx.currentTime + startTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startTime + duration);
+    osc.start(ctx.currentTime + startTime);
+    osc.stop(ctx.currentTime + startTime + duration);
+  } catch(e) {}
+}
+
+// ✅ Uber-like driver assigned sound (3 ascending tones)
+function playDriverAssignedSound() {
+  playTone(440, 0,    0.18, 'sine', 0.35);
+  playTone(550, 0.2,  0.18, 'sine', 0.4);
+  playTone(660, 0.4,  0.3,  'sine', 0.5);
+  playTone(880, 0.75, 0.4,  'sine', 0.45);
+}
+
+// ✅ New ride request alert for driver (urgent beep)
+function playNewRideSound() {
+  playTone(800, 0,   0.1, 'square', 0.3);
+  playTone(800, 0.15,0.1, 'square', 0.3);
+  playTone(1000,0.3, 0.15,'square', 0.35);
+  playTone(1000,0.5, 0.2, 'square', 0.35);
+}
 
 // ═══════════════════════════════════════════════
 // LOADER
@@ -623,35 +712,116 @@ window.addEventListener('offline', () => document.getElementById('netB').style.d
 window.addEventListener('online', () => { document.getElementById('netB').style.display = 'none'; toast('🌐 Back online!'); });
 
 // ═══════════════════════════════════════════════
-// MAP
+// ✅ MAP — Leaflet.js with CartoDB Dark Tiles (Uber look)
 // ═══════════════════════════════════════════════
 function initMap() {
-  if (!window.MapmyIndia) { setTimeout(initMap, 800); return; }
+  if (typeof L === 'undefined') { setTimeout(initMap, 500); return; }
   try {
-    mmi = new MapmyIndia.Map('map', {
+    leafMap = L.map('map', {
       center: [JDPC.lat, JDPC.lng],
       zoom: 14,
-      search: false,
-      zoomControl: false
+      zoomControl: false,
+      attributionControl: true
     });
-    document.getElementById('ldStatus').textContent = '✅ Map loaded';
-  } catch(e) { setTimeout(initMap, 1200); }
+
+    // ✅ CartoDB Dark Matter tiles — Free, Uber-like dark map
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '© OpenStreetMap contributors © CARTO',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(leafMap);
+
+    document.getElementById('ldStatus').textContent = '✅ Map loaded (OpenStreetMap)';
+  } catch(e) {
+    setTimeout(initMap, 1200);
+  }
 }
 
 // ═══════════════════════════════════════════════
-// ✅ REVERSE GEOCODE (MapMyIndia)
+// ✅ REVERSE GEOCODE — Nominatim (OpenStreetMap) FREE
 // ═══════════════════════════════════════════════
 async function revGeo(lat, lng) {
   try {
-    const r = await fetch(`https://apis.mapmyindia.com/advancedmaps/v1/${MMI_KEY}/rev_geocode?lat=${lat}&lng=${lng}`);
+    const r = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=16&addressdetails=1`,
+      { headers: { 'Accept-Language': 'en', 'User-Agent': 'JDPCabsApp/1.0' } }
+    );
     const d = await r.json();
-    if (d?.results?.[0]) {
-      const rs = d.results[0];
-      const parts = [rs.subLocality, rs.locality, rs.district].filter(Boolean);
-      return parts.length ? parts.join(', ') : (rs.formattedAddress || `${lat.toFixed(4)},${lng.toFixed(4)}`);
+    if (d?.address) {
+      const a = d.address;
+      const parts = [
+        a.neighbourhood || a.suburb || a.quarter,
+        a.town || a.city || a.village || a.county,
+        a.state_district
+      ].filter(Boolean);
+      return parts.length ? parts.join(', ') : (d.display_name?.split(',').slice(0,3).join(',') || `${lat.toFixed(4)},${lng.toFixed(4)}`);
     }
   } catch(e) {}
   return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+}
+
+// ═══════════════════════════════════════════════
+// ✅ GEOCODE address → coordinates (Nominatim)
+// ═══════════════════════════════════════════════
+async function geocodeAddress(address) {
+  try {
+    const q = encodeURIComponent(address + ', Jagdalpur, Chhattisgarh, India');
+    const r = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&addressdetails=1`,
+      { headers: { 'Accept-Language': 'en', 'User-Agent': 'JDPCabsApp/1.0' } }
+    );
+    const d = await r.json();
+    if (d?.[0]) return { lat: parseFloat(d[0].lat), lng: parseFloat(d[0].lon) };
+  } catch(e) {}
+  return null;
+}
+
+// ═══════════════════════════════════════════════
+// ✅ REAL ROAD DISTANCE — OSRM Free Routing API
+// Returns: { distKM, durationMin, geometry }
+// ═══════════════════════════════════════════════
+async function getOSRMRoute(fromLat, fromLng, toLat, toLng) {
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson&steps=false`;
+    const r = await fetch(url);
+    const d = await r.json();
+    if (d?.routes?.[0]) {
+      const route = d.routes[0];
+      return {
+        distKM: parseFloat((route.distance / 1000).toFixed(1)),
+        durationMin: Math.ceil(route.duration / 60),
+        geometry: route.geometry
+      };
+    }
+  } catch(e) {}
+  return null;
+}
+
+// ═══════════════════════════════════════════════
+// ✅ DRAW ROUTE on map (Leaflet polyline)
+// ═══════════════════════════════════════════════
+function drawRoute(geometry, color = '#f59e0b') {
+  if (!leafMap) return;
+  clearRoute();
+  if (geometry?.coordinates) {
+    const latlngs = geometry.coordinates.map(c => [c[1], c[0]]);
+    routePolyline = L.polyline(latlngs, {
+      color,
+      weight: 5,
+      opacity: 0.85,
+      smoothFactor: 1,
+      lineJoin: 'round',
+      lineCap: 'round'
+    }).addTo(leafMap);
+    leafMap.fitBounds(routePolyline.getBounds(), { padding: [60, 60] });
+  }
+}
+
+function clearRoute() {
+  if (routePolyline && leafMap) {
+    leafMap.removeLayer(routePolyline);
+    routePolyline = null;
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -666,20 +836,18 @@ function startGPS() {
       myLat = pos.coords.latitude;
       myLng = pos.coords.longitude;
       pickLat = myLat; pickLng = myLng;
-
-      // Update my marker
       updateMyMarker(myLat, myLng);
 
-      // Update Firebase (driver only when online)
+      // Driver GPS → Firebase
       if (CU?.role === 'driver' && isOnline && window.FB_READY) {
         try {
           await window.FB.updateDoc(window.FB.doc(window.FB.db, 'users', CU.uid), {
             lat: myLat, lng: myLng, lastSeen: window.FB.serverTimestamp()
           });
-          // Update driver location text
-          document.getElementById('dLocText').textContent = `${myLat.toFixed(4)}, ${myLng.toFixed(4)}`;
+          document.getElementById('dLocText').textContent =
+            `📍 ${myLat.toFixed(4)}, ${myLng.toFixed(4)}`;
           const inZone = distKmCalc(myLat, myLng, JDPC.lat, JDPC.lng) <= GEO_RADIUS;
-          document.getElementById('dZoneText').textContent = inZone ? '✅ In Service Zone' : '⚠️ Outside Zone';
+          document.getElementById('dZoneText').textContent = inZone ? '✅ In Service Zone · Jagdalpur' : '⚠️ Outside Zone';
           document.getElementById('dZoneText').style.color = inZone ? 'var(--green)' : 'var(--red)';
         } catch(e) {}
       }
@@ -688,7 +856,7 @@ function startGPS() {
     { enableHighAccuracy: true, timeout: 12000, maximumAge: 2000 }
   );
 
-  // Get address for pickup box
+  // Initial position for pickup address
   navigator.geolocation.getCurrentPosition(async (pos) => {
     myLat = pos.coords.latitude;
     myLng = pos.coords.longitude;
@@ -702,7 +870,7 @@ function startGPS() {
     document.getElementById('pSub').innerHTML =
       `<span style="color:var(--green);font-size:.66rem">📍 ${myLat.toFixed(5)}, ${myLng.toFixed(5)}</span>`;
 
-    if (mmi) { mmi.setCenter([myLat, myLng]); mmi.setZoom(16); }
+    if (leafMap) { leafMap.setView([myLat, myLng], 16); }
     updateMyMarker(myLat, myLng);
     toast('📍 Location detected!');
   }, (err) => {
@@ -717,44 +885,48 @@ function refreshGPS() {
   startGPS();
 }
 
+// ✅ My location marker — Uber-style blue pulsing dot
 function updateMyMarker(lat, lng) {
-  if (!mmi || !window.MapmyIndia) return;
-  try {
-    if (!myMarker) {
-      const ico = new MapmyIndia.Icon({ html: '<div class="pm"><div class="pr"></div><div class="pd"></div></div>', iconSize: [22, 22], iconAnchor: [11, 11] });
-      myMarker = new MapmyIndia.Marker({ map: mmi, position: [lat, lng], icon: ico });
-    } else { myMarker.setPosition([lat, lng]); }
-  } catch(e) {}
+  if (!leafMap) return;
+  const icon = L.divIcon({
+    className: '',
+    html: '<div class="my-loc-pin"><div class="my-loc-ring"></div><div class="my-loc-inner"></div></div>',
+    iconSize: [22, 22],
+    iconAnchor: [11, 11]
+  });
+  if (!myMarker) {
+    myMarker = L.marker([lat, lng], { icon, zIndexOffset: 100 }).addTo(leafMap);
+  } else {
+    myMarker.setLatLng([lat, lng]);
+  }
 }
 
 function locateMe() {
-  if (mmi && myLat) { mmi.setCenter([myLat, myLng]); mmi.setZoom(17); }
+  if (leafMap && myLat) {
+    leafMap.setView([myLat, myLng], 17, { animate: true });
+  }
   refreshGPS();
 }
 
 // ═══════════════════════════════════════════════
-// ✅ LIVE DRIVER MARKER — Moves on rider's map
+// ✅ DRIVER MARKER — Car emoji, smooth animation
 // ═══════════════════════════════════════════════
 function startDriverTracking(driverId) {
-  // Clean previous listener
   if (driverLocListener) { driverLocListener(); driverLocListener = null; }
 
-  // Firebase realtime listener on driver's user document
   driverLocListener = window.FB.onSnapshot(
     window.FB.doc(window.FB.db, 'users', driverId),
     (snap) => {
       if (!snap.exists()) return;
       const d = snap.data();
       if (d.lat && d.lng) {
-        moveDriverMarker(d.lat, d.lng, d.name);
-        document.getElementById('driverTrackText').textContent =
-          `Driver: ${d.lat.toFixed(4)}, ${d.lng.toFixed(4)}`;
-
-        // Calculate distance from rider to driver
+        moveDriverMarker(d.lat, d.lng, d.name || 'Driver');
         if (myLat) {
           const dist = distKmCalc(myLat, myLng, d.lat, d.lng);
           document.getElementById('driverTrackText').textContent =
-            `Driver is ${dist < 1 ? (dist*1000).toFixed(0)+'m' : dist.toFixed(1)+'km'} away`;
+            dist < 1
+              ? `🚗 Driver is ${(dist*1000).toFixed(0)}m away`
+              : `🚗 Driver is ${dist.toFixed(1)}km away`;
         }
       }
     }
@@ -762,36 +934,41 @@ function startDriverTracking(driverId) {
 }
 
 function moveDriverMarker(lat, lng, name) {
-  if (!mmi || !window.MapmyIndia) return;
-  try {
-    if (!driverMk) {
-      driverMk = new MapmyIndia.Marker({
-        map: mmi,
-        position: [lat, lng],
-        popupHtml: `<b>🚖 ${name}</b>`
-      });
-    } else {
-      // Smooth transition
-      animateMarker(driverMk, lat, lng);
-    }
-    prevDriverLat = lat; prevDriverLng = lng;
-  } catch(e) {}
+  if (!leafMap) return;
+
+  const carIcon = L.divIcon({
+    className: '',
+    html: '<div class="car-marker">🚖</div>',
+    iconSize: [36, 36],
+    iconAnchor: [18, 18]
+  });
+
+  if (!driverMk) {
+    driverMk = L.marker([lat, lng], { icon: carIcon, zIndexOffset: 200 })
+      .addTo(leafMap)
+      .bindPopup(`<b>🚖 ${name}</b><br>Driver on the way!`);
+  } else {
+    // Smooth animated movement
+    animateMarkerLeaflet(driverMk, [prevDriverLat || lat, prevDriverLng || lng], [lat, lng]);
+  }
+  prevDriverLat = lat;
+  prevDriverLng = lng;
 }
 
-function animateMarker(marker, toLat, toLng) {
-  // Smooth marker movement (60 fps)
-  const fromLat = prevDriverLat || toLat;
-  const fromLng = prevDriverLng || toLng;
+function animateMarkerLeaflet(marker, from, to) {
   let step = 0;
-  const steps = 30;
-  const interval = setInterval(() => {
+  const steps = 25;
+  if (driverMarkerInterval) clearInterval(driverMarkerInterval);
+  driverMarkerInterval = setInterval(() => {
     step++;
     const t = step / steps;
-    const lat = fromLat + (toLat - fromLat) * t;
-    const lng = fromLng + (toLng - fromLng) * t;
-    try { marker.setPosition([lat, lng]); } catch(e) {}
-    if (step >= steps) clearInterval(interval);
-  }, 16);
+    // Ease-out curve
+    const ease = 1 - Math.pow(1 - t, 3);
+    const lat = from[0] + (to[0] - from[0]) * ease;
+    const lng = from[1] + (to[1] - from[1]) * ease;
+    try { marker.setLatLng([lat, lng]); } catch(e) {}
+    if (step >= steps) clearInterval(driverMarkerInterval);
+  }, 20);
 }
 
 // ═══════════════════════════════════════════════
@@ -801,29 +978,29 @@ let zoneOn = false;
 function toggleZone() {
   zoneOn = !zoneOn;
   if (zoneOn) {
-    if (!mmi || !window.MapmyIndia) { toast('Map not ready'); return; }
-    try {
-      if (geoCircle) { try { geoCircle.remove(); } catch(e){} }
-      geoCircle = new MapmyIndia.Circle({
-        map: mmi, center: [JDPC.lat, JDPC.lng],
-        radius: GEO_RADIUS*1000,
-        fillColor:'#3b82f6', fillOpacity:.06,
-        strokeColor:'#3b82f6', strokeWeight:2, strokeOpacity:.4
-      });
-      document.getElementById('zoneBtn').style.color = 'var(--green)';
-    } catch(e) {}
-    toast('📡 Service zone shown');
+    if (!leafMap) { toast('Map not ready'); return; }
+    if (geoCircle) { leafMap.removeLayer(geoCircle); }
+    geoCircle = L.circle([JDPC.lat, JDPC.lng], {
+      radius: GEO_RADIUS * 1000,
+      color: '#3b82f6',
+      fillColor: '#3b82f6',
+      fillOpacity: 0.06,
+      weight: 2,
+      opacity: 0.4
+    }).addTo(leafMap);
+    document.getElementById('zoneBtn').style.color = 'var(--green)';
+    toast('📡 Service zone: 12km radius');
   } else {
-    if (geoCircle) { try { geoCircle.remove(); } catch(e){} geoCircle = null; }
+    if (geoCircle && leafMap) { leafMap.removeLayer(geoCircle); geoCircle = null; }
     document.getElementById('zoneBtn').style.color = '';
     toast('📡 Zone hidden');
   }
 }
 
-function distKmCalc(la1,ln1,la2,ln2) {
-  const R=6371, dL=(la2-la1)*Math.PI/180, dN=(ln2-ln1)*Math.PI/180;
-  const a=Math.sin(dL/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dN/2)**2;
-  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+function distKmCalc(la1, ln1, la2, ln2) {
+  const R = 6371, dL = (la2-la1)*Math.PI/180, dN = (ln2-ln1)*Math.PI/180;
+  const a = Math.sin(dL/2)**2 + Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dN/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
 // ═══════════════════════════════════════════════
@@ -868,7 +1045,10 @@ async function doLogin() {
     if (s.exists()) { CU={uid:c.user.uid,...s.data()}; launch(); }
     else showErr('loginErr','Account not found. Register first.');
   } catch(e) {
-    showErr('loginErr', e.code==='auth/wrong-password'?'Wrong password':e.code==='auth/user-not-found'?'Not registered. Please register.':e.code==='auth/network-request-failed'?'No internet':'Login failed.');
+    showErr('loginErr',
+      e.code==='auth/wrong-password'?'Wrong password':
+      e.code==='auth/user-not-found'?'Not registered. Please register.':
+      e.code==='auth/network-request-failed'?'No internet':'Login failed.');
   }
 }
 
@@ -907,11 +1087,9 @@ async function doDriverReg() {
 // ═══════════════════════════════════════════════
 function launch() {
   document.getElementById('auth').style.display = 'none';
-  setTimeout(() => { if (mmi?.invalidateSize) mmi.invalidateSize(); }, 300);
-
+  setTimeout(() => { if (leafMap) leafMap.invalidateSize(); }, 300);
   if (CU?.role === 'driver') launchDriver();
   else launchRider();
-
   startGPS();
 }
 
@@ -948,13 +1126,9 @@ async function toggleOnline() {
     showDCard('on');
     toast('🟢 You are online! Listening for rides...');
     setInterval(updateOnlineTime, 60000);
-
-    // ✅ LIVE: Update Firebase isOnline flag
     if (window.FB_READY && CU) {
       try { await window.FB.updateDoc(window.FB.doc(window.FB.db,'users',CU.uid), {isOnline:true, lat:myLat||JDPC.lat, lng:myLng||JDPC.lng}); } catch(e){}
     }
-
-    // ✅ LIVE: Listen to new ride requests in Firebase
     startListeningForRides();
   } else {
     stopListeningForRides();
@@ -966,24 +1140,20 @@ async function toggleOnline() {
   }
 }
 
-// ✅ REAL Firebase listener — driver hears new ride requests
 function startListeningForRides() {
   if (!window.FB_READY) return;
   stopListeningForRides();
-
   const q = window.FB.query(
     window.FB.collection(window.FB.db, 'rides'),
     window.FB.where('status','==','finding')
   );
-
   newRideListener = window.FB.onSnapshot(q, (snapshot) => {
     snapshot.docChanges().forEach(change => {
       if (change.type === 'added' && isOnline && !curReqId) {
-        const data = change.doc.data();
-        // Don't show own requests if driver somehow has a ride
         curReqId = change.doc.id;
-        curReqData = { id: curReqId, ...data };
+        curReqData = { id: curReqId, ...change.doc.data() };
         showReqPopup(curReqData);
+        playNewRideSound(); // ✅ Alert sound for driver
       }
     });
   });
@@ -1018,10 +1188,8 @@ function showReqPopup(data) {
   document.getElementById('reqETA').textContent = (data.etaMin||'--')+' min';
   document.getElementById('reqPick').textContent = data.pickup||'--';
   document.getElementById('reqDrop').textContent = data.drop||'--';
-
   document.getElementById('reqPopup').classList.add('sh');
 
-  // Countdown timer
   reqTimer = 20;
   document.getElementById('tNum').textContent = reqTimer;
   const circ = document.getElementById('tCircle');
@@ -1053,12 +1221,10 @@ async function acceptReq() {
   if (!curReqData) return;
   clearInterval(reqInterval);
   hideReqPopup();
-  stopListeningForRides(); // Stop listening — one ride at a time
-
+  stopListeningForRides();
   const data = curReqData;
   navPhase = 'pickup';
 
-  // ✅ LIVE: Update Firebase ride status
   if (window.FB_READY) {
     try {
       const otp = Math.floor(1000+Math.random()*9000);
@@ -1069,13 +1235,12 @@ async function acceptReq() {
         driverPhone: CU.phone,
         driverVehicle: CU.vehicleNo,
         driverVehicleType: CU.vehicleType,
-        otp: otp,
+        otp,
         acceptedAt: window.FB.serverTimestamp()
       });
     } catch(e) { toast('❌ Accept failed'); return; }
   }
 
-  // Show navigation
   document.getElementById('navLabel').textContent = '🔵 Going to Pickup';
   document.getElementById('navPA').textContent = data.pickup||'--';
   document.getElementById('navDA').textContent = data.drop||'--';
@@ -1086,18 +1251,22 @@ async function acceptReq() {
   document.getElementById('navPickup').style.opacity = '1';
   showDCard('nav');
 
-  // Draw route to pickup
-  if (mmi && window.MapmyIndia && myLat && data.pickupLat) {
-    try {
-      MapmyIndia.direction({
-        origin: `${myLat},${myLng}`,
-        destination: `${data.pickupLat},${data.pickupLng}`,
-        map: mmi, callback: ()=>{}
-      });
-      // Place pickup marker
-      if (pickupMk) { try{pickupMk.remove();}catch(e){} }
-      pickupMk = new MapmyIndia.Marker({ map:mmi, position:[data.pickupLat,data.pickupLng], popupHtml:'<b style="color:green">📍 '+data.pickup+'</b>' });
-    } catch(e){}
+  // ✅ Draw route to pickup using OSRM
+  if (leafMap && myLat && data.pickupLat) {
+    const route = await getOSRMRoute(myLat, myLng, data.pickupLat, data.pickupLng);
+    if (route) drawRoute(route.geometry, '#3b82f6');
+
+    // Pickup marker
+    if (pickupMk && leafMap) { leafMap.removeLayer(pickupMk); }
+    const pickIcon = L.divIcon({
+      className:'',
+      html:'<div class="pickup-pin">📍</div>',
+      iconSize:[32,32],
+      iconAnchor:[16,32]
+    });
+    pickupMk = L.marker([data.pickupLat, data.pickupLng], { icon: pickIcon })
+      .addTo(leafMap)
+      .bindPopup(`<b style="color:#10b981">📍 Pickup: ${data.pickup}</b>`);
   }
 
   toast('✅ Ride accepted! Going to pickup');
@@ -1118,14 +1287,28 @@ async function driverNext() {
     document.getElementById('navPickup').style.opacity = '0.45';
     document.getElementById('navActBtn').textContent = '🏁 Complete Trip';
 
-    // ✅ LIVE: Update ride status to 'ongoing'
     if (window.FB_READY && curReqData.id) {
       try { await window.FB.updateDoc(window.FB.doc(window.FB.db,'rides',curReqData.id), {status:'ongoing', pickedAt:window.FB.serverTimestamp()}); } catch(e){}
     }
     toast('Heading to drop! 🚗');
 
-    if (mmi && window.MapmyIndia && myLat && curReqData.drop) {
-      try { MapmyIndia.direction({ origin:`${myLat},${myLng}`, destination:curReqData.drop, map:mmi, callback:()=>{} }); } catch(e){}
+    // ✅ Route to drop using geocode + OSRM
+    if (leafMap && myLat && curReqData.drop) {
+      const dropCoords = await geocodeAddress(curReqData.drop);
+      if (dropCoords) {
+        const route = await getOSRMRoute(myLat, myLng, dropCoords.lat, dropCoords.lng);
+        if (route) drawRoute(route.geometry, '#10b981');
+        if (dropMk && leafMap) { leafMap.removeLayer(dropMk); }
+        const dropIcon = L.divIcon({
+          className:'',
+          html:'<div class="drop-pin">🏁</div>',
+          iconSize:[32,32],
+          iconAnchor:[16,32]
+        });
+        dropMk = L.marker([dropCoords.lat, dropCoords.lng], { icon: dropIcon })
+          .addTo(leafMap)
+          .bindPopup(`<b style="color:#ef4444">🏁 Drop: ${curReqData.drop}</b>`);
+      }
     }
   } else {
     await completeTrip();
@@ -1138,7 +1321,6 @@ async function completeTrip() {
   dRides += 1;
   updateDStats();
 
-  // ✅ LIVE: Update ride + driver stats in Firebase
   if (window.FB_READY) {
     try {
       await window.FB.updateDoc(window.FB.doc(window.FB.db,'rides',data.id), {status:'completed', completedAt:window.FB.serverTimestamp()});
@@ -1146,13 +1328,12 @@ async function completeTrip() {
     } catch(e){}
   }
 
-  if (pickupMk) { try{pickupMk.remove();}catch(e){} pickupMk=null; }
-  if (dropMk) { try{dropMk.remove();}catch(e){} dropMk=null; }
+  clearRoute();
+  if (pickupMk && leafMap) { leafMap.removeLayer(pickupMk); pickupMk=null; }
+  if (dropMk && leafMap) { leafMap.removeLayer(dropMk); dropMk=null; }
   curReqId=null; curReqData=null; navPhase='pickup';
   showDCard('on');
   toast(`🎉 Trip complete! ₹${data.fare} earned!`);
-
-  // Resume listening for new rides
   if (isOnline) startListeningForRides();
 }
 
@@ -1160,8 +1341,9 @@ async function driverCancel() {
   if (window.FB_READY && curReqData?.id) {
     try { await window.FB.updateDoc(window.FB.doc(window.FB.db,'rides',curReqData.id), {status:'cancelled_driver', cancelledAt:window.FB.serverTimestamp()}); } catch(e){}
   }
+  clearRoute();
   curReqId=null; curReqData=null; navPhase='pickup';
-  if (pickupMk) { try{pickupMk.remove();}catch(e){} pickupMk=null; }
+  if (pickupMk && leafMap) { leafMap.removeLayer(pickupMk); pickupMk=null; }
   showDCard('on');
   toast('Ride cancelled');
   if (isOnline) startListeningForRides();
@@ -1175,46 +1357,52 @@ function goScr(id) {
   document.getElementById(id).classList.add('on');
 }
 
-function calcFare() {
+// ✅ calcFare — OSRM real road distance + Nominatim geocoding
+async function calcFare() {
   const drop = document.getElementById('dropIn').value.trim();
   if (!drop) {
-    const e=document.getElementById('homeErr'); e.textContent='⚠️ Enter drop location'; e.style.display='block';
-    setTimeout(()=>e.style.display='none',3000); return;
+    const e=document.getElementById('homeErr');
+    e.textContent='⚠️ Enter drop location (e.g. "Medical College", "Bus Stand")';
+    e.style.display='block';
+    setTimeout(()=>e.style.display='none',3000);
+    return;
   }
-  toast('🗺️ Calculating route...');
+
+  toast('🗺️ Calculating real road distance...');
 
   const origin = pickLat ? `${pickLat},${pickLng}` : `${JDPC.lat},${JDPC.lng}`;
   const cKey = `${origin}_${drop}`;
   if (routeCache[cKey]) { applyRoute(routeCache[cKey], drop); return; }
 
-  if (mmi && window.MapmyIndia) {
-    try {
-      // Place pickup marker
-      if (pickLat) {
-        if (pickupMk) { try{pickupMk.remove();}catch(e){} }
-        pickupMk = new MapmyIndia.Marker({ map:mmi, position:[pickLat,pickLng], popupHtml:'<b style="color:green">📍 Pickup</b>' });
-      }
-      MapmyIndia.direction({
-        origin, destination: drop, map: mmi,
-        callback: (res) => {
-          if (res?.routes?.[0]) { routeCache[cKey]=res; applyRoute(res, drop); }
-          else useFallback(drop);
-        }
-      });
-    } catch(e) { useFallback(drop); }
-  } else { useFallback(drop); }
+  // Step 1: Geocode drop location
+  const dropCoords = await geocodeAddress(drop);
+
+  if (dropCoords) {
+    // Step 2: Get real road route from OSRM
+    const fromLat = pickLat || JDPC.lat;
+    const fromLng = pickLng || JDPC.lng;
+    const route = await getOSRMRoute(fromLat, fromLng, dropCoords.lat, dropCoords.lng);
+
+    if (route) {
+      routeCache[cKey] = { route, dropCoords };
+      applyRoute({ route, dropCoords }, drop);
+      return;
+    }
+  }
+
+  // Fallback: straight-line estimate if geocode/OSRM fails
+  useFallback(drop);
 }
 
-function applyRoute(res, drop) {
-  const rt = res.routes[0];
-  distKM = parseFloat((rt.distance/1000).toFixed(1));
-  const eta = Math.ceil(rt.duration/60);
-  fareA = Math.round(20+distKM*12);
-  fareM = Math.round(40+distKM*16);
+function applyRoute({ route, dropCoords }, drop) {
+  distKM = route.distKM;
+  const eta = route.durationMin;
+  fareA = Math.max(25, Math.round(20 + distKM * 12));
+  fareM = Math.max(50, Math.round(40 + distKM * 16));
 
   document.getElementById('cDist').textContent = distKM;
   document.getElementById('cETA').textContent = eta;
-  document.getElementById('cZone').textContent = distKM<=3?'City':distKM<=6?'Near':'Far';
+  document.getElementById('cZone').textContent = distKM <= 3 ? 'City' : distKM <= 6 ? 'Near' : 'Far';
   document.getElementById('fAuto').textContent = fareA;
   document.getElementById('fMini').textContent = fareM;
   cabType='JDP Auto'; cabFare=fareA;
@@ -1222,30 +1410,51 @@ function applyRoute(res, drop) {
   document.getElementById('optAuto').classList.add('sel');
   document.getElementById('optMini').classList.remove('sel');
 
-  // Place drop marker
-  if (mmi && window.MapmyIndia) {
-    try { MapmyIndia.geocode({ address:drop, callback:(rs)=>{
-      if(rs?.[0]) {
-        if(dropMk){try{dropMk.remove();}catch(e){}}
-        dropMk = new MapmyIndia.Marker({map:mmi,position:[rs[0].latitude,rs[0].longitude],popupHtml:'<b style="color:red">🏁 Drop</b>'});
-      }
-    }}); } catch(e){}
+  // ✅ Draw route on map
+  if (route.geometry) drawRoute(route.geometry, '#f59e0b');
+
+  // Place markers
+  if (leafMap) {
+    if (pickLat) {
+      if (pickupMk) leafMap.removeLayer(pickupMk);
+      const pickIcon = L.divIcon({ className:'', html:'<div class="pickup-pin">📍</div>', iconSize:[32,32], iconAnchor:[16,32] });
+      pickupMk = L.marker([pickLat, pickLng], { icon: pickIcon })
+        .addTo(leafMap).bindPopup('<b style="color:#10b981">📍 Your Pickup</b>');
+    }
+    if (dropCoords) {
+      if (dropMk) leafMap.removeLayer(dropMk);
+      const dropIcon = L.divIcon({ className:'', html:'<div class="drop-pin">🏁</div>', iconSize:[32,32], iconAnchor:[16,32] });
+      dropMk = L.marker([dropCoords.lat, dropCoords.lng], { icon: dropIcon })
+        .addTo(leafMap).bindPopup(`<b style="color:#ef4444">🏁 ${drop}</b>`);
+    }
   }
+
   goScr('sFare');
 }
 
 function useFallback(drop) {
-  const d=parseFloat((Math.random()*5+2).toFixed(1)); distKM=d;
-  fareA=Math.round(20+d*12); fareM=Math.round(40+d*16);
-  document.getElementById('cDist').textContent=d+'*';
-  document.getElementById('cETA').textContent=Math.ceil(d*3)+'*';
-  document.getElementById('cZone').textContent='Jagdalpur';
-  document.getElementById('fAuto').textContent=fareA;
-  document.getElementById('fMini').textContent=fareM;
+  // Estimate based on straight-line + 1.3x road factor
+  let straightDist = 3;
+  if (pickLat) {
+    straightDist = distKmCalc(pickLat, pickLng, JDPC.lat, JDPC.lng);
+    if (straightDist < 1) straightDist = 2 + Math.random() * 3;
+  } else {
+    straightDist = 2 + Math.random() * 4;
+  }
+  const d = parseFloat((straightDist * 1.3).toFixed(1));
+  distKM = d;
+  fareA = Math.max(25, Math.round(20+d*12));
+  fareM = Math.max(50, Math.round(40+d*16));
+  document.getElementById('cDist').textContent = d+'*';
+  document.getElementById('cETA').textContent = Math.ceil(d*3)+'*';
+  document.getElementById('cZone').textContent = 'Jagdalpur';
+  document.getElementById('fAuto').textContent = fareA;
+  document.getElementById('fMini').textContent = fareM;
   cabType='JDP Auto'; cabFare=fareA;
   document.getElementById('bookBtnType').textContent='JDP Auto';
   document.getElementById('optAuto').classList.add('sel');
   document.getElementById('optMini').classList.remove('sel');
+  toast('⚠️ Estimated distance (* = approximate)');
   goScr('sFare');
 }
 
@@ -1256,11 +1465,10 @@ function selRide(el, type, vk) {
   document.getElementById('bookBtnType').textContent=type;
 }
 
-// ✅ REAL BOOKING — Firebase pe ride create karo
+// ✅ REAL BOOKING — Firebase
 async function confirmBook() {
   goScr('sFind');
 
-  // ✅ Count online drivers nearby
   let nearbyCount = 0;
   if (window.FB_READY) {
     try {
@@ -1279,7 +1487,6 @@ async function confirmBook() {
     return;
   }
 
-  // ✅ LIVE: Create ride in Firebase
   const rideData = {
     riderId: CU?.uid || 'guest',
     riderName: CU?.name || 'Rider',
@@ -1298,11 +1505,8 @@ async function confirmBook() {
     if (window.FB_READY) {
       const ref = await window.FB.addDoc(window.FB.collection(window.FB.db,'rides'), rideData);
       rideDocId = ref.id;
-
-      // ✅ LIVE: Listen to this ride for status changes
       listenToRide(rideDocId);
     } else {
-      // Offline fallback
       setTimeout(() => { toast('❌ Firebase required for live booking'); goScr('sHome'); }, 3000);
     }
   } catch(e) {
@@ -1310,7 +1514,7 @@ async function confirmBook() {
   }
 }
 
-// ✅ LIVE: Real-time listener on rider's own ride
+// ✅ Listen to ride status changes
 function listenToRide(id) {
   if (rideListener) { rideListener(); rideListener=null; }
 
@@ -1321,14 +1525,20 @@ function listenToRide(id) {
       const data = snap.data();
 
       if (data.status === 'assigned' && document.getElementById('sFind').classList.contains('on')) {
-        // Driver accepted!
         document.getElementById('aDName').textContent = data.driverName||'--';
         document.getElementById('aVeh').textContent = `${data.driverVehicle||'--'} • ${data.cabType||'--'}`;
         document.getElementById('rideOTP').textContent = data.otp||'----';
         goScr('sAssigned');
-        toast('✅ Driver accepted your ride!');
 
-        // ✅ Start tracking driver's live location
+        // ✅ Play Uber-style music when driver assigned
+        playDriverAssignedSound();
+
+        // Animate banner
+        const banner = document.getElementById('assignedBanner');
+        banner.classList.add('assigned-anim');
+        setTimeout(() => banner.classList.remove('assigned-anim'), 1500);
+
+        toast('✅ Driver accepted your ride!');
         if (data.driverId) startDriverTracking(data.driverId);
       }
 
@@ -1339,7 +1549,8 @@ function listenToRide(id) {
       if (data.status === 'completed') {
         if (rideListener) { rideListener(); rideListener=null; }
         if (driverLocListener) { driverLocListener(); driverLocListener=null; }
-        if (driverMk) { try{driverMk.remove();}catch(e){} driverMk=null; }
+        if (driverMk && leafMap) { leafMap.removeLayer(driverMk); driverMk=null; }
+        clearRoute();
         document.getElementById('dropIn').value='';
         goScr('sHome');
         toast('🎉 Ride completed! Thank you!');
@@ -1361,6 +1572,7 @@ async function cancelBook() {
     try { await window.FB.updateDoc(window.FB.doc(window.FB.db,'rides',rideDocId), {status:'cancelled',cancelledAt:window.FB.serverTimestamp()}); } catch(e){}
   }
   if (rideListener) { rideListener(); rideListener=null; }
+  clearRoute();
   rideDocId=null;
   document.getElementById('nearbyCount').textContent='--';
   goScr('sHome');
@@ -1373,8 +1585,9 @@ async function cancelRide() {
   }
   if (rideListener) { rideListener(); rideListener=null; }
   if (driverLocListener) { driverLocListener(); driverLocListener=null; }
-  if (driverMk) { try{driverMk.remove();}catch(e){} driverMk=null; }
-  if (dropMk) { try{dropMk.remove();}catch(e){} dropMk=null; }
+  if (driverMk && leafMap) { leafMap.removeLayer(driverMk); driverMk=null; }
+  if (dropMk && leafMap) { leafMap.removeLayer(dropMk); dropMk=null; }
+  clearRoute();
   document.getElementById('dropIn').value='';
   rideDocId=null;
   goScr('sHome');
@@ -1386,7 +1599,27 @@ async function cancelRide() {
 // ═══════════════════════════════════════════════
 function toggleTheme() {
   document.body.classList.toggle('lm');
-  setTimeout(()=>{ if(mmi?.invalidateSize)mmi.invalidateSize(); },300);
+  // ✅ Switch map tiles based on theme
+  if (leafMap) {
+    leafMap.eachLayer(layer => {
+      if (layer instanceof L.TileLayer) leafMap.removeLayer(layer);
+    });
+    if (document.body.classList.contains('lm')) {
+      // Light theme — standard OSM
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+      }).addTo(leafMap);
+    } else {
+      // Dark theme — CartoDB dark
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap contributors © CARTO',
+        subdomains: 'abcd',
+        maxZoom: 19
+      }).addTo(leafMap);
+    }
+    setTimeout(() => leafMap.invalidateSize(), 300);
+  }
 }
 
 async function doLogout() {
@@ -1394,6 +1627,7 @@ async function doLogout() {
   if (rideListener) rideListener();
   if (driverLocListener) driverLocListener();
   if (newRideListener) newRideListener();
+  clearRoute();
   if (window.FB_READY && CU?.role==='driver') {
     try { await window.FB.updateDoc(window.FB.doc(window.FB.db,'users',CU.uid),{isOnline:false}); } catch(e){}
   }
