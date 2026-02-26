@@ -37,26 +37,121 @@
 }
 body.lm{--bg:#f0f4fb;--card:#fff;--card2:#e8eef8;--border:#c8d4e4;--text:#0c1929;--muted:#4d6a8a;}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;}
+body{font-family:'DM Sans',sans-serif;background:#0a0e16;color:var(--text);height:100vh;overflow:hidden;}
 
 /* ══ MAP ══ */
-#map{position:absolute;inset:0;z-index:1;width:100vw;height:100vh;}
+#map{position:absolute;inset:0;z-index:1;width:100vw;height:100vh;background:#1a2535;}
 
-/* Custom Uber-style zoom buttons */
-.zoom-ctrl{position:fixed;right:15px;z-index:500;display:flex;flex-direction:column;gap:6px;}
-.zbtn{width:40px;height:40px;background:white;border:none;border-radius:10px;font-size:1.2rem;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:#000;transition:transform .1s,box-shadow .2s;}
-.zbtn:active{transform:scale(.93);box-shadow:0 2px 8px rgba(0,0,0,.3);}
+/* ══ MAPPLS MAP — Full Screen, Uber-clean ══ */
+.leaflet-control-zoom,.leaflet-control-scale,
+.mappls-ctrl-zoom,.mappls-ctrl-scale{display:none!important;}
+.leaflet-control-attribution,.mappls-ctrl-attrib-container{
+  font-size:7px!important;opacity:.2!important;bottom:2px!important;right:4px!important;}
+.leaflet-popup-content-wrapper,.mappls-popup-content-wrapper{
+  background:rgba(10,14,22,.97)!important;color:white!important;
+  border:1px solid rgba(255,255,255,.1)!important;border-radius:16px!important;
+  font-family:'DM Sans',sans-serif!important;box-shadow:0 12px 40px rgba(0,0,0,.7)!important;
+  backdrop-filter:blur(20px)!important;}
+.leaflet-popup-tip,.mappls-popup-tip{background:rgba(10,14,22,.97)!important;}
+.leaflet-popup-content,.mappls-popup-content{margin:14px 16px!important;font-size:.83rem!important;}
+
+/* ══ UBER ZOOM CONTROLS ══ */
+.zoom-ctrl{position:fixed;right:14px;z-index:500;display:flex;flex-direction:column;gap:5px;}
+.zbtn{width:44px;height:44px;background:white;border:none;border-radius:12px;font-size:1.25rem;font-weight:800;cursor:pointer;
+  box-shadow:0 4px 20px rgba(0,0,0,.22);display:flex;align-items:center;justify-content:center;
+  color:#000;transition:transform .12s,box-shadow .18s;}
+.zbtn:active{transform:scale(.92);box-shadow:0 2px 10px rgba(0,0,0,.18);}
 body.lm .zbtn{background:#fff;color:#000;}
-.leaflet-control-zoom,.leaflet-control-scale{display:none!important;}
-.leaflet-control-attribution,.mappls-control-attribution{font-size:7px!important;opacity:.3;bottom:2px!important;}
-.leaflet-popup-content-wrapper,
-.mappls-popup-content-wrapper{
-  background:rgba(7,9,15,.97)!important;color:white!important;
-  border:1px solid rgba(255,255,255,.12)!important;border-radius:12px!important;
-  font-family:'DM Sans',sans-serif!important;box-shadow:0 8px 32px rgba(0,0,0,.6)!important;
-}
-.leaflet-popup-tip,.mappls-popup-tip{background:rgba(7,9,15,.97)!important;}
-.leaflet-popup-content,.mappls-popup-content{margin:12px 14px!important;font-size:.82rem!important;}
+
+/* ══ TOP BAR — Uber minimal ghost ══ */
+.tb{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;justify-content:space-between;
+  align-items:center;padding:14px 16px;
+  background:linear-gradient(to bottom,rgba(0,0,0,.55) 0%,transparent 100%);
+  pointer-events:none;}
+.tb>*{pointer-events:all;}
+.tb-logo{font-family:'Syne',sans-serif;font-weight:900;color:white;font-size:1rem;
+  letter-spacing:.06em;text-shadow:0 2px 8px rgba(0,0,0,.5);}
+.tb-actions{display:flex;gap:8px;}
+.tbtn{height:38px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.18);
+  border-radius:99px;display:flex;align-items:center;justify-content:center;cursor:pointer;
+  padding:0 13px;font-size:.76rem;font-weight:700;color:white;gap:5px;
+  backdrop-filter:blur(16px);transition:background .15s;}
+.tbtn:active{background:rgba(255,255,255,.28);}
+body.lm .tbtn{background:rgba(0,0,0,.1);color:#000;border-color:rgba(0,0,0,.15);}
+.tbtn-icon{height:38px;width:38px;padding:0;border-radius:50%;}
+
+/* ══ LOCATE BUTTON — Uber FAB ══ */
+.locbtn{position:fixed;right:14px;z-index:500;width:48px;height:48px;
+  background:white;border-radius:50%;border:none;cursor:pointer;font-size:1.1rem;
+  box-shadow:0 4px 20px rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;
+  transition:transform .12s;}
+.locbtn:active{transform:scale(.93);}
+
+/* ══ MAP STATS CHIPS — Uber top pill style ══ */
+#mapStats{position:fixed;top:68px;left:12px;right:12px;z-index:450;display:none;pointer-events:none;}
+.ms-row{display:flex;gap:6px;justify-content:center;}
+.ms-chip{background:rgba(0,0,0,.62);backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,.12);border-radius:99px;
+  padding:6px 14px;font-size:.7rem;font-weight:700;
+  display:flex;align-items:center;gap:5px;pointer-events:all;cursor:pointer;color:white;}
+.ms-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+body.lm .ms-chip{background:rgba(255,255,255,.88);color:#000;}
+
+/* ══ ZONE LEGEND — compact, hidden by default ══ */
+#zoneLegend{position:fixed;left:12px;z-index:450;background:rgba(10,14,22,.92);
+  backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.08);
+  border-radius:16px;padding:12px 15px;display:none;min-width:155px;}
+body.lm #zoneLegend{background:rgba(255,255,255,.95);color:#000;}
+.zl-title{font-size:.6rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
+.zl-row{display:flex;align-items:center;gap:7px;margin-bottom:5px;font-size:.72rem;font-weight:600;}
+.zl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.zl-tag{font-size:.6rem;color:var(--muted);margin-left:auto;}
+
+/* ══ UBER BOTTOM SHEET ══ */
+.sheet{position:fixed;bottom:0;left:0;right:0;z-index:400;
+  background:#0a0e16;
+  border-radius:24px 24px 0 0;
+  border-top:1px solid rgba(255,255,255,.06);
+  padding:0 18px 38px;
+  max-height:58vh;        /* ← KEY: never cover more than 58% of screen */
+  overflow-y:auto;display:none;
+  box-shadow:0 -8px 40px rgba(0,0,0,.6);}
+.sheet::-webkit-scrollbar{display:none;}
+body.lm .sheet{background:#f8fafd;border-top:1px solid rgba(0,0,0,.05);}
+.hdl{width:36px;height:4px;background:rgba(255,255,255,.12);border-radius:4px;margin:12px auto 16px;}
+body.lm .hdl{background:rgba(0,0,0,.1);}
+
+/* ══ SEARCH BAR inside sheet — Uber style ══ */
+.lbs{display:flex;flex-direction:column;margin-bottom:10px;}
+.lb{display:flex;align-items:center;gap:12px;
+  background:rgba(255,255,255,.05);
+  border:1.5px solid rgba(255,255,255,.07);padding:13px 14px;transition:all .2s;}
+.lb:first-child{border-radius:14px 14px 0 0;border-bottom:none;}
+.lb:last-child{border-radius:0 0 14px 14px;border-bottom-width:1.5px;}
+.lb:last-child:focus-within{border-color:var(--yellow);}
+body.lm .lb{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.08);}
+
+/* ══ QUICK PLACES SCROLL ══ */
+.qp-label{font-size:.6rem;font-weight:800;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
+.qp-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px;}
+.qp-scroll::-webkit-scrollbar{display:none;}
+.qp-chip{flex-shrink:0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);
+  border-radius:99px;padding:7px 14px;font-size:.75rem;font-weight:700;
+  cursor:pointer;white-space:nowrap;transition:all .18s;}
+.qp-chip:active{background:rgba(245,158,11,.15);border-color:var(--yellow);}
+body.lm .qp-chip{background:#f0f4ff;border-color:#dde5f0;}
+
+/* ══ FIND DRIVER BUTTON — Uber yellow ══ */
+.mbtn{width:100%;border:none;border-radius:16px;padding:16px;
+  font-size:.96rem;font-weight:900;cursor:pointer;margin-top:8px;
+  font-family:'Syne',sans-serif;transition:transform .1s,box-shadow .2s;}
+.mbtn:active{transform:scale(.97);}
+.mbtn.y{background:var(--yellow);color:#000;
+  box-shadow:0 6px 24px rgba(245,158,11,.4),0 2px 8px rgba(245,158,11,.2);}
+.mbtn.ro{background:rgba(239,68,68,.08);color:var(--red);border:1px solid rgba(239,68,68,.2);}
+.mbtn.g{background:var(--green);color:#fff;box-shadow:0 6px 24px rgba(16,185,129,.35);}
+.mbtn.b{background:var(--blue);color:#fff;}
 
 /* ══ MARKERS ══ */
 .my-loc-wrap{position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;}
@@ -399,11 +494,19 @@ body.lm .fav-chip{background:#fff;}
   <div id="ldStatus" style="font-size:.7rem;color:var(--muted);margin-top:4px;">Initializing...</div>
 </div>
 
-<!-- MAP -->
+<!-- MAP — Full screen with gradient blend at bottom -->
 <div id="map"></div>
 
-<!-- ✅ Uber-style custom zoom controls -->
-<div class="zoom-ctrl" id="zoomCtrl" style="bottom:440px;">
+<!-- ✅ Map gradient fade — so map flows into bottom sheet (Uber effect) -->
+<div id="mapFade" style="
+  position:fixed;bottom:0;left:0;right:0;
+  height:160px;
+  background:linear-gradient(to top, rgba(10,14,22,1) 0%, rgba(10,14,22,0.7) 50%, transparent 100%);
+  z-index:390;pointer-events:none;display:none;
+"></div>
+
+<!-- ✅ Uber-style zoom controls — positioned above locate button -->
+<div class="zoom-ctrl" id="zoomCtrl" style="bottom:410px;">
   <button class="zbtn" onclick="zoomIn()" title="Zoom In">+</button>
   <button class="zbtn" onclick="zoomOut()" title="Zoom Out">−</button>
 </div>
@@ -538,90 +641,105 @@ body.lm .fav-chip{background:#fff;}
 </div>
 
 <!-- ═══ RIDER UI ═══ -->
+<!-- ✅ UBER-STYLE MINIMAL TOP BAR -->
 <div class="tb" id="rTop" style="display:none">
-  <div style="font-family:'Syne',sans-serif;font-weight:900;color:white;font-size:.93rem;letter-spacing:.05em">JDP CABS</div>
-  <div style="display:flex;gap:7px">
-    <div class="tbtn" onclick="showHistory()" title="Ride History">📋</div>
-    <div class="tbtn" onclick="toggleTheme()">☀️</div>
-    <div class="tbtn" id="zoneBtnR" onclick="toggleZone()">📡</div>
-    <div class="tbtn" style="color:var(--red);border-color:rgba(239,68,68,.3)" onclick="doLogout()">Exit</div>
+  <div class="tb-logo">JDP CABS</div>
+  <div class="tb-actions">
+    <div class="tbtn tbtn-icon" onclick="showHistory()" title="Ride History">📋</div>
+    <div class="tbtn tbtn-icon" onclick="toggleTheme()">☀️</div>
+    <div class="tbtn tbtn-icon" id="zoneBtnR" onclick="toggleZone()">📡</div>
+    <div class="tbtn" style="color:rgba(255,80,80,1);border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.12)" onclick="doLogout()">Exit</div>
   </div>
 </div>
-<button class="locbtn" id="locBtn" style="display:none;bottom:360px" onclick="locateMe()">📍</button>
+
+<!-- ✅ LOCATE FAB — Uber position -->
+<button class="locbtn" id="locBtn" style="display:none;bottom:340px" onclick="locateMe()">📍</button>
 
 <div class="sheet" id="rSheet">
   <div class="hdl"></div>
 
-  <!-- HOME SCREEN -->
+  <!-- ✅ HOME SCREEN — Uber-style compact -->
   <div class="scr on" id="sHome">
-    <div style="font-size:.68rem;color:var(--muted);font-weight:700;margin-bottom:9px;letter-spacing:.08em;text-transform:uppercase">WHERE TO, <span id="riderName">RIDER</span>?</div>
 
-    <!-- ⭐ FAVORITE LOCATIONS -->
-    <div class="fav-row">
-      <div class="fav-chip" id="favHomeChip" onclick="useFavLoc('home')">
-        <span style="font-size:1.4rem">🏠</span>
-        <div style="min-width:0">
-          <div style="font-size:.6rem;color:var(--muted);font-weight:700;text-transform:uppercase">Home</div>
-          <div style="font-size:.78rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px" id="favHomeLbl">Set location</div>
-        </div>
+    <!-- Greeting + driver badge — single row -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:.65rem;color:var(--muted);font-weight:800;letter-spacing:.1em;text-transform:uppercase">
+        WHERE TO, <span id="riderName" style="color:var(--yellow)">RIDER</span>?
       </div>
-      <div class="fav-chip" id="favWorkChip" onclick="useFavLoc('work')">
-        <span style="font-size:1.4rem">💼</span>
-        <div style="min-width:0">
-          <div style="font-size:.6rem;color:var(--muted);font-weight:700;text-transform:uppercase">Work</div>
-          <div style="font-size:.78rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px" id="favWorkLbl">Set location</div>
-        </div>
+      <div id="homeDrvBadge" style="display:none;font-size:.65rem;font-weight:700;color:var(--green);
+        display:flex;align-items:center;gap:4px">
+        <div style="width:6px;height:6px;border-radius:50%;background:var(--green);
+          box-shadow:0 0 6px var(--green)"></div>
+        <span id="homeDrvText">0 drivers</span>
       </div>
     </div>
 
-    <!-- 🎁 PROMO STRIP -->
-    <div class="promo-strip" id="promoStrip" onclick="openModal('promoModal')" style="display:none">
-      <span class="promo-tag">OFFER</span>
-      <div style="flex:1;font-size:.78rem;font-weight:700" id="promoStripText">🎉 Promo code available!</div>
-      <span style="font-size:.8rem;color:var(--purple)">→</span>
-    </div>
-
-    <!-- Nearby drivers indicator -->
-    <div id="homeDrvBadge" style="display:none;margin-bottom:10px;"></div>
-
+    <!-- ✅ SEARCH BOX — Uber style with pickup pre-filled -->
     <div class="lbs">
-      <div class="lb">
+      <div class="lb" onclick="refreshGPS()" style="cursor:pointer;">
         <div class="pdot"></div>
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:.87rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="pAddr">Detecting location...</div>
-          <div id="pSub" style="display:flex;align-items:center;gap:5px;margin-top:2px;font-size:.68rem;color:var(--muted)">
+          <div style="font-weight:700;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="pAddr">Detecting location...</div>
+          <div id="pSub" style="font-size:.66rem;color:var(--muted);margin-top:1px;display:flex;align-items:center;gap:4px">
             <div class="lspin"></div><span>Getting GPS...</span>
           </div>
         </div>
-        <div onclick="refreshGPS()" style="font-size:.95rem;cursor:pointer;opacity:.55;padding:4px;flex-shrink:0">🔄</div>
+        <div style="font-size:.85rem;opacity:.4;flex-shrink:0">🔄</div>
       </div>
-      <div class="lb">
-        <div style="width:10px;height:10px;background:var(--red);border-radius:50%;flex-shrink:0"></div>
-        <input type="text" id="dropIn" placeholder="Kahan jaana hai?"
-          style="background:transparent;border:none;color:var(--text);width:100%;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.87rem;outline:none"
+      <div class="lb" style="border-color:rgba(255,255,255,.12)">
+        <div style="width:10px;height:10px;background:var(--red);border-radius:3px;flex-shrink:0;transform:rotate(45deg)"></div>
+        <input type="text" id="dropIn" placeholder="Where to?"
+          style="background:transparent;border:none;color:var(--text);width:100%;
+          font-family:'DM Sans',sans-serif;font-weight:600;font-size:.9rem;outline:none;"
           onkeydown="if(event.key==='Enter')calcFare()" oninput="filterPlaces(this.value)">
       </div>
     </div>
 
-    <!-- Quick drop places — Jagdalpur famous locations -->
+    <!-- ✅ QUICK FAVORITES ROW — Uber home/work chips -->
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <div class="fav-chip" id="favHomeChip" onclick="useFavLoc('home')"
+        style="flex:1;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);
+        border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:9px 11px;cursor:pointer;">
+        <span style="font-size:1.2rem">🏠</span>
+        <div style="min-width:0">
+          <div style="font-size:.58rem;color:var(--muted);font-weight:700;text-transform:uppercase">Home</div>
+          <div style="font-size:.75rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px" id="favHomeLbl">Set location</div>
+        </div>
+      </div>
+      <div class="fav-chip" id="favWorkChip" onclick="useFavLoc('work')"
+        style="flex:1;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);
+        border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:9px 11px;cursor:pointer;">
+        <span style="font-size:1.2rem">💼</span>
+        <div style="min-width:0">
+          <div style="font-size:.58rem;color:var(--muted);font-weight:700;text-transform:uppercase">Work</div>
+          <div style="font-size:.75rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px" id="favWorkLbl">Set location</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ✅ POPULAR PLACES — horizontal scroll, Uber pill style -->
     <div class="qp-label">🏙️ Popular in Jagdalpur</div>
     <div class="qp-scroll" id="qpScroll">
       <div class="qp-chip" onclick="setDrop('Bastar Palace, Jagdalpur')">🏯 Bastar Palace</div>
-      <div class="qp-chip" onclick="setDrop('Maharaja Hospital, Jagdalpur')">🏥 Maharaja Hospital</div>
+      <div class="qp-chip" onclick="setDrop('Maharaja Hospital, Jagdalpur')">🏥 Hospital</div>
       <div class="qp-chip" onclick="setDrop('Jagdalpur Bus Stand')">🚌 Bus Stand</div>
       <div class="qp-chip" onclick="setDrop('Chitrakote Waterfall, Jagdalpur')">🌊 Chitrakote</div>
-      <div class="qp-chip" onclick="setDrop('JNKVV College, Jagdalpur')">🎓 JNKVV College</div>
+      <div class="qp-chip" onclick="setDrop('JNKVV College, Jagdalpur')">🎓 JNKVV</div>
       <div class="qp-chip" onclick="setDrop('Collectorate Jagdalpur')">🏛️ Collectorate</div>
-      <div class="qp-chip" onclick="setDrop('Jagdalpur Railway Station')">🚂 Railway Station</div>
+      <div class="qp-chip" onclick="setDrop('Jagdalpur Railway Station')">🚂 Railway</div>
       <div class="qp-chip" onclick="setDrop('Danteshwari Temple, Jagdalpur')">🛕 Danteshwari</div>
-      <div class="qp-chip" onclick="setDrop('Medical College Jagdalpur')">⚕️ Medical College</div>
-      <div class="qp-chip" onclick="setDrop('Indravati National Park')">🌿 Indravati Park</div>
-      <div class="qp-chip" onclick="setDrop('Kanger Valley, Jagdalpur')">🏞️ Kanger Valley</div>
       <div class="qp-chip" onclick="setDrop('Airport Jagdalpur')">✈️ Airport</div>
     </div>
 
+    <!-- Promo strip (hidden by default) -->
+    <div class="promo-strip" id="promoStrip" onclick="openModal('promoModal')" style="display:none">
+      <span class="promo-tag">OFFER</span>
+      <div style="flex:1;font-size:.78rem;font-weight:700" id="promoStripText">🎉 Promo available!</div>
+      <span style="font-size:.8rem;color:var(--purple)">→</span>
+    </div>
+
     <div id="homeErr" class="eb"></div>
-    <button class="mbtn y" onclick="calcFare()">Find Driver 🚗</button>
+    <button class="mbtn y" onclick="calcFare()" style="margin-top:6px">Find Driver 🚗</button>
   </div>
 
   <!-- FARE SCREEN -->
@@ -1280,7 +1398,7 @@ function drawCityZones() {
   zoneCircles = [outerZone, cityZone, coreZone, centerMark];
 
   document.getElementById('zoneLegend').style.display = 'block';
-  document.getElementById('zoneLegend').style.bottom = '380px';
+  document.getElementById('zoneLegend').style.bottom = '360px';
 }
 
 function clearZones() {
@@ -1431,18 +1549,14 @@ function startLiveDriverWatch() {
     // Show home screen badge
     if (CU?.role === 'rider') {
       const badge = document.getElementById('homeDrvBadge');
+      const drvText = document.getElementById('homeDrvText');
       if (totalDrivers > 0) {
-        badge.style.display = 'block';
-        badge.innerHTML = `<div class="lbadge g" style="margin-bottom:0">
-          <div class="lbd" style="background:var(--green);box-shadow:0 0 6px var(--green)"></div>
-          <span>${totalDrivers} driver${totalDrivers!==1?'s':''} online nearby — Ready to ride!</span>
-        </div>`;
+        badge.style.display = 'flex';
+        if (drvText) drvText.textContent = `${totalDrivers} driver${totalDrivers!==1?'s':''} online`;
       } else {
-        badge.style.display = 'block';
-        badge.innerHTML = `<div class="lbadge r" style="margin-bottom:0">
-          <div class="lbd"></div>
-          <span>No drivers online right now</span>
-        </div>`;
+        badge.style.display = 'flex';
+        badge.style.color = 'var(--muted)';
+        if (drvText) drvText.textContent = 'No drivers online';
       }
     }
 
@@ -1955,7 +2069,7 @@ function launch() {
 }
 function launchRider() {
   document.getElementById('rTop').style.display='flex';
-  document.getElementById('rSheet').style.display='block';
+  document.getElementById('rSheet').style.display='block';document.getElementById('mapFade').style.display='block';
   document.getElementById('locBtn').style.display='flex';
   document.getElementById('mapStats').style.display='block';
   document.getElementById('zoneLegend').style.bottom='380px';
@@ -2239,6 +2353,8 @@ async function driverCancel() {
 // RIDER BOOKING
 // ═══════════════════════════════════════════════════════
 function goScr(id) {
+  // ✅ Uber: Resize map after sheet transition
+  setTimeout(() => { try { leafMap && leafMap.invalidateSize && leafMap.invalidateSize(); } catch(e){} }, 320);
   document.querySelectorAll('.scr').forEach(e=>e.classList.remove('on'));
   document.getElementById(id).classList.add('on');
 }
