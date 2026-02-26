@@ -23,8 +23,13 @@
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<!-- Mappls SDK v3 (includes Leaflet + India tiles) -->
-<script src="https://apis.mappls.com/advancedmaps/api/4e97759ed6a3fb245e52f7e22d820954/map_sdk?v=3.0&plugins=all"></script>
+<!-- ✅ Leaflet 1.9.4 — stable, all L.* API intact -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+  // Mappls API Key
+  window.MAPPLS_KEY = '4e97759ed6a3fb245e52f7e22d820954';
+</script>
 
 <style>
 :root{
@@ -1190,18 +1195,47 @@ window.addEventListener('online', () => { document.getElementById('netB').style.
 // ✅ MAP — Leaflet + CartoDB Dark (Uber look)
 // ═══════════════════════════════════════════════════════
 function initMap() {
-  if (typeof mappls === 'undefined') { setTimeout(initMap, 600); return; }
+  if (typeof L === 'undefined') { setTimeout(initMap, 600); return; }
   try {
-    // ✅ Mappls SDK v3 — India map with MapmyIndia tiles
-    // Exposes Leaflet-compatible L global, so all L.* calls work unchanged
-    window.L = window.L || mappls; // fallback alias if Leaflet not auto-exposed
-
-    leafMap = new mappls.Map('map', {
+    // ✅ Leaflet map — Mappls India raster tiles via API key
+    leafMap = L.map('map', {
       center: [JDPC.lat, JDPC.lng],
       zoom: 13,
       zoomControl: false,
       attributionControl: true
     });
+
+    // ✅ Mappls raster tile layer — India-optimized, Jagdalpur ka sahi detail
+    const mapplsTile = L.tileLayer(
+      'https://apis.mappls.com/advancedmaps/v1/' + window.MAPPLS_KEY + '/still_lite/{z}/{x}/{y}.png',
+      {
+        attribution: '© <a href="https://mappls.com">Mappls</a> © MapmyIndia',
+        maxZoom: 19,
+        tileSize: 256,
+        errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+      }
+    );
+
+    // ✅ Dark CartoDB fallback (if Mappls tiles fail — key auth issues)
+    const darkFallback = L.tileLayer(
+      'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      { attribution:'© OpenStreetMap © CARTO', subdomains:'abcd', maxZoom:19 }
+    );
+
+    // Try Mappls tiles first, fallback to CartoDB dark on error
+    window._mapplsTileLayer = mapplsTile;
+    window._darkFallbackLayer = darkFallback;
+
+    mapplsTile.on('tileerror', function() {
+      if (!window._mapplsFallbackUsed) {
+        window._mapplsFallbackUsed = true;
+        try { leafMap.removeLayer(mapplsTile); } catch(e) {}
+        darkFallback.addTo(leafMap);
+        document.getElementById('ldStatus').textContent = '🗺️ Map loaded (fallback mode)';
+      }
+    });
+
+    mapplsTile.addTo(leafMap);
 
     // ✅ Draw Jagdalpur city zones on map immediately
     drawCityZones();
@@ -2460,17 +2494,32 @@ async function cancelBook() {
 function toggleTheme() {
   document.body.classList.toggle('lm');
   if(leafMap){
-    // ✅ Mappls SDK has built-in light/dark style support
     const isLight = document.body.classList.contains('lm');
-    try {
-      // Mappls v3 style toggle
-      if(typeof leafMap.setMapStyle === 'function'){
-        leafMap.setMapStyle(isLight ? 'mappls-light' : 'mappls-dark');
-      } else if(typeof leafMap.setStyle === 'function'){
-        leafMap.setStyle(isLight ? 'day' : 'night');
-      }
-    } catch(e){}
-    setTimeout(()=>{ try{ leafMap.invalidateSize(); }catch(e){} },300);
+    // Remove existing tile layers
+    const tileLayers=[];
+    leafMap.eachLayer(l=>{ if(l instanceof L.TileLayer) tileLayers.push(l); });
+    tileLayers.forEach(l=>leafMap.removeLayer(l));
+
+    if(isLight){
+      // Light mode: OpenStreetMap
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {attribution:'© OpenStreetMap',maxZoom:19}).addTo(leafMap);
+    } else {
+      // Dark mode: Mappls tiles with CartoDB dark fallback
+      const mTile = L.tileLayer(
+        'https://apis.mappls.com/advancedmaps/v1/' + window.MAPPLS_KEY + '/still_lite/{z}/{x}/{y}.png',
+        {attribution:'© Mappls © MapmyIndia',maxZoom:19}
+      );
+      mTile.on('tileerror', function() {
+        if(!window._themeFallbackUsed){ window._themeFallbackUsed=true;
+          try{leafMap.removeLayer(mTile);}catch(e){}
+          L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+            {attribution:'© CARTO',subdomains:'abcd',maxZoom:19}).addTo(leafMap);
+        }
+      });
+      mTile.addTo(leafMap);
+    }
+    setTimeout(()=>leafMap.invalidateSize(),300);
   }
 }
 
@@ -2877,8 +2926,7 @@ self.addEventListener('activate', e => { self.clients.claim(); });
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   const skip = ['firebase','firebaseapp','googleapis','nominatim','osrm',
-                 'openstreetmap','cartocdn','gstatic','unsplash','fonts',
-                 'mappls','mapmyindia','apis.mappls'];
+                 'openstreetmap','gstatic','unsplash','fonts'];
   if (skip.some(d => url.hostname.includes(d))) return;
   if (e.request.method !== 'GET') return;
   e.respondWith(
