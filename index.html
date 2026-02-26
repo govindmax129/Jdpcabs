@@ -360,6 +360,11 @@ body.lm .fav-chip{background:#fff;}
 .cancel-opt{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;cursor:pointer;margin-bottom:8px;transition:all .2s;}
 .cancel-opt.sel{border-color:var(--red);background:rgba(239,68,68,.07);}
 .wa-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;border-radius:13px;padding:13px;font-weight:800;font-size:.9rem;text-decoration:none;margin-top:9px;}
+/* ✅ FIX 1: eta-big was missing - ETA countdown styling */
+.eta-big{font-family:'Syne',sans-serif;font-weight:900;font-size:2.2rem;color:var(--blue);letter-spacing:.01em;margin:4px 0;line-height:1.1;}
+/* ✅ Active ride highlight */
+.assigned-glow{animation:assignGlow 2s ease-in-out infinite;}
+@keyframes assignGlow{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.2)}50%{box-shadow:0 0 24px 4px rgba(16,185,129,.15)}}
 /* ══ CALL BUTTON ══ */
 .call-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;border:none;border-radius:13px;padding:13px;font-size:.92rem;font-weight:800;cursor:pointer;font-family:'Syne',sans-serif;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;box-shadow:0 5px 18px rgba(22,163,74,.4);transition:transform .1s,box-shadow .2s;margin-top:8px;text-decoration:none;}
 .call-btn:active{transform:scale(.97);box-shadow:0 2px 8px rgba(22,163,74,.3);}
@@ -1913,6 +1918,17 @@ function launchDriver() {
 // ═══════════════════════════════════════════════════════
 async function toggleOnline() {
   isOnline=document.getElementById('onTog').checked;
+
+  // ✅ FIX 5: Block KYC pending drivers from going online
+  if(isOnline && CU?.kycStatus==='pending'){
+    document.getElementById('onTog').checked=false;
+    isOnline=false;
+    document.getElementById('onlineLbl').textContent='OFFLINE';
+    document.getElementById('onlineLbl').style.color='rgba(255,255,255,.55)';
+    toast('⚠️ KYC pending hai — admin approval ke baad online ho sakte hain');
+    return;
+  }
+
   document.getElementById('onlineLbl').textContent=isOnline?'ONLINE':'OFFLINE';
   document.getElementById('onlineLbl').style.color=isOnline?'#10b981':'rgba(255,255,255,.55)';
   if(isOnline){
@@ -2281,6 +2297,10 @@ async function confirmBook() {
   // Get rider phone — try all possible fields
   const riderPhoneVal = CU?.phone || CU?.mobile || CU?.phoneNumber || '';
 
+  // ✅ FIX 3: Apply promo discount to actual fare
+  const promoDiscount = appliedPromo ? Math.min(appliedPromo.discount, cabFare) : 0;
+  const effectiveFare = Math.max(1, cabFare - promoDiscount);
+
   const rideData={
     riderId:CU?.uid||'guest',
     riderName:CU?.name||'Rider',
@@ -2288,7 +2308,12 @@ async function confirmBook() {
     phone: riderPhoneVal,   // extra field as backup
     pickup:pickAddr||'GPS Location',pickupLat:pickLat||JDPC.lat,pickupLng:pickLng||JDPC.lng,
     drop:document.getElementById('dropIn').value.trim(),
-    cabType,fare:cabFare,distanceKM:distKM,
+    cabType,
+    fare: effectiveFare,              // ✅ FIX 3: discounted fare
+    originalFare: cabFare,             // ✅ save original
+    promoCode: appliedPromo?.code || null,  // ✅ FIX 7: save promo info
+    promoDiscount: promoDiscount,      // ✅ FIX 7: receipt will show correctly
+    distanceKM:distKM,
     etaMin:parseInt(document.getElementById('cETA').textContent)||10,
     status:'finding',
     createdAt:window.FB_READY?window.FB.serverTimestamp():new Date().toISOString()
@@ -2299,6 +2324,8 @@ async function confirmBook() {
       const ref=await window.FB.addDoc(window.FB.collection(window.FB.db,'rides'),rideData);
       rideDocId=ref.id;
       listenToRide(rideDocId);
+      appliedPromo = null; // ✅ FIX 3: Reset promo after booking
+      document.getElementById('promoStrip').style.display = 'none';
     }else{
       setTimeout(()=>{toast('❌ Firebase required');goScr('sHome');},3000);
     }
@@ -2327,10 +2354,29 @@ function listenToRide(id) {
   rideListener=window.FB.onSnapshot(window.FB.doc(window.FB.db,'rides',id), snap=>{
     if(!snap.exists()) return;
     const data=snap.data();
-    if(data.status==='assigned'&&document.getElementById('sFind').classList.contains('on')){
+    // ✅ FIX 2: Check rideDocId active AND not already on assigned screen (was blocking if user changed screen)
+    if(data.status==='assigned'&&rideDocId&&!document.getElementById('sAssigned').classList.contains('on')){
       document.getElementById('aDName').textContent=data.driverName||'--';
       document.getElementById('aVeh').textContent=`${data.driverVehicle||'--'} • ${data.cabType||'--'}`;
       document.getElementById('rideOTP').textContent=data.otp||'----';
+
+      // ✅ FIX 4: Fetch and update driver rating dynamically
+      if(data.driverId && window.FB_READY){
+        window.FB.getDoc(window.FB.doc(window.FB.db,'users',data.driverId)).then(dSnap=>{
+          if(dSnap.exists()){
+            const dd=dSnap.data();
+            const rating=(dd.rating||5.0).toFixed(1);
+            const ratingEl=document.querySelector('#driverCard .star-row span:last-child');
+            if(ratingEl) ratingEl.textContent=rating;
+            // update vehicle type display
+            if(dd.vehicleType){
+              const vehLabel = dd.vehicleType==='cab'?'🚗 Mini Cab':'🛺 Auto';
+              const vehEl=document.getElementById('aVeh');
+              if(vehEl) vehEl.textContent=`${data.driverVehicle||dd.vehicleNo||'--'} • ${vehLabel}`;
+            }
+          }
+        }).catch(()=>{});
+      }
 
       // ✅ Store driver phone and show call button
       const dPhone = data.driverPhone||'';
@@ -2349,6 +2395,9 @@ function listenToRide(id) {
       const banner=document.getElementById('assignedBanner');
       banner.classList.add('assign-bounce');
       setTimeout(()=>banner.classList.remove('assign-bounce'),700);
+      // ✅ Add assigned glow to driver card
+      const dCard=document.getElementById('driverCard');
+      if(dCard){ dCard.classList.add('assigned-glow'); setTimeout(()=>dCard.classList.remove('assigned-glow'),4000); }
       toast('🎉 Driver accepted your ride!');
       if(data.driverId) startDriverTracking(data.driverId);
       // ✅ Show SOS button during ride
@@ -2404,7 +2453,10 @@ async function cancelBook() {
 function toggleTheme() {
   document.body.classList.toggle('lm');
   if(leafMap){
-    leafMap.eachLayer(l=>{ if(l instanceof L.TileLayer) leafMap.removeLayer(l); });
+    // ✅ FIX 6: Collect layers first, then remove — avoids mutation during iteration
+    const tileLayers=[];
+    leafMap.eachLayer(l=>{ if(l instanceof L.TileLayer) tileLayers.push(l); });
+    tileLayers.forEach(l=>leafMap.removeLayer(l));
     if(document.body.classList.contains('lm')){
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(leafMap);
     }else{
@@ -2570,8 +2622,9 @@ function showReceipt(data) {
     <div class="rcpt-row"><span style="color:var(--muted)">Distance</span><span>${data.distanceKM||'--'} km</span></div>
     <div class="rcpt-row"><span style="color:var(--muted)">Vehicle</span><span>${data.cabType||'--'}</span></div>
     <div class="rcpt-row"><span style="color:var(--muted)">Driver</span><span>${data.driverName||'--'}</span></div>
-    <div class="rcpt-row"><span style="color:var(--muted)">Base Fare</span><span>₹${data.fare||'--'}</span></div>
-    ${discount ? `<div class="rcpt-row"><span style="color:var(--green)">Promo Discount</span><span style="color:var(--green)">-₹${discount}</span></div>` : ''}
+    <div class="rcpt-row"><span style="color:var(--muted)">Base Fare</span><span>₹${data.originalFare||data.fare||'--'}</span></div>
+    ${discount ? `<div class="rcpt-row"><span style="color:var(--green)">Promo (${data.promoCode||''})</span><span style="color:var(--green)">-₹${discount}</span></div>` : ''}
+    ${discount ? `<div class="rcpt-row"><span style="font-weight:800">Final Fare</span><span style="font-weight:800;color:var(--yellow)">₹${data.fare||'--'}</span></div>` : ''}
   `;
   document.getElementById('rcptShareBtns').innerHTML = `
     <a class="wa-btn" href="https://wa.me/?text=${encodeURIComponent(`JDP CABS Receipt 🚖\nPickup: ${data.pickup}\nDrop: ${data.drop}\nFare: ₹${data.fare}\nDate: ${ts.toLocaleDateString()}\n\nBook: jdpcabs.web.app`)}" target="_blank">
