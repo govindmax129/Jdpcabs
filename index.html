@@ -24,11 +24,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <!-- ✅ PERFORMANCE & ERROR BOUNDARY — 50K concurrent users -->
-
+<script>
 // Global error boundary — prevent single error from crashing app
 window.onerror = function(msg, src, line, col, err) {
   console.warn('[JDP] Caught error:', msg, 'at', src, line);
-  // Don't crash the app — just log it
   return true;
 };
 window.onunhandledrejection = function(e) {
@@ -36,18 +35,18 @@ window.onunhandledrejection = function(e) {
   e.preventDefault();
 };
 
-// Performance: lazy load non-critical resources
+// Performance tracker
 window.PERF = {
   start: Date.now(),
   mark: function(n) { try { performance.mark(n); } catch(e) {} }
 };
 
-// Debounce utility — prevent API spam under load
+// Debounce utility
 window.debounce = function(fn, ms) {
   var t; return function() { var a=arguments, ctx=this; clearTimeout(t); t=setTimeout(function(){fn.apply(ctx,a)},ms); };
 };
 
-// Throttle utility — rate-limit Firebase writes
+// Throttle utility
 window.throttle = function(fn, ms) {
   var last=0; return function() { var now=Date.now(); if(now-last>=ms){last=now;fn.apply(this,arguments);} };
 };
@@ -81,13 +80,14 @@ window.Cache = {
 
 // GPS cache — don't call GPS more than once per 3s
 window.GPS_CACHE = { lat: null, lng: null, ts: 0, TTL: 3000 };
+</script>
 
 
 <!-- ✅ Mappls Map SDK v3 — Full India Vector Maps (Leaflet bundled inside) -->
 <script>window.MAPPLS_KEY='4e97759ed6a3fb245e52f7e22d820954';</script>
 <!-- ✅ Mappls SDK v3 — Map + Direction + Navigation + Search plugins -->
 <link href="https://apis.mappls.com/advancedmaps/api/4e97759ed6a3fb245e52f7e22d820954/map_sdk?v=3.0&plugins=direction,search" rel="stylesheet">
-<script src="https://apis.mappls.com/advancedmaps/api/4e97759ed6a3fb245e52f7e22d820954/map_sdk?v=3.0&plugins=direction,search" defer></script>
+<script src="https://apis.mappls.com/advancedmaps/api/4e97759ed6a3fb245e52f7e22d820954/map_sdk?v=3.0&plugins=direction,search"></script>
 
 <style>
 :root{
@@ -101,7 +101,10 @@ body.lm{--bg:#f0f4fb;--card:#fff;--card2:#e8eef8;--border:#c8d4e4;--text:#0c1929
 body{font-family:'DM Sans',sans-serif;background:#0a0e16;color:var(--text);height:100vh;overflow:hidden;}
 
 /* ══ MAP ══ */
-#map{position:absolute;inset:0;z-index:1;width:100vw;height:100vh;background:#1a2535;}
+#map{position:absolute;inset:0;z-index:1;width:100vw;height:100vh;background:#1a2535;
+  will-change:transform;
+  transform:translateZ(0);
+  -webkit-transform:translateZ(0);}
 
 /* ══ MAPPLS MAP — Full Screen, Uber-clean ══ */
 .leaflet-control-zoom,.leaflet-control-scale,
@@ -111,10 +114,14 @@ body{font-family:'DM Sans',sans-serif;background:#0a0e16;color:var(--text);heigh
 .leaflet-popup-content-wrapper,.mappls-popup-content-wrapper{
   background:rgba(10,14,22,.97)!important;color:white!important;
   border:1px solid rgba(255,255,255,.1)!important;border-radius:16px!important;
-  font-family:'DM Sans',sans-serif!important;box-shadow:0 12px 40px rgba(0,0,0,.7)!important;
-  backdrop-filter:blur(20px)!important;}
+  font-family:'DM Sans',sans-serif!important;box-shadow:0 12px 40px rgba(0,0,0,.7)!important;}
 .leaflet-popup-tip,.mappls-popup-tip{background:rgba(10,14,22,.97)!important;}
 .leaflet-popup-content,.mappls-popup-content{margin:14px 16px!important;font-size:.83rem!important;}
+
+/* ✅ GPU-accelerated tile layer */
+.leaflet-tile-container{will-change:transform;transform:translateZ(0);}
+.leaflet-map-pane{will-change:transform;transform:translateZ(0);}
+.leaflet-marker-pane,.leaflet-overlay-pane{will-change:transform;}
 
 /* ══ UBER ZOOM CONTROLS ══ */
 .zoom-ctrl{position:fixed;right:14px;z-index:500;display:flex;flex-direction:column;gap:5px;}
@@ -170,17 +177,16 @@ body.lm #zoneLegend{background:rgba(255,255,255,.95);color:#000;}
 
 /* ══ MAPPLS-STYLE FULL SCREEN BOTTOM SHEET (Glass) ══ */
 .sheet{position:fixed;bottom:0;left:0;right:0;z-index:400;
-  background:rgba(7,9,15,0.88);
-  backdrop-filter:blur(28px) saturate(1.6);
-  -webkit-backdrop-filter:blur(28px) saturate(1.6);
+  background:rgba(7,9,15,0.94);
   border-radius:24px 24px 0 0;
   border-top:1px solid rgba(255,255,255,.10);
   padding:0 18px 38px;
-  max-height:52vh;        /* ← Mappls style: map zyada dikhta hai */
+  max-height:52vh;
   overflow-y:auto;display:none;
-  box-shadow:0 -12px 48px rgba(0,0,0,.45);}
+  box-shadow:0 -12px 48px rgba(0,0,0,.6);
+  will-change:transform;}
 .sheet::-webkit-scrollbar{display:none;}
-body.lm .sheet{background:rgba(240,244,251,.92);backdrop-filter:blur(28px) saturate(1.4);-webkit-backdrop-filter:blur(28px) saturate(1.4);border-top:1px solid rgba(0,0,0,.05);}
+body.lm .sheet{background:rgba(240,244,251,.97);border-top:1px solid rgba(0,0,0,.05);}
 .hdl{width:36px;height:4px;background:rgba(255,255,255,.12);border-radius:4px;margin:12px auto 16px;}
 body.lm .hdl{background:rgba(0,0,0,.1);}
 
@@ -245,17 +251,23 @@ body.lm .qp-chip{background:#f0f4ff;border-color:#dde5f0;}
 
 /* ══ MARKERS ══ */
 .my-loc-wrap{position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;}
-.my-loc-dot{width:13px;height:13px;background:#3b82f6;border:2.5px solid #fff;border-radius:50%;z-index:2;position:relative;box-shadow:0 0 0 0 rgba(59,130,246,.5);animation:locpulse 2s infinite;}
-.my-loc-wave{position:absolute;width:24px;height:24px;border:2px solid rgba(59,130,246,.4);border-radius:50%;animation:locwave 2s infinite;}
+.my-loc-dot{width:13px;height:13px;background:#3b82f6;border:2.5px solid #fff;border-radius:50%;z-index:2;position:relative;
+  will-change:box-shadow;
+  box-shadow:0 0 0 0 rgba(59,130,246,.5);animation:locpulse 2s infinite;}
+.my-loc-wave{position:absolute;width:24px;height:24px;border:2px solid rgba(59,130,246,.4);border-radius:50%;
+  will-change:transform,opacity;
+  animation:locwave 2s infinite;}
 @keyframes locpulse{0%{box-shadow:0 0 0 0 rgba(59,130,246,.7)}70%{box-shadow:0 0 0 12px rgba(59,130,246,0)}100%{box-shadow:0 0 0 0 rgba(59,130,246,0)}}
 @keyframes locwave{0%{transform:scale(.7);opacity:1}100%{transform:scale(2.2);opacity:0}}
 
 .driver-dot-wrap{position:relative;display:flex;flex-direction:column;align-items:center;}
-.driver-car{font-size:22px;line-height:1;filter:drop-shadow(0 3px 6px rgba(0,0,0,.8));animation:carfloat 3s ease-in-out infinite;}
+.driver-car{font-size:22px;line-height:1;filter:drop-shadow(0 3px 6px rgba(0,0,0,.8));
+  will-change:transform;animation:carfloat 3s ease-in-out infinite;}
 .driver-dot-shadow{width:10px;height:3px;background:rgba(0,0,0,.5);border-radius:50%;margin-top:1px;}
 @keyframes carfloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-3px) scale(1.05)}}
 
-.assigned-car{font-size:30px;line-height:1;filter:drop-shadow(0 4px 10px rgba(245,158,11,.6));animation:assignedcar 1s ease-in-out infinite;}
+.assigned-car{font-size:30px;line-height:1;filter:drop-shadow(0 4px 10px rgba(245,158,11,.6));
+  will-change:transform;animation:assignedcar 1s ease-in-out infinite;}
 @keyframes assignedcar{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
 
 .pickup-wrap{display:flex;flex-direction:column;align-items:center;}
@@ -591,8 +603,8 @@ body.lm .dcard{background:#fff;}
 
 /* ══ DRIVER PANELS ══ */
 #dPanel{position:fixed;bottom:0;left:0;right:0;z-index:400;display:none;}
-#dOff,#dOn,#dNav{background:rgba(7,9,15,.92);backdrop-filter:blur(28px) saturate(1.5);-webkit-backdrop-filter:blur(28px) saturate(1.5);border-radius:22px 22px 0 0;border-top:1px solid rgba(255,255,255,.09);padding:18px 17px 32px;}
-body.lm #dOff,body.lm #dOn,body.lm #dNav{background:rgba(240,244,251,.94);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);}
+#dOff,#dOn,#dNav{background:rgba(7,9,15,.96);border-radius:22px 22px 0 0;border-top:1px solid rgba(255,255,255,.09);padding:18px 17px 32px;}
+body.lm #dOff,body.lm #dOn,body.lm #dNav{background:rgba(240,244,251,.98);}
 #dOff{text-align:center;}
 #dOn,#dNav{display:none;}
 .opulse{display:flex;align-items:center;gap:9px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:13px;padding:13px;margin-bottom:12px;}
@@ -2393,27 +2405,80 @@ function toggleZone() {
 }
 
 // ═══════════════════════════════════════════════════════
-// ✅ LANDMARK MARKERS — Jagdalpur famous places
+// ✅ LANDMARK MARKERS — Zoom-based lazy loading (Smooth!)
+// Only show markers when zoomed in enough (zoom ≥ 13)
+// Only render markers visible in current viewport
 // ═══════════════════════════════════════════════════════
+let landmarkRenderTimer = null;
+
 function addLandmarkMarkers() {
-  JAGDALPUR_LANDMARKS.forEach(place => {
-    const mk = new mappls.Marker({
-      map: landmarksVisible ? leafMap : null,
-      position: { lat: place.lat, lng: place.lng },
-      html: `<div style="background:rgba(10,14,22,.9);border:1.5px solid rgba(255,255,255,.15);border-radius:8px;padding:3px 5px;font-size:13px;transform:translate(-14px,-14px);white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.5)">${place.icon}</div>`,
-      popupHtml: ('<b>'+place.icon+' '+place.name+'</b><br><small style="color:#aaa">'+place.info+'</small><br><button onclick="setDropFromMap('+place.lat+','+place.lng+',\''+place.name.replace(/'/g,'').replace(/"/g,'')+'\');" style="background:#f59e0b;border:none;color:#000;padding:4px 10px;border-radius:6px;font-size:.72rem;font-weight:800;margin-top:6px;cursor:pointer;width:100%">🚗 Set as Drop Point</button>')
+  // ✅ Don't render all 160 at once — listen to zoom & moveend
+  if (!leafMap) return;
+  leafMap.on('zoomend moveend', function() {
+    clearTimeout(landmarkRenderTimer);
+    landmarkRenderTimer = setTimeout(renderVisibleLandmarks, 200); // 200ms debounce
+  });
+  // Initial render
+  setTimeout(renderVisibleLandmarks, 500);
+}
+
+function renderVisibleLandmarks() {
+  if (!leafMap || !landmarksVisible) return;
+  const zoom = leafMap.getZoom ? leafMap.getZoom() : 14;
+  
+  // ✅ Below zoom 13 — hide all landmark markers to keep map fast
+  if (zoom < 13) {
+    landmarkMarkers.forEach(mk => {
+      try { if (typeof mk.setMap === 'function') mk.setMap(null); } catch(e){}
     });
-    landmarkMarkers.push(mk);
+    return;
+  }
+
+  // ✅ Get current map bounds
+  let bounds = null;
+  try { bounds = leafMap.getBounds(); } catch(e){}
+
+  // ✅ Only show markers in current viewport + small buffer
+  JAGDALPUR_LANDMARKS.forEach((place, i) => {
+    const inView = !bounds || (
+      place.lat >= (bounds._southWest?.lat || bounds.getSouthWest().lat) - 0.01 &&
+      place.lat <= (bounds._northEast?.lat || bounds.getNorthEast().lat) + 0.01 &&
+      place.lng >= (bounds._southWest?.lng || bounds.getSouthWest().lng) - 0.01 &&
+      place.lng <= (bounds._northEast?.lng || bounds.getNorthEast().lng) + 0.01
+    );
+
+    const existingMk = landmarkMarkers[i];
+
+    if (inView) {
+      if (!existingMk) {
+        // Create marker only when needed
+        const mk = new mappls.Marker({
+          map: leafMap,
+          position: { lat: place.lat, lng: place.lng },
+          html: `<div style="background:rgba(10,14,22,.9);border:1.5px solid rgba(255,255,255,.15);border-radius:8px;padding:3px 5px;font-size:13px;transform:translate(-14px,-14px);white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.5)">${place.icon}</div>`,
+          popupHtml: ('<b>'+place.icon+' '+place.name+'</b><br><small style="color:#aaa">'+place.info+'</small><br><button onclick="setDropFromMap('+place.lat+','+place.lng+',\''+place.name.replace(/'/g,'').replace(/"/g,'')+'\');" style="background:#f59e0b;border:none;color:#000;padding:4px 10px;border-radius:6px;font-size:.72rem;font-weight:800;margin-top:6px;cursor:pointer;width:100%">🚗 Drop Point Set</button>')
+        });
+        landmarkMarkers[i] = mk;
+      } else {
+        try { if (typeof existingMk.setMap === 'function') existingMk.setMap(leafMap); } catch(e){}
+      }
+    } else if (existingMk) {
+      // Hide out-of-view markers to free GPU
+      try { if (typeof existingMk.setMap === 'function') existingMk.setMap(null); } catch(e){}
+    }
   });
 }
 
 function toggleLandmarks() {
   landmarksVisible = !landmarksVisible;
-  landmarkMarkers.forEach(mk => {
-    try {
-      if (typeof mk.setMap === 'function') mk.setMap(landmarksVisible ? leafMap : null);
-    } catch(e){}
-  });
+  if (landmarksVisible) {
+    renderVisibleLandmarks();
+  } else {
+    landmarkMarkers.forEach(mk => {
+      if (!mk) return;
+      try { if (typeof mk.setMap === 'function') mk.setMap(null); } catch(e){}
+    });
+  }
   toast(landmarksVisible ? '📍 Jagdalpur landmarks shown' : '📍 Landmarks hidden');
 }
 
@@ -2431,6 +2496,8 @@ function startLiveDriverWatch() {
   );
 
   liveDriversListener = window.FB.onSnapshot(q, { includeMetadataChanges: false }, (snap) => {
+    // ✅ Batch all marker updates in one rAF to prevent jank
+    requestAnimationFrame(() => {
     const onlineIds = new Set();
     let totalDrivers = 0;
     let in3km = 0, in8km = 0, in15km = 0;
@@ -2523,6 +2590,7 @@ function startLiveDriverWatch() {
 
     // Update my zone text
     if (myLat) updateMyZone();
+    }); // end requestAnimationFrame
   });
 }
 
@@ -2905,12 +2973,13 @@ function startGPS() {
   watchId = navigator.geolocation.watchPosition(async (pos) => {
     myLat = pos.coords.latitude; myLng = pos.coords.longitude;
     pickLat = myLat; pickLng = myLng;
-    updateMyMarker(myLat, myLng);
+    // ✅ Use rAF for smooth marker update — no jank during pan/zoom
+    requestAnimationFrame(() => updateMyMarker(myLat, myLng));
     updateMyZone();
 
     if (CU?.role === 'driver' && isOnline && window.FB_READY) {
-      // ✅ PERF: Throttle Firebase location writes — max 1 write per 4s (reduces DB load)
-      if (!window._lastGPSWrite || Date.now() - window._lastGPSWrite > 4000) {
+      // ✅ Throttle Firebase location writes — max 1 write per 6s
+      if (!window._lastGPSWrite || Date.now() - window._lastGPSWrite > 6000) {
         window._lastGPSWrite = Date.now();
         try {
           await window.FB.updateDoc(window.FB.doc(window.FB.db,'users',CU.uid),
@@ -3264,7 +3333,7 @@ function launchDriver() {
   }
   // Auto show landmarks for driver
   landmarksVisible = true;
-  landmarkMarkers.forEach(mk => { try { mk.addTo(leafMap); } catch(e){} });
+  renderVisibleLandmarks();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -4243,13 +4312,12 @@ function toast(msg) {
     // ── Inline Service Worker via Blob URL ──
     if ('serviceWorker' in navigator) {
       const swCode = `
-const CACHE='jdpcabs-v5';
+const CACHE='jdpcabs-v6';
 self.addEventListener('install', e => { self.skipWaiting(); });
 self.addEventListener('activate', e => { self.clients.claim(); });
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   const skip = ['firebase','firebaseapp','googleapis','osrm','openstreetmap','gstatic','unsplash','fonts','apis.mappls.com'];
-                 'openstreetmap','gstatic','unsplash','fonts','apis.mappls.com'];
   if (skip.some(d => url.hostname.includes(d))) return;
   if (e.request.method !== 'GET') return;
   e.respondWith(
