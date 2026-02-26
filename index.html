@@ -101,7 +101,7 @@ body.lm{--bg:#f0f4fb;--card:#fff;--card2:#e8eef8;--border:#c8d4e4;--text:#0c1929
 body{font-family:'DM Sans',sans-serif;background:#0a0e16;color:var(--text);height:100vh;overflow:hidden;}
 
 /* ══ MAP ══ */
-#map{position:absolute;inset:0;z-index:1;width:100vw;height:100vh;background:#1a2535;
+#map{position:fixed;inset:0;z-index:1;width:100vw;height:100vh;background:#1a2535;
   will-change:transform;
   transform:translateZ(0);
   -webkit-transform:translateZ(0);}
@@ -110,17 +110,16 @@ body{font-family:'DM Sans',sans-serif;background:#0a0e16;color:var(--text);heigh
 .leaflet-control-zoom,.leaflet-control-scale,
 .mappls-ctrl-zoom,.mappls-ctrl-scale{display:none!important;}
 .leaflet-control-attribution,.mappls-ctrl-attrib-container{
-  font-size:7px!important;opacity:.2!important;bottom:2px!important;right:4px!important;}
+  font-size:7px!important;opacity:.15!important;bottom:2px!important;right:4px!important;}
 .leaflet-popup-content-wrapper,.mappls-popup-content-wrapper{
   background:rgba(10,14,22,.97)!important;color:white!important;
   border:1px solid rgba(255,255,255,.1)!important;border-radius:16px!important;
   font-family:'DM Sans',sans-serif!important;box-shadow:0 12px 40px rgba(0,0,0,.7)!important;}
 .leaflet-popup-tip,.mappls-popup-tip{background:rgba(10,14,22,.97)!important;}
-.leaflet-popup-content,.mappls-popup-content{margin:14px 16px!important;font-size:.83rem!important;}
+.leaflet-popup-content,.mappls-popup-content{margin:12px 15px!important;font-size:.83rem!important;}
 
 /* ✅ GPU-accelerated tile layer */
-.leaflet-tile-container{will-change:transform;transform:translateZ(0);}
-.leaflet-map-pane{will-change:transform;transform:translateZ(0);}
+.leaflet-tile-container,.leaflet-map-pane{will-change:transform;transform:translateZ(0);}
 .leaflet-marker-pane,.leaflet-overlay-pane{will-change:transform;}
 
 /* ══ UBER ZOOM CONTROLS ══ */
@@ -147,6 +146,10 @@ body.lm .zbtn{background:#fff;color:#000;}
 .tbtn:active{background:rgba(255,255,255,.28);}
 body.lm .tbtn{background:rgba(0,0,0,.1);color:#000;border-color:rgba(0,0,0,.15);}
 .tbtn-icon{height:38px;width:38px;padding:0;border-radius:50%;}
+
+/* ══ MAP STYLE TOGGLE FAB ══ */
+#mapStyleBtn{background:#1a2535;border:1.5px solid rgba(255,255,255,.15);color:white;font-size:1rem;}
+#mapStyleBtn.satellite{background:rgba(245,158,11,.2);border-color:rgba(245,158,11,.5);}
 
 /* ══ LOCATE BUTTON — Uber FAB ══ */
 .locbtn{position:fixed;right:14px;z-index:500;width:48px;height:48px;
@@ -177,18 +180,18 @@ body.lm #zoneLegend{background:rgba(255,255,255,.95);color:#000;}
 
 /* ══ MAPPLS-STYLE FULL SCREEN BOTTOM SHEET (Glass) ══ */
 .sheet{position:fixed;bottom:0;left:0;right:0;z-index:400;
-  background:rgba(7,9,15,0.94);
-  border-radius:24px 24px 0 0;
-  border-top:1px solid rgba(255,255,255,.10);
-  padding:0 18px 38px;
-  max-height:52vh;
+  background:rgba(7,9,15,0.96);
+  border-radius:22px 22px 0 0;
+  border-top:1px solid rgba(255,255,255,.09);
+  padding:0 16px 36px;
+  max-height:48vh;
   overflow-y:auto;display:none;
-  box-shadow:0 -12px 48px rgba(0,0,0,.6);
+  box-shadow:0 -8px 40px rgba(0,0,0,.7);
   will-change:transform;}
 .sheet::-webkit-scrollbar{display:none;}
-body.lm .sheet{background:rgba(240,244,251,.97);border-top:1px solid rgba(0,0,0,.05);}
-.hdl{width:36px;height:4px;background:rgba(255,255,255,.12);border-radius:4px;margin:12px auto 16px;}
-body.lm .hdl{background:rgba(0,0,0,.1);}
+body.lm .sheet{background:rgba(240,244,251,.98);border-top:1px solid rgba(0,0,0,.05);}
+.hdl{width:32px;height:3.5px;background:rgba(255,255,255,.1);border-radius:4px;margin:10px auto 14px;}
+body.lm .hdl{background:rgba(0,0,0,.08);}
 
 /* ══ SEARCH BAR inside sheet — Uber style ══ */
 .lbs{display:flex;flex-direction:column;margin-bottom:10px;}
@@ -724,12 +727,135 @@ body.lm .fav-chip{background:#fff;}
 .call-btn-mini:active{transform:scale(.96);}
 .call-ring{display:inline-block;animation:callring .6s infinite alternate;}
 @keyframes callring{0%{transform:rotate(-15deg)}100%{transform:rotate(15deg)}}
+
+/* ══ TRENDING 2024: ROUTE PILL (above bottom sheet) ══ */
+#routePill{position:fixed;bottom:0;left:50%;transform:translateX(-50%);z-index:395;
+  display:none;pointer-events:none;
+  transition:bottom .3s ease;}
+.rp-inner{display:flex;align-items:center;gap:0;background:rgba(7,9,15,.9);
+  border:1px solid rgba(255,255,255,.1);border-radius:99px;
+  padding:8px 4px;backdrop-filter:blur(16px);
+  box-shadow:0 4px 20px rgba(0,0,0,.5);}
+.rp-seg{display:flex;flex-direction:column;align-items:center;padding:0 16px;font-size:.68rem;}
+.rp-val{font-family:'Syne',sans-serif;font-weight:900;font-size:1.1rem;color:white;line-height:1;}
+.rp-lbl{color:rgba(255,255,255,.45);font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:1px;}
+.rp-div{width:1px;height:28px;background:rgba(255,255,255,.1);}
+
+/* ══ TRENDING: DRIVER CARD ON MAP (rider sees driver approaching) ══ */
+#driverApproachBar{position:fixed;top:0;left:0;right:0;z-index:450;
+  display:none;
+  padding:10px 14px 10px;
+  background:linear-gradient(180deg,rgba(7,9,15,1) 0%,rgba(7,9,15,0) 100%);}
+.dab-inner{display:flex;align-items:center;gap:10px;background:rgba(16,185,129,.12);
+  border:1.5px solid rgba(16,185,129,.3);border-radius:16px;padding:10px 14px;}
+.dab-car{font-size:1.8rem;}
+.dab-info{flex:1;min-width:0;}
+.dab-name{font-weight:800;font-size:.9rem;color:white;}
+.dab-sub{font-size:.68rem;color:rgba(16,185,129,.9);font-weight:700;margin-top:1px;}
+.dab-eta{text-align:right;}
+.dab-min{font-family:'Syne',sans-serif;font-weight:900;font-size:1.5rem;color:var(--green);line-height:1;}
+.dab-away{font-size:.6rem;color:var(--muted);}
+
+/* ══ TRENDING: BOTTOM SHEET PICKUP STRIP — always shows pickup ══ */
+.pickup-strip{display:flex;align-items:center;gap:8px;
+  padding:9px 12px;background:rgba(255,255,255,.04);
+  border-radius:12px;margin-bottom:10px;border:1px solid rgba(255,255,255,.07);}
+.pickup-strip .psdot{width:9px;height:9px;border-radius:50%;background:#10b981;flex-shrink:0;
+  box-shadow:0 0 6px #10b981;}
+.pickup-strip .ps-addr{flex:1;font-size:.8rem;font-weight:700;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pickup-strip .ps-gps{font-size:.65rem;color:var(--muted);}
+body.lm .pickup-strip{background:rgba(0,0,0,.04);}
+
+/* ══ TRENDING: RIDE TYPE CARDS — Ola/Uber 2024 ══ */
+.ro-card{display:flex;align-items:center;gap:0;
+  border:1.5px solid var(--border);border-radius:16px;padding:13px 14px;
+  cursor:pointer;transition:all .2s;margin-bottom:8px;position:relative;overflow:hidden;}
+.ro-card::before{content:'';position:absolute;inset:0;background:transparent;transition:background .2s;}
+.ro-card.sel{border-color:var(--yellow);background:rgba(245,158,11,.06);}
+.ro-card.sel::before{background:rgba(245,158,11,.03);}
+.ro-card:active{transform:scale(.98);}
+.ro-eta-badge{position:absolute;top:8px;right:10px;background:rgba(16,185,129,.12);
+  border:1px solid rgba(16,185,129,.25);border-radius:99px;
+  padding:2px 8px;font-size:.6rem;font-weight:800;color:var(--green);}
+.ro-badge-popular{background:rgba(245,158,11,.15);border-color:rgba(245,158,11,.3);color:var(--yellow);}
+
+/* ══ DRIVER MAP MINI-PANEL — Ola style clean ══ */
+#driverMapPanel{position:fixed;bottom:0;left:0;right:0;z-index:399;
+  display:none;
+  background:rgba(7,9,15,.97);
+  border-radius:22px 22px 0 0;
+  border-top:1px solid rgba(255,255,255,.08);
+  padding:12px 15px 32px;
+  max-height:46vh;overflow-y:auto;}
+#driverMapPanel::-webkit-scrollbar{display:none;}
+
+/* ══ DRIVER INCOME PILL ══ */
+.earn-pill{display:flex;align-items:center;gap:6px;background:rgba(16,185,129,.1);
+  border:1px solid rgba(16,185,129,.2);border-radius:99px;padding:5px 12px;
+  font-size:.72rem;font-weight:700;color:var(--green);}
+
+/* ══ LIVE DISTANCE FLOAT — positioned above sheet ══ */
+#liveDistFloat{position:fixed;left:50%;transform:translateX(-50%);
+  z-index:420;display:none;pointer-events:none;}
+.ldf-inner{background:rgba(0,0,0,.82);backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.12);border-radius:99px;
+  padding:6px 16px;display:flex;align-items:center;gap:6px;
+  font-size:.75rem;font-weight:700;color:white;}
+.ldf-dot{width:7px;height:7px;border-radius:50%;background:var(--blue);
+  animation:dpulse 1.2s infinite;flex-shrink:0;}
+
+/* ══ TRENDING: SAFETY FEATURES BAR ══ */
+.safety-row{display:flex;gap:6px;margin-top:8px;}
+.safety-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:rgba(255,255,255,.04);border:1px solid var(--border);
+  border-radius:12px;padding:9px 6px;cursor:pointer;font-size:.62rem;
+  font-weight:700;color:var(--muted);transition:all .18s;}
+.safety-btn:active{background:rgba(255,255,255,.1);}
+.safety-btn .sb-icon{font-size:1.2rem;}
+
+/* ══ FARE BREAKDOWN — Trending transparent pricing ══ */
+.fare-row{display:flex;justify-content:space-between;align-items:center;
+  padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:.78rem;}
+.fare-row:last-child{border-bottom:none;}
+.fare-row.total{font-weight:900;font-size:.92rem;padding-top:10px;}
+body.lm .fare-row{border-color:rgba(0,0,0,.06);}
+
+/* ══ DRIVER OLA-STYLE — request popup improved ══ */
+.req-chip{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.05);
+  border:1px solid var(--border);border-radius:8px;padding:6px 10px;
+  font-family:'Syne',sans-serif;font-weight:900;font-size:1rem;text-align:center;}
+.req-chip-lbl{font-size:.52rem;color:var(--muted);font-weight:700;
+  text-transform:uppercase;letter-spacing:.04em;margin-top:1px;}
 </style>
 </head>
 <body>
 
 <!-- SURGE BANNER -->
 <div id="surgeBanner">⚡ High Demand — Surge Pricing Active in Your Area! Fares 1.5x</div>
+
+<!-- ✅ DRIVER APPROACHING TOP BAR — Ola/Uber trending 2024 -->
+<div id="driverApproachBar">
+  <div class="dab-inner">
+    <div class="dab-car" id="dabCar">🛺</div>
+    <div class="dab-info">
+      <div class="dab-name" id="dabName">Driver coming...</div>
+      <div class="dab-sub" id="dabSub">Live tracking on map</div>
+    </div>
+    <div class="dab-eta">
+      <div class="dab-min" id="dabMin">--</div>
+      <div class="dab-away">min away</div>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ LIVE DISTANCE FLOAT PILL -->
+<div id="liveDistFloat">
+  <div class="ldf-inner">
+    <div class="ldf-dot"></div>
+    <span id="liveDistText">-- km</span>
+  </div>
+</div>
 
 <!-- LOADER -->
 <div id="loader">
@@ -831,7 +957,7 @@ body.lm .fav-chip{background:#fff;}
     </div>
     <div class="ms-chip" id="liveDistChip" style="display:none">
       <div class="ms-dot" style="background:var(--blue);animation:dpulse 1.2s infinite"></div>
-      <span id="liveDistText">-- km</span>
+      <span id="liveDistChipText">-- km</span>
     </div>
     <div class="ms-chip" onclick="toggleMapStyle()">
       <span id="mapStyleIcon">🛰️</span>
@@ -961,155 +1087,136 @@ body.lm .fav-chip{background:#fff;}
 <div class="sheet" id="rSheet">
   <div class="hdl"></div>
 
-  <!-- ✅ HOME SCREEN — Uber-style compact -->
+  <!-- ✅ HOME SCREEN — Uber 2024 style -->
   <div class="scr on" id="sHome">
-
-    <!-- Greeting + driver badge — single row -->
+    <!-- Greeting row -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-      <div style="font-size:.65rem;color:var(--muted);font-weight:800;letter-spacing:.1em;text-transform:uppercase">
-        WHERE TO, <span id="riderName" style="color:var(--yellow)">RIDER</span>?
+      <div>
+        <div style="font-size:.6rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.1em">WHERE TO,</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:.98rem" id="riderName">RIDER</div>
       </div>
-      <div id="homeDrvBadge" style="display:none;font-size:.65rem;font-weight:700;color:var(--green);
-        display:flex;align-items:center;gap:4px">
-        <div style="width:6px;height:6px;border-radius:50%;background:var(--green);
-          box-shadow:0 0 6px var(--green)"></div>
+      <div id="homeDrvBadge" style="display:flex;align-items:center;gap:5px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);border-radius:99px;padding:5px 10px;font-size:.65rem;font-weight:700;color:var(--green);">
+        <div style="width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)"></div>
         <span id="homeDrvText">0 drivers</span>
       </div>
     </div>
 
-    <!-- ✅ SEARCH BOX — Uber style with pickup pre-filled -->
-    <div class="lbs">
-      <div class="lb" onclick="refreshGPS()" style="cursor:pointer;">
-        <div class="pdot"></div>
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="pAddr">Detecting location...</div>
-          <div id="pSub" style="font-size:.66rem;color:var(--muted);margin-top:1px;display:flex;align-items:center;gap:4px">
-            <div class="lspin"></div><span>Getting GPS...</span>
-          </div>
+    <!-- ✅ PICKUP ROW — Always visible, Uber style -->
+    <div class="pickup-strip" onclick="refreshGPS()" style="cursor:pointer">
+      <div class="psdot"></div>
+      <div style="flex:1;min-width:0">
+        <div class="ps-addr" id="pAddr">Detecting location...</div>
+        <div id="pSub" class="ps-gps" style="display:flex;align-items:center;gap:3px">
+          <div class="lspin"></div><span>Getting GPS...</span>
         </div>
-        <div style="font-size:.85rem;opacity:.4;flex-shrink:0">🔄</div>
       </div>
-      <div id="dropLbWrap">
-        <div class="lb" style="border-color:rgba(255,255,255,.12)">
-          <div style="width:10px;height:10px;background:var(--red);border-radius:3px;flex-shrink:0;transform:rotate(45deg)"></div>
-          <input type="text" id="dropIn" placeholder="🔍 Jagdalpur mein kahan jaana hai?"
-            autocomplete="off"
-            style="background:transparent;border:none;color:var(--text);width:100%;
-            font-family:'DM Sans',sans-serif;font-weight:600;font-size:.88rem;outline:none;"
-            onkeydown="if(event.key==='Enter'){hideSuggest();calcFare();}"
-            oninput="onDropInput(this.value)"
-            onfocus="if(this.value.length>1)showSuggest(this.value)"
-            onblur="setTimeout(hideSuggest,200)">
-        </div>
-        <!-- ✅ Autocomplete dropdown — Uber style -->
-        <div id="dropSuggest"></div>
-      </div>
+      <div style="font-size:.8rem;opacity:.35">📡</div>
     </div>
 
-    <!-- ✅ QUICK FAVORITES ROW — Uber home/work chips -->
-    <div style="display:flex;gap:8px;margin-bottom:10px;">
-      <div class="fav-chip" id="favHomeChip" onclick="useFavLoc('home')"
-        style="flex:1;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);
-        border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:9px 11px;cursor:pointer;">
-        <span style="font-size:1.2rem">🏠</span>
-        <div style="min-width:0">
-          <div style="font-size:.58rem;color:var(--muted);font-weight:700;text-transform:uppercase">Home</div>
-          <div style="font-size:.75rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px" id="favHomeLbl">Set location</div>
-        </div>
+    <!-- Drop search box -->
+    <div id="dropLbWrap" style="position:relative;margin-bottom:10px;">
+      <div class="lb" style="border-radius:14px;border:1.5px solid rgba(255,255,255,.08);">
+        <div style="width:10px;height:10px;background:var(--red);border-radius:2px;flex-shrink:0;transform:rotate(45deg)"></div>
+        <input type="text" id="dropIn" placeholder="Kahan jaana hai? 🔍"
+          autocomplete="off"
+          style="background:transparent;border:none;color:var(--text);width:100%;
+          font-family:'DM Sans',sans-serif;font-weight:600;font-size:.88rem;outline:none;"
+          onkeydown="if(event.key==='Enter'){hideSuggest();calcFare();}"
+          oninput="onDropInput(this.value)"
+          onfocus="if(this.value.length>1)showSuggest(this.value)"
+          onblur="setTimeout(hideSuggest,200)">
       </div>
-      <div class="fav-chip" id="favWorkChip" onclick="useFavLoc('work')"
-        style="flex:1;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);
-        border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:9px 11px;cursor:pointer;">
-        <span style="font-size:1.2rem">💼</span>
-        <div style="min-width:0">
-          <div style="font-size:.58rem;color:var(--muted);font-weight:700;text-transform:uppercase">Work</div>
-          <div style="font-size:.75rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px" id="favWorkLbl">Set location</div>
-        </div>
-      </div>
+      <div id="dropSuggest"></div>
     </div>
 
-    <!-- ✅ POPULAR PLACES — horizontal scroll, Uber pill style -->
-    <div class="qp-label">🏙️ Popular in Jagdalpur</div>
+    <!-- Popular places -->
+    <div class="qp-label">🔥 Popular destinations</div>
     <div class="qp-scroll" id="qpScroll">
       <div class="qp-chip" onclick="setDrop('Bastar Palace, Jagdalpur')">🏯 Bastar Palace</div>
       <div class="qp-chip" onclick="setDrop('Maharaja Hospital, Jagdalpur')">🏥 Hospital</div>
       <div class="qp-chip" onclick="setDrop('Jagdalpur Bus Stand')">🚌 Bus Stand</div>
+      <div class="qp-chip" onclick="setDrop('Jagdalpur Railway Station')">🚂 Railway</div>
       <div class="qp-chip" onclick="setDrop('Chitrakote Waterfall, Jagdalpur')">🌊 Chitrakote</div>
       <div class="qp-chip" onclick="setDrop('JNKVV College, Jagdalpur')">🎓 JNKVV</div>
       <div class="qp-chip" onclick="setDrop('Collectorate Jagdalpur')">🏛️ Collectorate</div>
-      <div class="qp-chip" onclick="setDrop('Jagdalpur Railway Station')">🚂 Railway</div>
-      <div class="qp-chip" onclick="setDrop('Danteshwari Temple, Jagdalpur')">🛕 Danteshwari</div>
       <div class="qp-chip" onclick="setDrop('Airport Jagdalpur')">✈️ Airport</div>
     </div>
 
     <div id="homeErr" class="eb"></div>
-    <button class="mbtn y" onclick="calcFare()" style="margin-top:6px">Find Driver 🚗</button>
+    <button class="mbtn y" onclick="calcFare()" style="margin-top:4px">Find Ride 🚗</button>
   </div>
 
-  <!-- FARE SCREEN -->
+  <!-- FARE / SELECT RIDE SCREEN -->
   <div class="scr" id="sFare">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div style="font-family:'Syne',sans-serif;font-size:.98rem;font-weight:800">Select Ride</div>
-      <span style="color:var(--red);font-weight:700;font-size:.83rem;cursor:pointer" onclick="goScr('sHome');clearRoute()">✕ Back</span>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-family:'Syne',sans-serif;font-size:.92rem;font-weight:900">Select Ride</div>
+      <span style="color:var(--muted);font-size:.76rem;cursor:pointer;padding:4px 8px" onclick="goScr('sHome');clearRoute()">✕ Cancel</span>
+    </div>
+    <!-- ✅ PICKUP+DROP ALWAYS VISIBLE -->
+    <div style="display:flex;flex-direction:column;gap:0;margin-bottom:10px;border:1px solid rgba(255,255,255,.07);border-radius:13px;overflow:hidden">
+      <div class="pickup-strip" style="border-radius:0;margin-bottom:0;border:none;border-bottom:1px solid rgba(255,255,255,.06)">
+        <div class="psdot"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.58rem;color:var(--green);font-weight:800;text-transform:uppercase;margin-bottom:1px">PICKUP</div>
+          <div style="font-size:.8rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="farePickupAddr">Getting location...</div>
+        </div>
+      </div>
+      <div class="pickup-strip" style="border-radius:0;margin-bottom:0;border:none">
+        <div style="width:9px;height:9px;border-radius:2px;background:var(--red);transform:rotate(45deg);flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.58rem;color:var(--red);font-weight:800;text-transform:uppercase;margin-bottom:1px">DROP</div>
+          <div style="font-size:.8rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="fareDropAddr">--</div>
+        </div>
+      </div>
     </div>
     <div id="surgeChip" style="display:none;" class="surge-chip">⚡ 1.5x Surge — High demand</div>
-    <!-- Live trip info chips — Uber/Ola style -->
-    <div class="chips">
-      <div class="chip"><div class="cv" id="cDist">--</div><div class="cl">KM</div></div>
-      <div class="chip"><div class="cv" id="cETA">--</div><div class="cl">MINS</div></div>
-      <div class="chip" style="background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.2)"><div class="cv" style="color:var(--yellow)" id="cFareEst">₹--</div><div class="cl">EST. FARE</div></div>
-    </div>
-    <!-- Ride type cards — Uber/Ola clean style -->
-    <div class="ro-card sel" id="optAuto" onclick="selRide(this,'JDP Auto','auto')">
-      <div style="font-size:2rem">🛺</div>
-      <div style="flex:1;margin-left:12px">
-        <div style="font-weight:800;font-size:.95rem">Auto <span class="ro-surge" id="autoSurge" style="display:none">⚡</span></div>
-        <div style="font-size:.7rem;color:var(--muted)">3 seater • Fastest • <span id="autoETA">~3</span> min</div>
+    <!-- KM + MINS + FARE chips -->
+    <div style="display:flex;gap:5px;margin-bottom:10px">
+      <div style="flex:1;text-align:center;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:11px;padding:9px 5px">
+        <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.25rem;line-height:1" id="cDist">--</div>
+        <div style="font-size:.56rem;color:var(--muted);font-weight:700;margin-top:2px">KM</div>
       </div>
-      <div style="text-align:right">
-        <div style="font-weight:900;font-size:1.2rem;font-family:'Syne',sans-serif;color:var(--yellow)">₹<span id="fAuto">--</span></div>
-        <div style="font-size:.62rem;color:var(--muted)" id="autoDistLbl">-- km</div>
+      <div style="flex:1;text-align:center;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:11px;padding:9px 5px">
+        <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.25rem;line-height:1" id="cETA">--</div>
+        <div style="font-size:.56rem;color:var(--muted);font-weight:700;margin-top:2px">MINS</div>
+      </div>
+      <div style="flex:1;text-align:center;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.18);border-radius:11px;padding:9px 5px">
+        <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.25rem;color:var(--yellow);line-height:1" id="cFareEst">₹--</div>
+        <div style="font-size:.56rem;color:var(--muted);font-weight:700;margin-top:2px">EST FARE</div>
+      </div>
+    </div>
+    <!-- Ride cards -->
+    <div class="ro-card sel" id="optAuto" onclick="selRide(this,'Auto','auto')">
+      <div style="font-size:2rem;margin-right:11px">🛺</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:800;font-size:.9rem">Auto <span id="autoSurge" style="display:none;font-size:.58rem;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--yellow);padding:1px 6px;border-radius:99px">⚡SURGE</span></div>
+        <div style="font-size:.67rem;color:var(--muted);margin-top:2px">3 seater • <span id="autoETA">~3</span> min away • <span id="autoDistLbl">-- km</span></div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.2rem;color:var(--yellow)">₹<span id="fAuto">--</span></div>
+        <div style="font-size:.58rem;color:var(--green);font-weight:700">⭐ POPULAR</div>
       </div>
     </div>
     <div class="ro-card" id="optMini" onclick="selRide(this,'Mini Cab','cab')">
-      <div style="font-size:2rem">🚗</div>
-      <div style="flex:1;margin-left:12px">
-        <div style="font-weight:800;font-size:.95rem">Mini Cab <span class="ro-surge" id="miniSurge" style="display:none">⚡</span></div>
-        <div style="font-size:.7rem;color:var(--muted)">4 seater • AC • <span id="miniETA">~5</span> min</div>
+      <div style="font-size:2rem;margin-right:11px">🚗</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:800;font-size:.9rem">Mini Cab <span id="miniSurge" style="display:none;font-size:.58rem;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--yellow);padding:1px 6px;border-radius:99px">⚡SURGE</span></div>
+        <div style="font-size:.67rem;color:var(--muted);margin-top:2px">4 seater • AC • <span id="miniETA">~5</span> min • <span id="miniDistLbl">-- km</span></div>
       </div>
-      <div style="text-align:right">
-        <div style="font-weight:900;font-size:1.2rem;font-family:'Syne',sans-serif;color:var(--yellow)">₹<span id="fMini">--</span></div>
-        <div style="font-size:.62rem;color:var(--muted)" id="miniDistLbl">-- km</div>
-      </div>
-    </div>
-    <div class="ro-card" id="optPremium" onclick="selRide(this,'Premium Cab','cab')" style="display:none">
-      <div style="font-size:2rem">🚙</div>
-      <div style="flex:1;margin-left:12px">
-        <div style="font-weight:800;font-size:.95rem">Premium</div>
-        <div style="font-size:.7rem;color:var(--muted)">4 seater • AC • Luxury</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-weight:900;font-size:1.2rem;font-family:'Syne',sans-serif;color:var(--yellow)">₹<span id="fPremium">--</span></div>
-        <div style="font-size:.62rem;color:var(--muted)">-- km</div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.2rem;color:var(--yellow)">₹<span id="fMini">--</span></div>
+        <div style="font-size:.58rem;color:var(--blue);font-weight:700">❄️ AC COOL</div>
       </div>
     </div>
-
-    <!-- Live Nearby drivers — compact Ola style -->
-    <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;padding:10px 13px;margin-bottom:12px;">
-      <div style="display:flex;align-items:center;gap:7px">
-        <div style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:dpulse 1.5s infinite"></div>
-        <span style="font-size:.78rem;font-weight:700">Nearby Drivers</span>
-      </div>
-      <div style="display:flex;align-items:baseline;gap:4px">
-        <span style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.2rem;color:var(--green)" id="ndTotal">0</span>
-        <span style="font-size:.65rem;color:var(--muted)">online</span>
-      </div>
-      <div style="display:flex;gap:5px;font-size:.65rem;font-weight:700">
-        <span style="background:rgba(16,185,129,.12);color:var(--green);padding:2px 7px;border-radius:99px"><span id="nd0to3">0</span> &lt;3km</span>
-        <span style="background:rgba(59,130,246,.12);color:var(--blue);padding:2px 7px;border-radius:99px"><span id="nd3to8">0</span> &lt;8km</span>
-      </div>
+    <!-- Nearby drivers -->
+    <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:11px;padding:8px 12px;margin-bottom:9px">
+      <div style="width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:dpulse 1.5s infinite;flex-shrink:0"></div>
+      <span style="font-size:.75rem;font-weight:700;flex:1">Nearby Drivers</span>
+      <span style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.1rem;color:var(--green)" id="ndTotal">0</span>
+      <span style="background:rgba(16,185,129,.1);color:var(--green);padding:2px 7px;border-radius:99px;font-size:.6rem;font-weight:800"><span id="nd0to3">0</span>&lt;3km</span>
+      <span style="background:rgba(59,130,246,.1);color:var(--blue);padding:2px 7px;border-radius:99px;font-size:.6rem;font-weight:800"><span id="nd3to8">0</span>&lt;8km</span>
     </div>
-    <button class="mbtn y" onclick="confirmBook()">Book <span id="bookBtnType">JDP Auto</span> →</button>
+    <button class="mbtn y" onclick="confirmBook()">Book <span id="bookBtnType">Auto</span> →</button>
   </div>
 
   <!-- FINDING SCREEN -->
@@ -1254,49 +1361,46 @@ body.lm .fav-chip{background:#fff;}
   </div>
 
   <div id="dNav">
-    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:.85rem;margin-bottom:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em" id="navLabel">🔵 Going to Pickup</div>
-    <div class="nstep bl" id="navPickup">
-      <div class="nicon">📍</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:.62rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em">PICKUP</div>
-        <div style="font-weight:700;font-size:.87rem;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="navPA">--</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0">
-        <div style="font-family:'Syne',sans-serif;font-weight:800;color:var(--blue);font-size:.9rem" id="navPDist">--</div>
-        <div style="font-size:.62rem;color:var(--muted)" id="navPETA">--</div>
-      </div>
-    </div>
-    <div class="nstep gr" id="navDrop">
-      <div class="nicon">🏁</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:.62rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em">DROP</div>
-        <div style="font-weight:700;font-size:.87rem;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="navDA">--</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0">
-        <div style="font-family:'Syne',sans-serif;font-weight:800;color:var(--green);font-size:.9rem" id="navFare">₹--</div>
-        <div style="font-size:.62rem;color:var(--muted)">Fare</div>
-      </div>
+    <!-- Phase label -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:.88rem" id="navLabel">🔵 Pickup pe jaao</div>
+      <div style="font-size:.7rem;color:var(--muted)" id="navPDist">--</div>
     </div>
 
-    <!-- 📞 RIDER INFO + CALL BUTTON — Always visible -->
-    <div style="background:linear-gradient(135deg,rgba(16,185,129,.12),rgba(16,185,129,.06));border:1.5px solid rgba(16,185,129,.35);border-radius:13px;padding:11px 13px;margin-bottom:9px;">
-      <div style="font-size:.58rem;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">📞 Rider Contact</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-        <div>
+    <!-- Rider GPS location card — OLA style -->
+    <div style="background:linear-gradient(135deg,rgba(59,130,246,.1),rgba(59,130,246,.05));border:1.5px solid rgba(59,130,246,.25);border-radius:14px;padding:11px 13px;margin-bottom:9px;">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-size:2rem">👤</div>
+        <div style="flex:1;min-width:0">
           <div style="font-weight:800;font-size:.92rem" id="navRiderName">--</div>
-          <div style="font-size:.74rem;color:var(--muted);margin-top:2px" id="navRiderPhone">Loading...</div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="navPA">--</div>
+          <div style="font-size:.68rem;color:rgba(59,130,246,.8);font-weight:700;margin-top:3px" id="navPETA">Calculating...</div>
         </div>
         <a id="callRiderBtn" href="#" onclick="callRider();return false;"
-           style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:99px;padding:10px 18px;font-size:.82rem;font-weight:800;text-decoration:none;box-shadow:0 4px 14px rgba(22,163,74,.5);flex-shrink:0;cursor:pointer;">
-          <span style="display:inline-block;animation:callring .6s infinite alternate">📞</span>
-          Call Rider
+           style="display:flex;align-items:center;justify-content:center;width:44px;height:44px;background:var(--green);color:#fff;border:none;border-radius:50%;text-decoration:none;box-shadow:0 3px 12px rgba(16,185,129,.5);font-size:1.2rem;flex-shrink:0;cursor:pointer;">
+          📞
         </a>
+      </div>
+      <div style="font-size:.68rem;color:var(--muted);margin-top:7px;display:flex;align-items:center;gap:4px" id="navRiderPhone">
+        <span style="opacity:.5">📱</span> Loading...
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:0">
-      <button class="mbtn g" style="margin-top:0" id="navActBtn" onclick="driverNext()">✅ Rider Picked Up</button>
-      <button class="mbtn ro" style="margin-top:0" onclick="driverCancel()">Cancel</button>
+    <!-- Trip route row -->
+    <div style="display:flex;gap:8px;margin-bottom:9px">
+      <div style="flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(16,185,129,.2);border-radius:11px;padding:9px 11px">
+        <div style="font-size:.55rem;color:var(--green);font-weight:800;text-transform:uppercase;margin-bottom:3px">DROP POINT</div>
+        <div style="font-size:.8rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="navDA">--</div>
+      </div>
+      <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);border-radius:11px;padding:9px 13px;text-align:center;flex-shrink:0">
+        <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.2rem;color:var(--yellow)" id="navFare">₹--</div>
+        <div style="font-size:.54rem;color:var(--muted);font-weight:700">FARE</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="mbtn g" style="margin-top:0;font-size:.82rem" id="navActBtn" onclick="driverNext()">✅ Rider Picked Up</button>
+      <button class="mbtn ro" style="margin-top:0;font-size:.82rem" onclick="driverCancel()">✕ Cancel</button>
     </div>
   </div>
 </div>
@@ -2275,33 +2379,32 @@ function checkNetworkQuality() {
 function initMap() {
   if (typeof mappls === 'undefined') { setTimeout(initMap, 400); return; }
   try {
-    // ✅ Mappls v3 Map — India's best vector map, MapmyIndia tiles
+    // ✅ Mappls v3 — India's most powerful vector map
     leafMap = new mappls.Map('map', {
       center: { lat: JDPC.lat, lng: JDPC.lng },
-      zoom: 14,  // ✅ Closer zoom — Jagdalpur streets visible
-      zoomControl: false,          // we have custom Uber zoom buttons
+      zoom: 15,
+      zoomControl: false,
       clickableIcons: true,
       fullscreenControl: false,
-      search: false
+      search: false,
+      indoor: false,
+      traffic: true     // ✅ Live traffic layer — Mappls exclusive India data
     });
 
-    // ✅ Wait for map tiles to fully load, then draw overlays
+    // ✅ On full load — draw city markers & auto-detect GPS
     leafMap.on('load', function() {
-      drawCityZones();
-      addLandmarkMarkers();
-      document.getElementById('ldStatus').textContent = '✅ Jagdalpur map loaded (Mappls)';
+      document.getElementById('ldStatus').textContent = '✅ Jagdalpur map loaded';
       document.getElementById('mapStats').style.display = 'block';
 
-      // ✅ AUTO-DETECT location on map load — Mappls style (even before login)
+      // ✅ AUTO GPS on map load (even before login)
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(pos) {
           myLat = pos.coords.latitude;
           myLng = pos.coords.longitude;
           pickLat = myLat; pickLng = myLng;
-          updateMyMarker(myLat, myLng);
+          requestAnimationFrame(() => updateMyMarker(myLat, myLng));
           updateMyZone();
-          leafMap.flyTo([myLat, myLng], 15);
-          // Pre-fill pickup address if logged in
+          leafMap.flyTo([myLat, myLng], 16);
           revGeo(myLat, myLng).then(function(addr) {
             pickAddr = addr;
             const pAddrEl = document.getElementById('pAddr');
@@ -2309,11 +2412,26 @@ function initMap() {
             if (pAddrEl) pAddrEl.textContent = addr;
             if (pSubEl) pSubEl.innerHTML = '<span style="color:var(--green);font-size:.66rem">📍 GPS Live · Auto Detected</span>';
           });
-        }, function() {
-          // GPS denied — stay at Jagdalpur center, no toast spam before login
-        }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 });
+        }, function() {}, { enableHighAccuracy: true, timeout: 10000, maximumAge: 3000 });
       }
+
+      // ✅ Lazy-load city zones and landmarks
+      setTimeout(() => {
+        drawCityZones();
+        addLandmarkMarkers();
+      }, 500);
     });
+
+    // Fallback for maps that don't fire 'load'
+    setTimeout(() => {
+      if (!document.getElementById('mapStats').style.display || 
+          document.getElementById('mapStats').style.display === 'none') {
+        document.getElementById('ldStatus').textContent = '✅ Jagdalpur map loaded';
+        document.getElementById('mapStats').style.display = 'block';
+        drawCityZones();
+        addLandmarkMarkers();
+      }
+    }, 3000);
 
   } catch(e) { console.error('[JDP] Map init error:', e); setTimeout(initMap, 1000); }
 }
@@ -2391,13 +2509,11 @@ function stopLiveDistanceTracking() {
 }
 
 function updateLiveDistChip(distKm) {
-  const el = document.getElementById('liveDistText');
-  if (!el) return;
-  if (distKm < 1) {
-    el.textContent = Math.round(distKm * 1000) + ' m';
-  } else {
-    el.textContent = distKm.toFixed(1) + ' km';
-  }
+  const el1 = document.getElementById('liveDistText');
+  const el2 = document.getElementById('liveDistChipText');
+  const txt = distKm < 1 ? Math.round(distKm * 1000) + ' m' : distKm.toFixed(1) + ' km';
+  if (el1) el1.textContent = txt;
+  if (el2) el2.textContent = txt;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2664,19 +2780,7 @@ function startLiveDriverWatch() {
 }
 
 function animateNdBars(a, b, c, total) {
-  const bars = document.querySelectorAll('.nd-bar');
-  const max = Math.max(a+b+c, 1);
-  const heights = [
-    Math.max(15, (a/max)*100),
-    Math.max(15, ((a+b)/max)*100 * 0.8),
-    Math.max(15, (b/max)*100),
-    Math.max(15, ((b+c)/max)*100 * 0.7),
-    Math.max(15, (c/max)*100 * 0.6)
-  ];
-  bars.forEach((bar, i) => {
-    bar.style.height = heights[i] + '%';
-    bar.classList.toggle('active', total > 0 && i <= 2);
-  });
+  // nd-bar elements removed from new design — just a no-op guard
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2949,34 +3053,112 @@ function selectSuggest(lat, lng, name) {
 }
 
 async function getOSRMRoute(fLat, fLng, tLat, tLng) {
-  // ✅ Try Mappls Route API first — India road network aware
+  const KEY = window.MAPPLS_KEY;
+
+  // ── METHOD 1: Mappls Directions API v2 (most accurate India roads) ──
   try {
-    const r = await fetch(
-      `https://apis.mappls.com/advancedmaps/v1/${window.MAPPLS_KEY}/route_adv/driving/${fLng},${fLat};${tLng},${tLat}?geometries=geojson&overview=full&region=IND`
-    );
+    const url = `https://apis.mappls.com/advancedmaps/v2/directions?origin=${fLat},${fLng}&destination=${tLat},${tLng}&region=IND&rtype=0&bearings=&radius=&alternatives=false&steps=true&exclude=&overview=full&geometries=geojson`;
+    const r = await fetch(url, {
+      headers: { 'Authorization': 'Bearer ' + await getMapplsToken() }
+    });
     if (r.ok) {
       const d = await r.json();
-      if (d?.routes?.[0]) {
-        const rt = d.routes[0];
+      const rt = d?.routes?.[0];
+      if (rt && rt.distance > 0) {
         return {
           distKM: parseFloat((rt.distance/1000).toFixed(1)),
           durationMin: Math.ceil(rt.duration/60),
-          geometry: rt.geometry
+          geometry: rt.geometry,
+          steps: rt.legs?.[0]?.steps || []
         };
       }
     }
   } catch(e) {}
 
-  // ✅ OSRM fallback — if Mappls routing unavailable
+  // ── METHOD 2: Mappls Route Adv API (v1 legacy — widely supported) ──
   try {
-    const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${fLng},${fLat};${tLng},${tLat}?overview=full&geometries=geojson`);
-    const d = await r.json();
-    if (d?.routes?.[0]) {
-      const rt = d.routes[0];
-      return { distKM: parseFloat((rt.distance/1000).toFixed(1)), durationMin: Math.ceil(rt.duration/60), geometry: rt.geometry };
+    const url = `https://apis.mappls.com/advancedmaps/v1/${KEY}/route_adv/driving/${fLng},${fLat};${tLng},${tLat}?geometries=geojson&overview=full&steps=true&region=IND`;
+    const r = await fetch(url);
+    if (r.ok) {
+      const d = await r.json();
+      const rt = d?.routes?.[0];
+      if (rt && rt.distance > 0) {
+        return {
+          distKM: parseFloat((rt.distance/1000).toFixed(1)),
+          durationMin: Math.ceil(rt.duration/60),
+          geometry: rt.geometry,
+          steps: rt.legs?.[0]?.steps || []
+        };
+      }
     }
   } catch(e) {}
-  return null;
+
+  // ── METHOD 3: Mappls Distance Matrix (straight haversine + 1.3x road factor) ──
+  try {
+    const url = `https://apis.mappls.com/advancedmaps/v1/${KEY}/distance_matrix/driving/${fLng},${fLat};${tLng},${tLat}?region=IND&rtype=0`;
+    const r = await fetch(url);
+    if (r.ok) {
+      const d = await r.json();
+      const dist = d?.results?.distances?.[0]?.[1];
+      const dur = d?.results?.durations?.[0]?.[1];
+      if (dist > 0) {
+        // Build straight-line geometry as fallback
+        const geo = { type:'LineString', coordinates:[[fLng,fLat],[tLng,tLat]] };
+        return {
+          distKM: parseFloat((dist/1000).toFixed(1)),
+          durationMin: Math.ceil(dur/60),
+          geometry: geo,
+          steps: []
+        };
+      }
+    }
+  } catch(e) {}
+
+  // ── METHOD 4: OSRM open routing (no CORS issues, always works) ──
+  try {
+    const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${fLng},${fLat};${tLng},${tLat}?overview=full&geometries=geojson&steps=true`);
+    const d = await r.json();
+    const rt = d?.routes?.[0];
+    if (rt) {
+      return {
+        distKM: parseFloat((rt.distance/1000).toFixed(1)),
+        durationMin: Math.ceil(rt.duration/60),
+        geometry: rt.geometry,
+        steps: rt.legs?.[0]?.steps || []
+      };
+    }
+  } catch(e) {}
+
+  // ── METHOD 5: Pure haversine × 1.35 road factor (never fails) ──
+  const d = distKmCalc(fLat, fLng, tLat, tLng);
+  const roadDist = parseFloat((d * 1.35).toFixed(1));
+  return {
+    distKM: roadDist,
+    durationMin: Math.ceil(roadDist / 0.4), // ~24km/h avg Jagdalpur city
+    geometry: { type:'LineString', coordinates:[[fLng,fLat],[tLng,tLat]] },
+    steps: [],
+    isFallback: true
+  };
+}
+
+// ── Mappls OAuth Token (cached) ──
+let _mapplsToken = null, _mapplsTokenExp = 0;
+async function getMapplsToken() {
+  if (_mapplsToken && Date.now() < _mapplsTokenExp) return _mapplsToken;
+  try {
+    const r = await fetch('https://outpost.mappls.com/api/security/oauth/token', {
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:`grant_type=client_credentials&client_id=${window.MAPPLS_KEY}&client_secret=${window.MAPPLS_KEY}`
+    });
+    if (r.ok) {
+      const d = await r.json();
+      _mapplsToken = d.access_token;
+      _mapplsTokenExp = Date.now() + (d.expires_in - 60) * 1000;
+      return _mapplsToken;
+    }
+  } catch(e) {}
+  return window.MAPPLS_KEY; // fallback to API key
 }
 
 function drawRoute(geometry, color='#f59e0b') {
@@ -3130,6 +3312,10 @@ function locateMe() {
 function startDriverTracking(driverId) {
   if (driverLocListener) { driverLocListener(); driverLocListener = null; }
 
+  // Show driver approach bar
+  const bar = document.getElementById('driverApproachBar');
+  if (bar) bar.style.display = 'block';
+
   driverLocListener = window.FB.onSnapshot(window.FB.doc(window.FB.db,'users',driverId), snap => {
     if (!snap.exists()) return;
     const d = snap.data();
@@ -3137,16 +3323,37 @@ function startDriverTracking(driverId) {
 
     moveAssignedDriverMarker(d.lat, d.lng, d.name || 'Driver', d.vehicleType);
 
-    if (myLat) {
-      const dist = distKmCalc(myLat, myLng, d.lat, d.lng);
-      document.getElementById('driverTrackText').textContent =
-        dist < 0.1 ? '🚖 Driver is here!' :
-        dist < 1 ? `🚖 Driver is ${(dist*1000).toFixed(0)}m away` :
-        `🚖 Driver is ${dist.toFixed(1)}km away`;
+    if (!myLat) return;
+    const dist = distKmCalc(myLat, myLng, d.lat, d.lng);
+    const etaMin = Math.max(1, Math.ceil(dist / 0.5)); // ~30km/h Jagdalpur avg
 
-      const eta = Math.ceil(dist / 0.5); // ~30km/h avg
-      document.getElementById('driverDistText').textContent = `⏱️ ETA ~${eta} min`;
+    // ✅ Approach bar update
+    const el = (id) => document.getElementById(id);
+    if(el('dabCar')) el('dabCar').textContent = d.vehicleType==='cab'?'🚗':'🛺';
+    if(el('dabName')) el('dabName').textContent = d.name || 'Driver';
+    if(el('dabMin')) el('dabMin').textContent = dist < 0.15 ? '< 1' : etaMin;
+    if(el('dabSub')) el('dabSub').textContent = dist < 0.15 ? '🟢 Yahan pahunch gaya!' : `${dist.toFixed(1)} km door • Live tracking`;
+
+    // ✅ Live distance float pill
+    const ldf = el('liveDistFloat');
+    const ldt = el('liveDistText');
+    if(ldf) {
+      ldf.style.display = 'block';
+      const sheetH = el('rSheet')?.offsetHeight || 200;
+      ldf.style.bottom = (sheetH + 12) + 'px';
     }
+    if(ldt) ldt.textContent = dist < 1 ? Math.round(dist*1000)+'m' : dist.toFixed(1)+'km';
+
+    // ✅ In-sheet status update
+    if(el('driverTrackText')) el('driverTrackText').textContent =
+      dist < 0.1 ? '🚖 Driver yahan hai!' :
+      dist < 1 ? `🚖 Driver ${(dist*1000).toFixed(0)}m door` :
+      `🚖 Driver ${dist.toFixed(1)}km door`;
+    if(el('driverDistText')) el('driverDistText').textContent = `⏱️ ETA ~${etaMin} min`;
+
+    // ETA countdown update
+    if(el('etaCountdown')) el('etaCountdown').textContent = etaMin + ' min';
+    if(el('etaSubText')) el('etaSubText').textContent = dist < 0.15 ? '✅ Pahunch gaya!' : `${dist.toFixed(1)} km door`;
   });
 }
 
@@ -3534,7 +3741,8 @@ async function acceptReq() {
   document.getElementById('navDA').textContent=data.drop||'--';
   document.getElementById('navFare').textContent='₹'+(data.fare||'--');
   document.getElementById('navActBtn').textContent='✅ Rider Picked Up';
-  document.getElementById('navPickup').style.opacity='1';
+  const np = document.getElementById('navPickup');
+  if(np) np.style.opacity='1';
 
   // ✅ Show rider contact info for driver to call
   const riderNameEl = document.getElementById('navRiderName');
@@ -3594,7 +3802,8 @@ async function driverNext() {
   if(navPhase==='pickup'){
     navPhase='drop';
     document.getElementById('navLabel').textContent='🟢 Going to Drop';
-    document.getElementById('navPickup').style.opacity='.45';
+    const np2 = document.getElementById('navPickup');
+    if(np2) np2.style.opacity='.45';
     document.getElementById('navActBtn').textContent='🏁 Complete Trip';
     if(window.FB_READY&&curReqData.id){
       try{await window.FB.updateDoc(window.FB.doc(window.FB.db,'rides',curReqData.id),{status:'ongoing',pickedAt:window.FB.serverTimestamp()});}catch(e){}
@@ -3665,39 +3874,52 @@ async function calcFare() {
   if (window._selectedDropLat && window._selectedDropLng && window._selectedDropName) {
     const dropIn = document.getElementById('dropIn');
     if (dropIn && dropIn.value === window._selectedDropName) {
-      // Use the exact coords from autocomplete selection
-      const result = {
-        lat: window._selectedDropLat,
-        lng: window._selectedDropLng,
-        name: window._selectedDropName
-      };
-      window._preSelectedDrop = result;
+      window._preSelectedDrop = { lat: window._selectedDropLat, lng: window._selectedDropLng, name: window._selectedDropName };
     }
   }
-  const drop=document.getElementById('dropIn').value.trim();
-  if(!drop){
-    const e=document.getElementById('homeErr');
-    e.textContent='⚠️ Enter drop location ya popular place select karo';
-    e.style.display='block';
-    setTimeout(()=>e.style.display='none',3000);
+  const drop = document.getElementById('dropIn').value.trim();
+  if (!drop) {
+    const e = document.getElementById('homeErr');
+    e.textContent = '⚠️ Drop location enter karo ya popular place select karo';
+    e.style.display = 'block';
+    setTimeout(() => e.style.display = 'none', 3000);
     return;
   }
 
-  toast('🗺️ Calculating real road distance...');
-  const cKey=`${pickLat||JDPC.lat}_${drop}`;
-  if(routeCache[cKey]){applyRoute(routeCache[cKey],drop);return;}
+  toast('🗺️ Calculating road distance...');
+  const fLat = pickLat || JDPC.lat, fLng = pickLng || JDPC.lng;
+  const cKey = `${Math.round(fLat*1000)}_${Math.round(fLng*1000)}_${drop}`;
+  if (routeCache[cKey]) { applyRoute(routeCache[cKey], drop); return; }
 
-  const dropCoords=await geocodeAddress(drop);
-  if(dropCoords){
-    const fLat=pickLat||JDPC.lat, fLng=pickLng||JDPC.lng;
-    const route=await getOSRMRoute(fLat,fLng,dropCoords.lat,dropCoords.lng);
-    if(route){
-      routeCache[cKey]={route,dropCoords};
-      applyRoute({route,dropCoords},drop);
+  // ✅ If user selected from autocomplete → use exact coords directly
+  let dropCoords = null;
+  if (window._preSelectedDrop && window._preSelectedDrop.name === drop) {
+    dropCoords = { lat: window._preSelectedDrop.lat, lng: window._preSelectedDrop.lng };
+  } else {
+    dropCoords = await geocodeAddress(drop);
+  }
+
+  if (dropCoords && dropCoords.lat && dropCoords.lng) {
+    const route = await getOSRMRoute(fLat, fLng, dropCoords.lat, dropCoords.lng);
+    if (route) {
+      routeCache[cKey] = { route, dropCoords };
+      if (route.isFallback) toast('⚠️ Approximate distance (GPS route unavailable)');
+      applyRoute({ route, dropCoords }, drop);
       return;
     }
   }
-  useFallback(drop);
+  // Final fallback — straight line × 1.35
+  const straightD = distKmCalc(fLat, fLng, dropCoords?.lat || JDPC.lat, dropCoords?.lng || JDPC.lng);
+  const approxD = parseFloat((Math.max(0.5, straightD * 1.35)).toFixed(1));
+  const approxRoute = {
+    distKM: approxD,
+    durationMin: Math.ceil(approxD / 0.4),
+    geometry: { type:'LineString', coordinates:[[fLng,fLat],[dropCoords?.lng||JDPC.lng, dropCoords?.lat||JDPC.lat]] },
+    steps: [], isFallback: true
+  };
+  routeCache[cKey] = { route: approxRoute, dropCoords: dropCoords || { lat: JDPC.lat, lng: JDPC.lng } };
+  toast('⚠️ ~ Approximate distance shown');
+  applyRoute({ route: approxRoute, dropCoords: dropCoords || { lat: JDPC.lat, lng: JDPC.lng } }, drop);
 }
 
 function applyRoute({route,dropCoords},drop) {
@@ -3708,8 +3930,12 @@ function applyRoute({route,dropCoords},drop) {
   fareM=Math.round(Math.max(50,40+distKM*16)*surge);
   const fareP=Math.round(Math.max(100,80+distKM*22)*surge); // premium
 
-  // Save drop coords for live distance tracking
-  if (dropCoords) {
+  // ✅ Update pickup+drop addresses in fare screen
+  const farePickEl = document.getElementById('farePickupAddr');
+  const fareDropEl = document.getElementById('fareDropAddr');
+  if(farePickEl) farePickEl.textContent = pickAddr || 'Your Location';
+  if(fareDropEl) {
+    fareDropEl.textContent = drop || '--';
     dropLat = dropCoords.lat;
     dropLng = dropCoords.lng;
     dropAddr = drop;
@@ -3859,8 +4085,9 @@ async function confirmBook() {
       const ref=await window.FB.addDoc(window.FB.collection(window.FB.db,'rides'),rideData);
       rideDocId=ref.id;
       listenToRide(rideDocId);
-      appliedPromo = null; // ✅ FIX 3: Reset promo after booking
-      document.getElementById('promoStrip').style.display = 'none';
+      appliedPromo = null;
+      const promoStripEl = document.getElementById('promoStrip');
+      if (promoStripEl) promoStripEl.style.display = 'none';
     }else{
       setTimeout(()=>{toast('❌ Firebase required');goScr('sHome');},3000);
     }
@@ -4182,19 +4409,12 @@ function shareTrip() {
 // ── 🏠 FAVORITE LOCATIONS ──
 let favLocations = JSON.parse(localStorage.getItem('jdpFavLocs') || '{}');
 function loadFavChips() {
+  const el = (id) => document.getElementById(id);
   if(favLocations.home) {
-    document.getElementById('favHomeLbl').textContent = favLocations.home.name;
-    document.getElementById('favHomeChip').classList.add('set');
+    if(el('favHomeLbl')) { el('favHomeLbl').textContent = favLocations.home.name; el('favHomeChip')?.classList.add('set'); }
   }
   if(favLocations.work) {
-    document.getElementById('favWorkLbl').textContent = favLocations.work.name;
-    document.getElementById('favWorkChip').classList.add('set');
-  }
-  // Show promo strip for new users
-  const promoSeen = localStorage.getItem('jdpPromoSeen');
-  if(!promoSeen) {
-    document.getElementById('promoStrip').style.display = 'flex';
-    document.getElementById('promoStripText').textContent = '🎉 JDP50 — Pehli ride ₹50 off!';
+    if(el('favWorkLbl')) { el('favWorkLbl').textContent = favLocations.work.name; el('favWorkChip')?.classList.add('set'); }
   }
 }
 function useFavLoc(type) {
@@ -4247,7 +4467,8 @@ function applyPromo() {
     appliedPromo = { code, ...PROMO_CODES[code] };
     resultEl.innerHTML = `<span style="color:var(--green)">✅ "${code}" apply hua! ${PROMO_CODES[code].desc}</span>`;
     localStorage.setItem('jdpPromoSeen','1');
-    document.getElementById('promoStrip').style.display = 'none';
+    const ps = document.getElementById('promoStrip');
+    if(ps) ps.style.display = 'none';
     toast(`🎉 Promo "${code}" apply hua!`);
     setTimeout(() => closeModal('promoModal'), 1200);
   } else {
@@ -4326,6 +4547,13 @@ function panicSOS() {
 
 // ── ⏱️ ETA LIVE COUNTDOWN ──
 let etaTimerInterval = null, etaEndTime = null;
+function updateEtaDisplay(minutes, distKm) {
+  // Update all ETA display elements
+  const etaEl = document.getElementById('etaCountdown');
+  const etaSubEl = document.getElementById('etaSubText');
+  if(etaEl) etaEl.textContent = minutes <= 1 ? '< 1 min' : minutes + ' min';
+  if(etaSubEl && distKm != null) etaSubEl.textContent = distKm < 0.15 ? '✅ Pahunch gaya!' : `${distKm.toFixed(1)} km door`;
+}
 function startEtaTimer(minutes) {
   stopEtaTimer();
   const etaEl = document.getElementById('etaCountdown');
