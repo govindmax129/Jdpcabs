@@ -820,29 +820,22 @@ body.lm .fav-chip{background:#fff;}
   <button class="zbtn" onclick="zoomOut()" title="Zoom Out">−</button>
 </div>
 
-<!-- ZONE LEGEND -->
-<div id="zoneLegend">
-  <div class="zl-title">🗺️ Jagdalpur Zones</div>
-  <div class="zl-row"><div class="zl-dot" style="background:#10b981"></div><span>City Core</span><span class="zl-tag">0–3 km</span></div>
-  <div class="zl-row"><div class="zl-dot" style="background:#3b82f6"></div><span>City Zone</span><span class="zl-tag">3–8 km</span></div>
-  <div class="zl-row"><div class="zl-dot" style="background:#f59e0b"></div><span>Outer Area</span><span class="zl-tag">8–15 km</span></div>
-  <div class="zl-row" style="margin-bottom:0"><div class="zl-dot" style="background:#8b5cf6"></div><span>Landmarks</span><span class="zl-tag">Live</span></div>
-</div>
+<!-- Zone Legend removed -->
 
-<!-- MAP STATS (live count badges) -->
+<!-- MAP STATS — clean Uber/Ola style top pills -->
 <div id="mapStats">
   <div class="ms-row">
-    <div class="ms-chip" onclick="toggleZone()">
+    <div class="ms-chip" onclick="toggleLandmarks()">
       <div class="ms-dot" style="background:var(--green)"></div>
       <span id="liveDriverBadge">0 Drivers</span>
     </div>
-    <div class="ms-chip" onclick="toggleLandmarks()">
-      <div class="ms-dot" style="background:var(--purple)"></div>
-      <span>📍 Places</span>
+    <div class="ms-chip" id="liveDistChip" style="display:none">
+      <div class="ms-dot" style="background:var(--blue);animation:dpulse 1.2s infinite"></div>
+      <span id="liveDistText">-- km</span>
     </div>
-    <div class="ms-chip" onclick="toggleZone()">
-      <div class="ms-dot" id="zoneDot" style="background:var(--yellow)"></div>
-      <span id="myZoneText">City Zone</span>
+    <div class="ms-chip" onclick="toggleMapStyle()">
+      <span id="mapStyleIcon">🛰️</span>
+      <span id="mapStyleTxt">Satellite</span>
     </div>
   </div>
 </div>
@@ -956,13 +949,14 @@ body.lm .fav-chip{background:#fff;}
   <div class="tb-actions">
     <div class="tbtn tbtn-icon" onclick="showHistory()" title="Ride History">📋</div>
     <div class="tbtn tbtn-icon" onclick="toggleTheme()">☀️</div>
-    <div class="tbtn tbtn-icon" id="zoneBtnR" onclick="toggleZone()">📡</div>
     <div class="tbtn" style="color:rgba(255,80,80,1);border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.12)" onclick="doLogout()">Exit</div>
   </div>
 </div>
 
 <!-- ✅ LOCATE FAB — Uber position -->
 <button class="locbtn" id="locBtn" style="display:none;bottom:340px" onclick="locateMe()">📍</button>
+<!-- ✅ MAP STYLE TOGGLE FAB -->
+<button class="locbtn" id="mapStyleBtn" style="display:flex;bottom:400px;background:#1a2535;border:1.5px solid rgba(255,255,255,.15)" onclick="toggleMapStyle()" title="Map Style">🛰️</button>
 
 <div class="sheet" id="rSheet">
   <div class="hdl"></div>
@@ -1048,17 +1042,8 @@ body.lm .fav-chip{background:#fff;}
       <div class="qp-chip" onclick="setDrop('Airport Jagdalpur')">✈️ Airport</div>
     </div>
 
-    <!-- Promo strip (hidden by default) -->
-    <div class="promo-strip" id="promoStrip" onclick="openModal('promoModal')" style="display:none">
-      <span class="promo-tag">OFFER</span>
-      <div style="flex:1;font-size:.78rem;font-weight:700" id="promoStripText">🎉 Promo available!</div>
-      <span style="font-size:.8rem;color:var(--purple)">→</span>
-    </div>
-
     <div id="homeErr" class="eb"></div>
     <button class="mbtn y" onclick="calcFare()" style="margin-top:6px">Find Driver 🚗</button>
-    <button class="mbtn" style="margin-top:6px;background:rgba(0,200,83,.12);color:#00C853;border:1px solid rgba(0,200,83,.3)"
-      onclick="quickNavigate()">🗺️ Navigate (without booking)</button>
   </div>
 
   <!-- FARE SCREEN -->
@@ -1068,48 +1053,60 @@ body.lm .fav-chip{background:#fff;}
       <span style="color:var(--red);font-weight:700;font-size:.83rem;cursor:pointer" onclick="goScr('sHome');clearRoute()">✕ Back</span>
     </div>
     <div id="surgeChip" style="display:none;" class="surge-chip">⚡ 1.5x Surge — High demand</div>
+    <!-- Live trip info chips — Uber/Ola style -->
     <div class="chips">
       <div class="chip"><div class="cv" id="cDist">--</div><div class="cl">KM</div></div>
       <div class="chip"><div class="cv" id="cETA">--</div><div class="cl">MINS</div></div>
-      <div class="chip"><div class="cv" id="cZone">--</div><div class="cl">ZONE</div></div>
+      <div class="chip" style="background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.2)"><div class="cv" style="color:var(--yellow)" id="cFareEst">₹--</div><div class="cl">EST. FARE</div></div>
     </div>
+    <!-- Ride type cards — Uber/Ola clean style -->
     <div class="ro-card sel" id="optAuto" onclick="selRide(this,'JDP Auto','auto')">
-      <div style="font-size:1.9rem">🛺</div>
+      <div style="font-size:2rem">🛺</div>
       <div style="flex:1;margin-left:12px">
-        <div style="font-weight:800;font-size:.95rem">JDP Auto <span class="ro-surge" id="autoSurge" style="display:none">⚡ Surge</span></div>
-        <div style="font-size:.7rem;color:var(--muted)">~3 min • 3 seater • Jagdalpur</div>
+        <div style="font-weight:800;font-size:.95rem">Auto <span class="ro-surge" id="autoSurge" style="display:none">⚡</span></div>
+        <div style="font-size:.7rem;color:var(--muted)">3 seater • Fastest • <span id="autoETA">~3</span> min</div>
       </div>
-      <div style="font-weight:900;font-size:1.2rem;font-family:'Syne',sans-serif">₹<span id="fAuto">--</span></div>
+      <div style="text-align:right">
+        <div style="font-weight:900;font-size:1.2rem;font-family:'Syne',sans-serif;color:var(--yellow)">₹<span id="fAuto">--</span></div>
+        <div style="font-size:.62rem;color:var(--muted)" id="autoDistLbl">-- km</div>
+      </div>
     </div>
     <div class="ro-card" id="optMini" onclick="selRide(this,'Mini Cab','cab')">
-      <div style="font-size:1.9rem">🚗</div>
+      <div style="font-size:2rem">🚗</div>
       <div style="flex:1;margin-left:12px">
-        <div style="font-weight:800;font-size:.95rem">Mini Cab <span class="ro-surge" id="miniSurge" style="display:none">⚡ Surge</span></div>
-        <div style="font-size:.7rem;color:var(--muted)">~5 min • 4 seater • AC</div>
+        <div style="font-weight:800;font-size:.95rem">Mini Cab <span class="ro-surge" id="miniSurge" style="display:none">⚡</span></div>
+        <div style="font-size:.7rem;color:var(--muted)">4 seater • AC • <span id="miniETA">~5</span> min</div>
       </div>
-      <div style="font-weight:900;font-size:1.2rem;font-family:'Syne',sans-serif">₹<span id="fMini">--</span></div>
+      <div style="text-align:right">
+        <div style="font-weight:900;font-size:1.2rem;font-family:'Syne',sans-serif;color:var(--yellow)">₹<span id="fMini">--</span></div>
+        <div style="font-size:.62rem;color:var(--muted)" id="miniDistLbl">-- km</div>
+      </div>
+    </div>
+    <div class="ro-card" id="optPremium" onclick="selRide(this,'Premium Cab','cab')" style="display:none">
+      <div style="font-size:2rem">🚙</div>
+      <div style="flex:1;margin-left:12px">
+        <div style="font-weight:800;font-size:.95rem">Premium</div>
+        <div style="font-size:.7rem;color:var(--muted)">4 seater • AC • Luxury</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:900;font-size:1.2rem;font-family:'Syne',sans-serif;color:var(--yellow)">₹<span id="fPremium">--</span></div>
+        <div style="font-size:.62rem;color:var(--muted)">-- km</div>
+      </div>
     </div>
 
-    <!-- Nearby drivers in zones -->
-    <div class="nd-panel">
-      <div class="nd-row">
-        <div class="nd-title">📡 Nearby Drivers</div>
-        <div style="display:flex;align-items:baseline;gap:4px">
-          <div class="nd-count" id="ndTotal">0</div>
-          <div style="font-size:.65rem;color:var(--muted)">online</div>
-        </div>
+    <!-- Live Nearby drivers — compact Ola style -->
+    <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;padding:10px 13px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:7px">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:dpulse 1.5s infinite"></div>
+        <span style="font-size:.78rem;font-weight:700">Nearby Drivers</span>
       </div>
-      <div class="nd-bars" id="ndBars">
-        <div class="nd-bar" style="height:20%;"></div>
-        <div class="nd-bar" style="height:40%;"></div>
-        <div class="nd-bar" style="height:30%;"></div>
-        <div class="nd-bar" style="height:60%;"></div>
-        <div class="nd-bar" style="height:50%;"></div>
+      <div style="display:flex;align-items:baseline;gap:4px">
+        <span style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.2rem;color:var(--green)" id="ndTotal">0</span>
+        <span style="font-size:.65rem;color:var(--muted)">online</span>
       </div>
-      <div class="nd-zone-row">
-        <div class="nd-zone z1">🟢 <span id="nd0to3">0</span> within 3km</div>
-        <div class="nd-zone z2">🔵 <span id="nd3to8">0</span> within 8km</div>
-        <div class="nd-zone z3">🟡 <span id="nd8to15">0</span> within 15km</div>
+      <div style="display:flex;gap:5px;font-size:.65rem;font-weight:700">
+        <span style="background:rgba(16,185,129,.12);color:var(--green);padding:2px 7px;border-radius:99px"><span id="nd0to3">0</span> &lt;3km</span>
+        <span style="background:rgba(59,130,246,.12);color:var(--blue);padding:2px 7px;border-radius:99px"><span id="nd3to8">0</span> &lt;8km</span>
       </div>
     </div>
     <button class="mbtn y" onclick="confirmBook()">Book <span id="bookBtnType">JDP Auto</span> →</button>
@@ -1737,6 +1734,7 @@ let driverMarkerInterval = null;
 let watchId = null;
 let myLat = null, myLng = null;
 let pickLat = null, pickLng = null, pickAddr = '';
+let dropLat = null, dropLng = null, dropAddr = '';
 
 let fareA = 0, fareM = 0, distKM = 0;
 let cabType = 'JDP Auto', cabFare = 0;
@@ -2325,6 +2323,84 @@ function zoomIn()  { if(leafMap) leafMap.zoomIn(1,  {animate:true}); }
 function zoomOut() { if(leafMap) leafMap.zoomOut(1, {animate:true}); }
 
 // ═══════════════════════════════════════════════════════
+// ✅ MAPPLS SATELLITE MAP TOGGLE — like Google Maps
+// ═══════════════════════════════════════════════════════
+let mapStyleMode = 'standard'; // 'standard' | 'satellite'
+function toggleMapStyle() {
+  if (!leafMap) return;
+  mapStyleMode = mapStyleMode === 'standard' ? 'satellite' : 'standard';
+  try {
+    // Mappls v3 setMapStyle API
+    if (typeof leafMap.setMapStyle === 'function') {
+      leafMap.setMapStyle(mapStyleMode === 'satellite' ? 'mappls_grey' : 'standard');
+    }
+    // Mappls v3 alternate method
+    if (typeof mappls.MapType !== 'undefined') {
+      leafMap.setMapTypeId(mapStyleMode === 'satellite' ? mappls.MapType.HYBRID : mappls.MapType.ROADMAP);
+    }
+    // Mappls layer-based method
+    if (typeof leafMap.setHybridLayer === 'function') {
+      if (mapStyleMode === 'satellite') leafMap.setHybridLayer();
+      else leafMap.removeHybridLayer();
+    }
+  } catch(e) {}
+  const icon = document.getElementById('mapStyleIcon');
+  const txt = document.getElementById('mapStyleTxt');
+  const btn = document.getElementById('mapStyleBtn');
+  if (mapStyleMode === 'satellite') {
+    if(icon) icon.textContent = '🗺️';
+    if(txt) txt.textContent = 'Map';
+    if(btn) { btn.textContent = '🗺️'; btn.title = 'Standard Map'; }
+    toast('🛰️ Satellite view');
+  } else {
+    if(icon) icon.textContent = '🛰️';
+    if(txt) txt.textContent = 'Satellite';
+    if(btn) { btn.textContent = '🛰️'; btn.title = 'Satellite View'; }
+    toast('🗺️ Standard map');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// ✅ LIVE KM DISTANCE — Updates every 5s during active ride
+// Shows real distance from driver to pickup/drop in real-time
+// ═══════════════════════════════════════════════════════
+let liveDistInterval = null;
+
+function startLiveDistanceTracking() {
+  stopLiveDistanceTracking();
+  const chip = document.getElementById('liveDistChip');
+  if (chip) chip.style.display = 'flex';
+
+  liveDistInterval = setInterval(() => {
+    if (!myLat || !myLng) return;
+    // If we have a drop location, show distance pickup → drop
+    if (pickLat && dropLat) {
+      const d = distKmCalc(myLat, myLng, dropLat, dropLng);
+      updateLiveDistChip(d);
+    } else if (pickLat && pickLng) {
+      const d = distKmCalc(myLat, myLng, pickLat, pickLng);
+      updateLiveDistChip(d);
+    }
+  }, 4000);
+}
+
+function stopLiveDistanceTracking() {
+  if (liveDistInterval) { clearInterval(liveDistInterval); liveDistInterval = null; }
+  const chip = document.getElementById('liveDistChip');
+  if (chip) chip.style.display = 'none';
+}
+
+function updateLiveDistChip(distKm) {
+  const el = document.getElementById('liveDistText');
+  if (!el) return;
+  if (distKm < 1) {
+    el.textContent = Math.round(distKm * 1000) + ' m';
+  } else {
+    el.textContent = distKm.toFixed(1) + ' km';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
 // ✅ JAGDALPUR CITY ZONES — 3 concentric circles
 // Like Uber surge zones but for Jagdalpur
 // ═══════════════════════════════════════════════════════
@@ -2371,9 +2447,7 @@ function drawCityZones() {
   });
 
   zoneCircles = [outerZone, cityZone, coreZone, centerMark];
-
-  document.getElementById('zoneLegend').style.display = 'block';
-  document.getElementById('zoneLegend').style.bottom = '360px';
+  // Zone legend removed
 }
 
 function clearZones() {
@@ -2391,15 +2465,9 @@ function toggleZone() {
   zonesVisible = !zonesVisible;
   if (zonesVisible) {
     drawCityZones();
-    document.getElementById('zoneLegend').style.display = 'block';
-    const btn = document.getElementById('zoneBtnR');
-    if(btn) btn.style.color = 'var(--green)';
-    toast('📡 Jagdalpur city zones shown');
+    toast('📡 Jagdalpur zones shown');
   } else {
     clearZones();
-    document.getElementById('zoneLegend').style.display = 'none';
-    const btn = document.getElementById('zoneBtnR');
-    if(btn) btn.style.color = '';
     toast('📡 Zones hidden');
   }
 }
@@ -2562,7 +2630,8 @@ function startLiveDriverWatch() {
     if (myLat) {
       document.getElementById('nd0to3').textContent = in3km;
       document.getElementById('nd3to8').textContent = in8km;
-      document.getElementById('nd8to15').textContent = in15km;
+      const el8to15 = document.getElementById('nd8to15');
+      if(el8to15) el8to15.textContent = in15km;
       animateNdBars(in3km, in8km, in15km, totalDrivers);
     }
 
@@ -2632,23 +2701,12 @@ function checkSurge(driverCount) {
 function updateMyZone() {
   if (!myLat) return;
   const dist = distKmCalc(myLat, myLng, JDPC.lat, JDPC.lng);
-  let zoneName, zoneColor, dotColor;
-  if (dist <= ZONE_CORE) {
-    zoneName = 'City Core (0-3km)'; zoneColor = 'var(--green)'; dotColor = '#10b981';
-  } else if (dist <= ZONE_CITY) {
-    zoneName = 'City Zone (3-8km)'; zoneColor = 'var(--blue)'; dotColor = '#3b82f6';
-  } else if (dist <= ZONE_OUTER) {
-    zoneName = 'Outer Area (8-15km)'; zoneColor = 'var(--yellow)'; dotColor = '#f59e0b';
-  } else {
-    zoneName = 'Outside Zone'; zoneColor = 'var(--red)'; dotColor = '#ef4444';
-  }
-
-  document.getElementById('myZoneText').textContent = zoneName;
-  document.getElementById('zoneDot').style.background = dotColor;
-
+  // Update driver zone stat only
   if (CU?.role === 'driver') {
-    document.getElementById('dsZone').textContent = dist <= ZONE_CORE ? 'Core' : dist <= ZONE_CITY ? 'City' : 'Outer';
-    document.getElementById('dZoneText').textContent = `${zoneName} · ${dist.toFixed(1)}km from center`;
+    const dsZone = document.getElementById('dsZone');
+    if(dsZone) dsZone.textContent = dist <= ZONE_CORE ? 'Core' : dist <= ZONE_CITY ? 'City' : 'Outer';
+    const dZoneText = document.getElementById('dZoneText');
+    if(dZoneText) dZoneText.textContent = `${dist <= ZONE_CORE ? 'City Core' : dist <= ZONE_CITY ? 'City Zone' : 'Outer Area'} · ${dist.toFixed(1)}km from center`;
   }
 }
 
@@ -3311,7 +3369,6 @@ function launchRider() {
   document.getElementById('rSheet').style.display='block';document.getElementById('mapFade').style.display='block';
   document.getElementById('locBtn').style.display='flex';
   document.getElementById('mapStats').style.display='block';
-  document.getElementById('zoneLegend').style.bottom='380px';
   if(CU) document.getElementById('riderName').textContent=CU.name?.toUpperCase()||'RIDER';
   loadFavChips();
 }
@@ -3322,16 +3379,13 @@ function launchDriver() {
   document.getElementById('locBtn').style.display='flex';
   document.getElementById('locBtn').style.bottom='250px';
   document.getElementById('mapStats').style.display='block';
-  document.getElementById('zoneLegend').style.bottom='250px';
   if(CU) document.getElementById('dName').textContent=CU.name;
   dEarnings=CU.earnings||0; dRides=CU.ridesCompleted||0;
   updateDStats(); showDCard('off');
-  // Show KYC pending warning
   if(CU.kycStatus==='pending'){
     const w=document.getElementById('kycPendingWarn');
     if(w) w.style.display='block';
   }
-  // Auto show landmarks for driver
   landmarksVisible = true;
   renderVisibleLandmarks();
 }
@@ -3602,6 +3656,8 @@ function goScr(id) {
   setTimeout(() => { try { leafMap && leafMap.invalidateSize && leafMap.invalidateSize(); } catch(e){} }, 320);
   document.querySelectorAll('.scr').forEach(e=>e.classList.remove('on'));
   document.getElementById(id).classList.add('on');
+  // Stop live distance tracking when going back to home
+  if (id === 'sHome') stopLiveDistanceTracking();
 }
 
 async function calcFare() {
@@ -3650,14 +3706,38 @@ function applyRoute({route,dropCoords},drop) {
   const surge=surgeActive?1.5:1;
   fareA=Math.round(Math.max(25,20+distKM*12)*surge);
   fareM=Math.round(Math.max(50,40+distKM*16)*surge);
+  const fareP=Math.round(Math.max(100,80+distKM*22)*surge); // premium
 
-  document.getElementById('cDist').textContent=distKM;
-  document.getElementById('cETA').textContent=eta;
-  document.getElementById('cZone').textContent=distKM<=3?'Core':distKM<=8?'City':'Outer';
+  // Save drop coords for live distance tracking
+  if (dropCoords) {
+    dropLat = dropCoords.lat;
+    dropLng = dropCoords.lng;
+    dropAddr = drop;
+  }
+
+  document.getElementById('cDist').textContent = distKM;
+  document.getElementById('cETA').textContent = eta;
+  // Update estimated fare chip
+  const cFareEl = document.getElementById('cFareEst');
+  if(cFareEl) cFareEl.textContent = '₹' + fareA;
+  // Update ride cards distance label
+  const aDistLbl = document.getElementById('autoDistLbl');
+  const mDistLbl = document.getElementById('miniDistLbl');
+  if(aDistLbl) aDistLbl.textContent = distKM + ' km';
+  if(mDistLbl) mDistLbl.textContent = distKM + ' km';
+  // Update ETA in cards
+  const autoETA = document.getElementById('autoETA');
+  const miniETA = document.getElementById('miniETA');
+  if(autoETA) autoETA.textContent = '~' + Math.max(2, Math.round(eta*0.85));
+  if(miniETA) miniETA.textContent = '~' + Math.max(3, eta);
+
   document.getElementById('fAuto').textContent=fareA;
   document.getElementById('fMini').textContent=fareM;
+  const fPremEl = document.getElementById('fPremium');
+  if(fPremEl) fPremEl.textContent = fareP;
+
   cabType='JDP Auto';cabFare=fareA;
-  document.getElementById('bookBtnType').textContent='JDP Auto';
+  document.getElementById('bookBtnType').textContent='Auto';
   document.getElementById('optAuto').classList.add('sel');
   document.getElementById('optMini').classList.remove('sel');
 
@@ -3674,14 +3754,11 @@ function applyRoute({route,dropCoords},drop) {
       if(dropMk){ try{if(typeof dropMk.setMap==='function')dropMk.setMap(null);}catch(e){} dropMk=null; }
       dropMk = new mappls.Marker({ map:leafMap, position:{lat:dropCoords.lat,lng:dropCoords.lng},
         html:'<div class="drop-icon" style="transform:translate(-15px,-30px)">🏁</div>',
-        popupHtml:`<b style="color:#ef4444">🏁 ${drop}</b>
-  <br><button onclick="startNavigation(dropCoords.lat,dropCoords.lng,'${drop.replace(/'/g,'')}')"
-    style="background:#00C853;border:none;color:#fff;padding:4px 10px;border-radius:6px;
-    font-size:.72rem;font-weight:800;margin-top:6px;cursor:pointer;width:100%">
-    🗺️ Navigate Now
-  </button>` });
+        popupHtml:`<b style="color:#ef4444">🏁 ${drop}</b>` });
     }
   }
+  // Start live distance chip on map
+  startLiveDistanceTracking();
   goScr('sFare');
 }
 
@@ -3695,11 +3772,16 @@ function useFallback(drop) {
   fareM=Math.round(Math.max(50,40+d*16)*surge);
   document.getElementById('cDist').textContent=d+'*';
   document.getElementById('cETA').textContent=Math.ceil(d*3)+'*';
-  document.getElementById('cZone').textContent='Jagdalpur';
+  const cFareEl = document.getElementById('cFareEst');
+  if(cFareEl) cFareEl.textContent = '~₹' + fareA;
+  const aDistLbl = document.getElementById('autoDistLbl');
+  const mDistLbl = document.getElementById('miniDistLbl');
+  if(aDistLbl) aDistLbl.textContent = d + ' km*';
+  if(mDistLbl) mDistLbl.textContent = d + ' km*';
   document.getElementById('fAuto').textContent=fareA;
   document.getElementById('fMini').textContent=fareM;
   cabType='JDP Auto';cabFare=fareA;
-  document.getElementById('bookBtnType').textContent='JDP Auto';
+  document.getElementById('bookBtnType').textContent='Auto';
   document.getElementById('optAuto').classList.add('sel');
   document.getElementById('optMini').classList.remove('sel');
   toast('⚠️ * = Estimated distance');
