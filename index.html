@@ -85,8 +85,9 @@ window.GPS_CACHE = { lat: null, lng: null, ts: 0, TTL: 3000 };
 
 <!-- ✅ Mappls Map SDK v3 — Full India Vector Maps (Leaflet bundled inside) -->
 <script>window.MAPPLS_KEY='4e97759ed6a3fb245e52f7e22d820954';</script>
-<link href="https://apis.mappls.com/advancedmaps/api/4e97759ed6a3fb245e52f7e22d820954/map_sdk?v=3.0" rel="stylesheet">
-<script src="https://apis.mappls.com/advancedmaps/api/4e97759ed6a3fb245e52f7e22d820954/map_sdk?v=3.0" defer></script>
+<!-- ✅ Mappls SDK v3 — Map + Direction + Navigation + Search plugins -->
+<link href="https://apis.mappls.com/advancedmaps/api/4e97759ed6a3fb245e52f7e22d820954/map_sdk?v=3.0&plugins=direction,search" rel="stylesheet">
+<script src="https://apis.mappls.com/advancedmaps/api/4e97759ed6a3fb245e52f7e22d820954/map_sdk?v=3.0&plugins=direction,search" defer></script>
 
 <style>
 :root{
@@ -274,6 +275,150 @@ body.lm #zoneLegend{background:rgba(255,255,255,.95);color:#000;}
 .zl-row{display:flex;align-items:center;gap:7px;margin-bottom:5px;font-size:.7rem;font-weight:600;}
 .zl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
 .zl-tag{font-size:.58rem;color:var(--muted);margin-left:auto;}
+
+/* ══ MAPPLS NAVIGATION UI — Turn-by-turn like screenshot ══ */
+
+/* Navigation TOP instruction bar — Blue like Mappls */
+#navBar{
+  position:fixed;top:0;left:0;right:0;z-index:800;
+  background:linear-gradient(135deg,#1565C0,#1976D2);
+  padding:0;display:none;
+  box-shadow:0 4px 20px rgba(0,0,0,.5);
+  animation:navSlideIn .3s ease;
+}
+@keyframes navSlideIn{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+
+#navBar .nav-main{
+  display:flex;align-items:center;gap:0;padding:14px 16px 10px;
+}
+#navBar .nav-arrow-box{
+  width:72px;height:72px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:3rem;flex-shrink:0;
+}
+#navBar .nav-dist{
+  font-family:'Syne',sans-serif;font-weight:900;font-size:2.4rem;
+  color:white;line-height:1;
+}
+#navBar .nav-dist-unit{
+  font-size:1rem;font-weight:600;margin-left:4px;color:rgba(255,255,255,.8);
+}
+#navBar .nav-instruction{
+  flex:1;font-size:1.3rem;font-weight:800;color:white;
+  margin-left:12px;line-height:1.2;
+}
+#navBar .nav-next-wrap{
+  background:rgba(255,255,255,.15);
+  border-radius:10px;
+  margin:0 14px 12px;
+  padding:8px 12px;
+  display:flex;align-items:center;gap:10px;
+}
+#navBar .nav-next-label{
+  font-size:.72rem;color:rgba(255,255,255,.7);font-weight:700;text-transform:uppercase;
+}
+#navBar .nav-next-dist{
+  font-size:.82rem;font-weight:800;color:white;
+}
+#navBar .nav-next-arrow{font-size:1.1rem;}
+
+/* Speed box — bottom left like Mappls */
+#navSpeed{
+  position:fixed;left:14px;z-index:800;
+  background:#222;border-radius:50%;
+  width:68px;height:68px;
+  display:none;
+  flex-direction:column;align-items:center;justify-content:center;
+  box-shadow:0 4px 20px rgba(0,0,0,.6);
+  border:3px solid rgba(255,255,255,.15);
+}
+#navSpeed .spd-val{
+  font-family:'Syne',sans-serif;font-weight:900;
+  font-size:1.5rem;color:white;line-height:1;
+}
+#navSpeed .spd-unit{
+  font-size:.55rem;color:rgba(255,255,255,.6);font-weight:700;text-transform:uppercase;
+}
+
+/* Navigation bottom ETA panel — like Mappls bottom bar */
+#navETA{
+  position:fixed;bottom:0;left:0;right:0;z-index:800;
+  background:#0a0e16;
+  border-top:1px solid rgba(255,255,255,.08);
+  padding:14px 18px 30px;
+  display:none;
+  box-shadow:0 -8px 30px rgba(0,0,0,.5);
+}
+#navETA .eta-row{display:flex;align-items:center;justify-content:space-between;}
+#navETA .eta-time{
+  font-family:'Syne',sans-serif;font-weight:900;font-size:2rem;
+  color:#f59e0b;line-height:1;
+}
+#navETA .eta-sub{font-size:.78rem;color:rgba(255,255,255,.6);margin-top:3px;}
+#navETA .eta-arrival{font-size:.8rem;color:rgba(255,255,255,.5);}
+#navETA .eta-actions{display:flex;gap:10px;align-items:center;}
+#navETA .eta-btn{
+  width:44px;height:44px;border-radius:50%;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:1.1rem;
+}
+#navETA .eta-close{
+  width:44px;height:44px;border-radius:50%;
+  background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:1rem;color:var(--red);font-weight:800;
+}
+
+/* Recenter FAB — like Mappls */
+#navRecenter{
+  position:fixed;right:14px;z-index:800;
+  width:52px;height:52px;
+  background:#2a2a2a;border-radius:50%;
+  border:none;cursor:pointer;
+  display:none;
+  align-items:center;justify-content:center;
+  box-shadow:0 4px 18px rgba(0,0,0,.5);
+  font-size:1rem;color:white;
+  flex-direction:column;gap:2px;
+}
+#navRecenter .rc-arrow{font-size:1.1rem;}
+#navRecenter .rc-label{font-size:.45rem;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.6);}
+
+/* Step list panel (like Mappls "Next" steps) */
+#navStepList{
+  position:fixed;top:0;left:0;right:0;bottom:0;z-index:900;
+  background:#0a0e16;display:none;flex-direction:column;
+  animation:fup .25s ease;
+}
+#navStepList .sl-header{
+  padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08);
+  display:flex;align-items:center;gap:12px;
+}
+#navStepList .sl-title{font-family:'Syne',sans-serif;font-weight:900;font-size:1rem;}
+#navStepList .sl-close{
+  margin-left:auto;width:36px;height:36px;border:none;
+  background:rgba(255,255,255,.07);border-radius:50%;
+  cursor:pointer;font-size:.9rem;color:white;
+}
+#navStepList .sl-body{flex:1;overflow-y:auto;padding:10px 0;}
+#navStepList .sl-body::-webkit-scrollbar{display:none;}
+.step-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.04);}
+.step-item.active{background:rgba(245,158,11,.06);}
+.step-icon{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+.step-item.active .step-icon{background:rgba(245,158,11,.2);}
+.step-dist{font-size:.72rem;color:var(--muted);font-weight:700;}
+
+/* Voice nav indicator */
+#voiceIndicator{
+  position:fixed;right:14px;z-index:800;
+  width:44px;height:44px;
+  background:#2a2a2a;border-radius:50%;
+  border:none;cursor:pointer;
+  display:none;align-items:center;justify-content:center;
+  box-shadow:0 3px 12px rgba(0,0,0,.4);font-size:1rem;
+}
+#voiceIndicator.speaking{background:rgba(16,185,129,.2);border:2px solid var(--green);}
 
 /* ══ DEMAND SURGE BANNER ══ */
 #surgeBanner{position:fixed;top:0;left:0;right:0;z-index:600;background:linear-gradient(135deg,#f59e0b,#f97316);padding:7px 16px;text-align:center;font-size:.75rem;font-weight:800;color:#000;display:none;animation:surgeIn .4s ease;}
@@ -584,13 +729,76 @@ body.lm .fav-chip{background:#fff;}
 <!-- MAP — Full screen with gradient blend at bottom -->
 <div id="map"></div>
 
-<!-- ✅ Map gradient fade — so map flows into bottom sheet (Uber effect) -->
+<!-- ✅ Map gradient fade -->
 <div id="mapFade" style="
   position:fixed;bottom:0;left:0;right:0;
   height:160px;
   background:linear-gradient(to top, rgba(10,14,22,1) 0%, rgba(10,14,22,0.7) 50%, transparent 100%);
   z-index:390;pointer-events:none;display:none;
 "></div>
+
+<!-- ✅ MAPPLS-STYLE NAVIGATION BAR — Top turn instruction -->
+<div id="navBar">
+  <div class="nav-main">
+    <div class="nav-arrow-box" id="navArrow">⬅️</div>
+    <div>
+      <div style="display:flex;align-items:baseline;gap:0">
+        <div class="nav-dist" id="navDist">--</div>
+        <div class="nav-dist-unit" id="navDistUnit">m</div>
+      </div>
+    </div>
+    <div class="nav-instruction" id="navInstruction">Calculating route...</div>
+  </div>
+  <div class="nav-next-wrap" id="navNextWrap">
+    <div class="nav-next-label">Next</div>
+    <div class="nav-next-arrow" id="navNextArrow">➡️</div>
+    <div class="nav-next-dist" id="navNextDist">--</div>
+  </div>
+</div>
+
+<!-- ✅ SPEED DISPLAY — bottom left circle like Mappls -->
+<div id="navSpeed" style="bottom:180px">
+  <div class="spd-val" id="spdVal">0</div>
+  <div class="spd-unit">km/h</div>
+</div>
+
+<!-- ✅ RECENTER BUTTON — like Mappls -->
+<button id="navRecenter" style="bottom:240px" onclick="navRecenter()">
+  <div class="rc-arrow">▲</div>
+  <div class="rc-label">Recenter</div>
+</button>
+
+<!-- ✅ VOICE NAV BUTTON -->
+<button id="voiceIndicator" onclick="toggleVoice()">🔊</button>
+
+<!-- ✅ NAVIGATION BOTTOM ETA PANEL -->
+<div id="navETA">
+  <div class="eta-row">
+    <div>
+      <div class="eta-time" id="etaTime">-- min</div>
+      <div class="eta-sub" id="etaDist">-- m</div>
+      <div class="eta-arrival" id="etaArrival">Arrival: --:--</div>
+    </div>
+    <div class="eta-actions">
+      <div class="eta-btn" id="navStepBtn" onclick="toggleStepList()" title="Route steps">📋</div>
+      <div class="eta-btn" onclick="toggleVoice()" title="Voice">🔊</div>
+      <div class="eta-close" onclick="stopNavigation()" title="Stop nav">✕</div>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ STEP LIST PANEL (All turn instructions) -->
+<div id="navStepList">
+  <div class="sl-header">
+    <span style="font-size:1.3rem">🗺️</span>
+    <div>
+      <div class="sl-title">Turn-by-Turn Route</div>
+      <div style="font-size:.68rem;color:var(--muted)" id="slSummary">Calculating...</div>
+    </div>
+    <button class="sl-close" onclick="toggleStepList()">✕</button>
+  </div>
+  <div class="sl-body" id="stepListBody"></div>
+</div>
 
 <!-- ✅ Uber-style zoom controls — positioned above locate button -->
 <div class="zoom-ctrl" id="zoomCtrl" style="bottom:410px;">
@@ -835,6 +1043,8 @@ body.lm .fav-chip{background:#fff;}
 
     <div id="homeErr" class="eb"></div>
     <button class="mbtn y" onclick="calcFare()" style="margin-top:6px">Find Driver 🚗</button>
+    <button class="mbtn" style="margin-top:6px;background:rgba(0,200,83,.12);color:#00C853;border:1px solid rgba(0,200,83,.3)"
+      onclick="quickNavigate()">🗺️ Navigate (without booking)</button>
   </div>
 
   <!-- FARE SCREEN -->
@@ -1595,6 +1805,425 @@ setTimeout(finishLoad, 4000);
 
 window.addEventListener('offline', () => document.getElementById('netB').style.display = 'block');
 window.addEventListener('online', () => { document.getElementById('netB').style.display = 'none'; toast('🌐 Back online!'); });
+
+// ═══════════════════════════════════════════════════════
+// ✅ MAPPLS REAL-TIME NAVIGATION ENGINE
+// Turn-by-turn, speed, ETA, voice — like screenshot
+// ═══════════════════════════════════════════════════════
+let NAV = {
+  active: false,
+  steps: [],           // turn-by-turn steps
+  currentStep: 0,
+  destLat: null, destLng: null,
+  destName: '',
+  watchId: null,       // separate GPS watch for nav
+  voiceEnabled: true,
+  lastSpoken: '',
+  lastSpeakTime: 0,
+  routeMarker: null,
+  navPolyline: null,
+  totalDist: 0,
+  totalTime: 0,
+  recenterEnabled: true,
+  mapHeading: 0,
+};
+
+// Direction arrow mapping — maneuver type to emoji
+const MANEUVER_ICONS = {
+  'turn-left':          '⬅️',
+  'turn-right':         '➡️',
+  'turn-sharp-left':    '↙️',
+  'turn-sharp-right':   '↘️',
+  'turn-slight-left':   '↖️',
+  'turn-slight-right':  '↗️',
+  'straight':           '⬆️',
+  'roundabout':         '🔄',
+  'rotary':             '🔄',
+  'merge':              '🔀',
+  'fork-left':          '↖️',
+  'fork-right':         '↗️',
+  'ramp-left':          '↖️',
+  'ramp-right':         '↗️',
+  'uturn':              '↩️',
+  'arrive':             '🏁',
+  'depart':             '🚀',
+  'default':            '⬆️',
+};
+
+function getManeuverIcon(maneuver) {
+  if (!maneuver) return '⬆️';
+  const type = (maneuver.type || '') + (maneuver.modifier ? '-' + maneuver.modifier : '');
+  return MANEUVER_ICONS[type] || MANEUVER_ICONS[maneuver.type] || MANEUVER_ICONS.default;
+}
+
+function getManeuverText(maneuver, name) {
+  if (!maneuver) return name ? 'Continue on ' + name : 'Continue straight';
+  const street = name ? ' on ' + name : '';
+  const mod = maneuver.modifier || '';
+  switch(maneuver.type) {
+    case 'turn':
+      if (mod === 'left')        return 'Turn left' + street;
+      if (mod === 'right')       return 'Turn right' + street;
+      if (mod === 'sharp left')  return 'Sharp left' + street;
+      if (mod === 'sharp right') return 'Sharp right' + street;
+      if (mod === 'slight left') return 'Slight left' + street;
+      if (mod === 'slight right')return 'Slight right' + street;
+      return 'Turn' + street;
+    case 'new name':    return 'Continue' + street;
+    case 'depart':      return 'Start' + street;
+    case 'arrive':      return '🏁 You have arrived' + (name ? ' at ' + name : '');
+    case 'merge':       return 'Merge' + street;
+    case 'roundabout':  return 'Enter roundabout' + street;
+    case 'rotary':      return 'Enter roundabout' + street;
+    case 'fork':        return (mod.includes('left') ? 'Keep left' : 'Keep right') + street;
+    case 'end of road': return (mod.includes('left') ? 'Turn left' : 'Turn right') + street;
+    case 'continue':    return 'Continue straight' + street;
+    case 'uturn':       return 'Make U-turn' + street;
+    default:            return 'Continue' + (street || ' straight');
+  }
+}
+
+function formatDist(meters) {
+  if (meters < 950) return { val: Math.round(meters / 10) * 10, unit: 'm' };
+  return { val: (meters / 1000).toFixed(1), unit: 'km' };
+}
+
+function formatTime(seconds) {
+  if (seconds < 60) return '< 1 min';
+  const m = Math.round(seconds / 60);
+  if (m < 60) return m + ' min';
+  const h = Math.floor(m / 60), rm = m % 60;
+  return h + 'h ' + (rm > 0 ? rm + 'm' : '');
+}
+
+// ✅ Start Navigation — main entry point
+async function startNavigation(destLat, destLng, destName) {
+  if (!myLat || !myLng) {
+    toast('📍 GPS location chahiye — wait karo'); return;
+  }
+
+  NAV.active = true;
+  NAV.destLat = destLat;
+  NAV.destLng = destLng;
+  NAV.destName = destName || 'Destination';
+  NAV.currentStep = 0;
+  NAV.voiceEnabled = true;
+
+  // Show nav UI
+  document.getElementById('navBar').style.display = 'block';
+  document.getElementById('navSpeed').style.display = 'flex';
+  document.getElementById('navRecenter').style.display = 'flex';
+  document.getElementById('voiceIndicator').style.display = 'flex';
+  document.getElementById('navETA').style.display = 'block';
+  document.getElementById('navInstruction').textContent = 'Calculating route...';
+  document.getElementById('navArrow').textContent = '⌛';
+
+  // Hide booking sheet during navigation
+  document.getElementById('rSheet').style.display = 'none';
+  document.getElementById('mapFade').style.display = 'none';
+
+  toast('🗺️ Navigation started!');
+
+  // Get detailed route with steps
+  await fetchNavRoute(myLat, myLng, destLat, destLng);
+
+  // Start GPS watch for navigation
+  startNavGPS();
+
+  // Tilt map for navigation (3D-ish feel)
+  if (leafMap) {
+    leafMap.flyTo([myLat, myLng], 16);
+  }
+}
+
+// ✅ Fetch route with full step-by-step from Mappls/OSRM
+async function fetchNavRoute(fLat, fLng, tLat, tLng) {
+  try {
+    // Try Mappls route_adv with steps
+    let r = await fetch(
+      `https://apis.mappls.com/advancedmaps/v1/${window.MAPPLS_KEY}/route_adv/driving/${fLng},${fLat};${tLng},${tLat}?steps=true&geometries=geojson&overview=full&annotations=true&region=IND`
+    );
+    if (!r.ok) throw new Error('Mappls failed');
+    const d = await r.json();
+    if (d?.routes?.[0]) {
+      const route = d.routes[0];
+      NAV.totalDist = route.distance;
+      NAV.totalTime = route.duration;
+      // Extract steps from all legs
+      NAV.steps = [];
+      (route.legs || []).forEach(leg => {
+        (leg.steps || []).forEach(step => NAV.steps.push(step));
+      });
+      if (NAV.steps.length > 0) {
+        drawNavRoute(route.geometry);
+        updateNavUI();
+        buildStepList();
+        return;
+      }
+    }
+  } catch(e) {}
+
+  // Fallback: OSRM with steps
+  try {
+    const r = await fetch(
+      `https://router.project-osrm.org/route/v1/driving/${fLng},${fLat};${tLng},${tLat}?steps=true&geometries=geojson&overview=full`
+    );
+    const d = await r.json();
+    if (d?.routes?.[0]) {
+      const route = d.routes[0];
+      NAV.totalDist = route.distance;
+      NAV.totalTime = route.duration;
+      NAV.steps = [];
+      (route.legs || []).forEach(leg => {
+        (leg.steps || []).forEach(step => NAV.steps.push(step));
+      });
+      drawNavRoute(route.geometry);
+      updateNavUI();
+      buildStepList();
+    }
+  } catch(e) {
+    document.getElementById('navInstruction').textContent = 'Route unavailable';
+  }
+}
+
+// ✅ Draw navigation route on map (green line like Mappls screenshot)
+function drawNavRoute(geometry) {
+  if (NAV.navPolyline) {
+    try { if (NAV.navPolyline.setMap) NAV.navPolyline.setMap(null); } catch(e){}
+  }
+  if (!geometry?.coordinates || !leafMap) return;
+  const path = geometry.coordinates.map(c => ({ lat: c[1], lng: c[0] }));
+  NAV.navPolyline = new mappls.Polyline({
+    map: leafMap,
+    path: path,
+    strokeColor: '#00C853',  // Mappls green route
+    strokeWeight: 7,
+    strokeOpacity: 0.92,
+    lineJoin: 'round',
+    lineCap: 'round'
+  });
+}
+
+// ✅ Update the navigation bar UI with current step
+function updateNavUI() {
+  if (!NAV.active || NAV.steps.length === 0) return;
+  const step = NAV.steps[NAV.currentStep];
+  if (!step) { 
+    document.getElementById('navInstruction').textContent = '🏁 Arrived!';
+    return;
+  }
+
+  const maneuver = step.maneuver;
+  const name = step.name || step.ref || '';
+  const distM = step.distance || 0;
+
+  // Update arrow
+  const icon = getManeuverIcon(maneuver);
+  document.getElementById('navArrow').textContent = icon;
+
+  // Update distance
+  const dist = formatDist(distM);
+  document.getElementById('navDist').textContent = dist.val;
+  document.getElementById('navDistUnit').textContent = dist.unit;
+
+  // Update instruction
+  const text = getManeuverText(maneuver, name);
+  document.getElementById('navInstruction').textContent = text;
+
+  // Update next step
+  const nextStep = NAV.steps[NAV.currentStep + 1];
+  if (nextStep) {
+    document.getElementById('navNextArrow').textContent = getManeuverIcon(nextStep.maneuver);
+    const nd = formatDist(nextStep.distance || 0);
+    document.getElementById('navNextDist').textContent = nd.val + ' ' + nd.unit;
+    document.getElementById('navNextWrap').style.display = 'flex';
+  } else {
+    document.getElementById('navNextWrap').style.display = 'none';
+  }
+
+  // ETA panel
+  const remDist = NAV.steps.slice(NAV.currentStep).reduce((s,st)=>s+(st.distance||0),0);
+  const remTime = NAV.steps.slice(NAV.currentStep).reduce((s,st)=>s+(st.duration||0),0);
+  const etaDist = formatDist(remDist);
+  document.getElementById('etaDist').textContent = etaDist.val + ' ' + etaDist.unit;
+  document.getElementById('etaTime').textContent = formatTime(remTime);
+  const arrival = new Date(Date.now() + remTime * 1000);
+  document.getElementById('etaArrival').textContent = 'Arrival: ' + arrival.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+
+  // Voice guidance
+  speakInstruction(text, distM);
+}
+
+// ✅ Build step list panel
+function buildStepList() {
+  const body = document.getElementById('stepListBody');
+  const summary = document.getElementById('slSummary');
+  if (!NAV.steps.length) return;
+
+  const totDist = formatDist(NAV.totalDist);
+  const totTime = formatTime(NAV.totalTime);
+  summary.textContent = totDist.val + totDist.unit + ' · ' + totTime + ' · ' + NAV.destName;
+
+  body.innerHTML = NAV.steps.map((step, i) => {
+    const icon = getManeuverIcon(step.maneuver);
+    const text = getManeuverText(step.maneuver, step.name);
+    const d = formatDist(step.distance || 0);
+    const active = i === NAV.currentStep ? ' active' : '';
+    return '<div class="step-item' + active + '">' +
+      '<div class="step-icon">' + icon + '</div>' +
+      '<div style="flex:1">' +
+        '<div style="font-size:.83rem;font-weight:700">' + text + '</div>' +
+        (step.name ? '<div class="step-dist">' + step.name + '</div>' : '') +
+      '</div>' +
+      '<div style="font-size:.72rem;color:var(--muted);font-weight:700;flex-shrink:0">' + d.val + d.unit + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ✅ Voice Navigation using Web Speech API
+function speakInstruction(text, distM) {
+  if (!NAV.voiceEnabled || !window.speechSynthesis) return;
+  if (text === NAV.lastSpoken && Date.now() - NAV.lastSpeakTime < 15000) return;
+  if (distM > 500) return; // Only speak when within 500m of turn
+  NAV.lastSpoken = text;
+  NAV.lastSpeakTime = Date.now();
+
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'hi-IN'; // Hindi voice for Jagdalpur
+  utter.rate = 0.95;
+  utter.volume = 1;
+  const vi = document.getElementById('voiceIndicator');
+  utter.onstart = () => { if (vi) vi.classList.add('speaking'); };
+  utter.onend = () => { if (vi) vi.classList.remove('speaking'); };
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utter);
+}
+
+function toggleVoice() {
+  NAV.voiceEnabled = !NAV.voiceEnabled;
+  const btn = document.getElementById('voiceIndicator');
+  if (btn) btn.textContent = NAV.voiceEnabled ? '🔊' : '🔇';
+  toast(NAV.voiceEnabled ? '🔊 Voice on' : '🔇 Voice off');
+}
+
+// ✅ GPS Watch for navigation — updates position + step detection
+function startNavGPS() {
+  if (NAV.watchId) navigator.geolocation.clearWatch(NAV.watchId);
+  NAV.watchId = navigator.geolocation.watchPosition(pos => {
+    if (!NAV.active) return;
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    const speed = pos.coords.speed || 0;
+    const heading = pos.coords.heading || 0;
+
+    // Update speed display
+    const kmh = Math.round(speed * 3.6);
+    const spdEl = document.getElementById('spdVal');
+    if (spdEl) spdEl.textContent = kmh;
+
+    // Highlight speed limit exceeded (basic)
+    const speedBox = document.getElementById('navSpeed');
+    if (speedBox) speedBox.style.borderColor = kmh > 60 ? 'var(--red)' : 'rgba(255,255,255,.15)';
+
+    // Recenter map on user (if recenter enabled)
+    if (NAV.recenterEnabled && leafMap) {
+      leafMap.setCenter([lat, lng]);
+    }
+
+    // Check if we passed the current step waypoint
+    if (NAV.steps[NAV.currentStep]) {
+      const step = NAV.steps[NAV.currentStep];
+      const manLat = step.maneuver?.location?.[1] || null;
+      const manLng = step.maneuver?.location?.[0] || null;
+      if (manLat && manLng) {
+        const dist = distKmCalc(lat, lng, manLat, manLng) * 1000;
+        if (dist < 30 && NAV.currentStep < NAV.steps.length - 1) {
+          // ✅ Passed waypoint — advance to next step
+          NAV.currentStep++;
+          updateNavUI();
+          buildStepList();
+          // Flash nav bar for turn
+          document.getElementById('navBar').style.transform = 'scale(1.01)';
+          setTimeout(() => { document.getElementById('navBar').style.transform = ''; }, 300);
+        }
+        // Update distance to next turn
+        const d = formatDist(dist);
+        document.getElementById('navDist').textContent = d.val;
+        document.getElementById('navDistUnit').textContent = d.unit;
+      }
+    }
+
+    // Check arrival
+    if (NAV.destLat && NAV.destLng) {
+      const distToDest = distKmCalc(lat, lng, NAV.destLat, NAV.destLng) * 1000;
+      if (distToDest < 50) {
+        arrivedAtDest();
+      }
+    }
+  }, err => {}, { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 });
+}
+
+// ✅ Arrived at destination
+function arrivedAtDest() {
+  if (!NAV.active) return;
+  speakInstruction('You have arrived at ' + NAV.destName, 0);
+  NAV.lastSpoken = ''; // force speak
+  document.getElementById('navInstruction').textContent = '🏁 You have arrived!';
+  document.getElementById('navArrow').textContent = '🏁';
+  document.getElementById('navDist').textContent = '0';
+  document.getElementById('etaTime').textContent = '0 min';
+  toast('🏁 Destination par pahunch gaye!');
+  setTimeout(stopNavigation, 4000);
+}
+
+// ✅ Stop Navigation
+
+// ✅ Quick navigate — direct nav without booking a ride
+async function quickNavigate() {
+  const drop = document.getElementById('dropIn').value.trim();
+  if (!drop) { toast('📍 Drop location likho pehle'); document.getElementById('dropIn').focus(); return; }
+  if (!myLat) { toast('📍 GPS location wait karo'); return; }
+
+  // Use pre-selected or geocode
+  let coords = null;
+  if (window._preSelectedDrop && window._selectedDropName === drop) {
+    coords = window._preSelectedDrop;
+  } else {
+    coords = await geocodeAddress(drop);
+  }
+  if (!coords) { toast('❌ Location nahi mili — aur specific likho'); return; }
+
+  startNavigation(coords.lat, coords.lng, drop);
+}
+
+function stopNavigation() {
+  NAV.active = false;
+  if (NAV.watchId) { navigator.geolocation.clearWatch(NAV.watchId); NAV.watchId = null; }
+  if (NAV.navPolyline) { try { NAV.navPolyline.setMap(null); } catch(e){} NAV.navPolyline = null; }
+  window.speechSynthesis && window.speechSynthesis.cancel();
+
+  // Hide nav UI
+  ['navBar','navSpeed','navRecenter','voiceIndicator','navETA','navStepList'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+
+  // Restore booking sheet
+  document.getElementById('rSheet').style.display = 'block';
+  document.getElementById('mapFade').style.display = 'block';
+  if (leafMap) leafMap.setZoom(14);
+  toast('Navigation stopped');
+}
+
+function navRecenter() {
+  NAV.recenterEnabled = true;
+  if (leafMap && myLat) leafMap.flyTo([myLat, myLng], 16);
+}
+
+function toggleStepList() {
+  const panel = document.getElementById('navStepList');
+  panel.style.display = panel.style.display === 'flex' ? 'none' : 'flex';
+}
 
 // ═══════════════════════════════════════════════════════
 // ✅ MAP — Full Mappls v3 SDK (India Vector Maps, Uber-level)
@@ -2789,6 +3418,8 @@ async function acceptReq() {
       drawRoute(route.geometry,'#3b82f6');
       document.getElementById('navPDist').textContent=route.distKM+'km';
       document.getElementById('navPETA').textContent=route.durationMin+' min';
+      // ✅ Auto-start navigation for driver to pickup
+      startNavigation(data.pickupLat, data.pickupLng, 'Pickup: ' + (data.pickup||'Rider'));
     }
     if(pickupMk){ try{if(typeof pickupMk.setMap==='function')pickupMk.setMap(null);}catch(e){} pickupMk=null; }
     pickupMk = new mappls.Marker({ map:leafMap, position:{lat:data.pickupLat,lng:data.pickupLng},
@@ -2821,6 +3452,10 @@ async function driverNext() {
       if(dc){
         const route=await getOSRMRoute(myLat,myLng,dc.lat,dc.lng);
         if(route) drawRoute(route.geometry,'#10b981');
+        // ✅ Navigate to drop location
+        if(CU?.role==='driver') {
+          startNavigation(dc.lat, dc.lng, curReqData?.drop || 'Drop Location');
+        }
         if(dropMk){ try{if(typeof dropMk.setMap==='function')dropMk.setMap(null);}catch(e){} dropMk=null; }
         dropMk = new mappls.Marker({ map:leafMap, position:{lat:dc.lat,lng:dc.lng},
           html:'<div class="drop-icon" style="transform:translate(-15px,-30px)">🏁</div>',
@@ -2842,7 +3477,7 @@ async function completeTrip() {
   clearRoute();
   if(pickupMk){ try{if(typeof pickupMk.setMap==='function')pickupMk.setMap(null);}catch(e){} pickupMk=null; }
   if(dropMk){ try{if(typeof dropMk.setMap==='function')dropMk.setMap(null);}catch(e){} dropMk=null; }
-  curReqId=null;curReqData=null;navPhase='pickup';
+  curReqId=null;curReqData=null;navPhase='pickup'; stopNavigation();
   showDCard('on');
   toast(`🎉 Trip done! ₹${data.fare} earned!`);
   if(isOnline) startListeningForRides();
@@ -2940,7 +3575,12 @@ function applyRoute({route,dropCoords},drop) {
       if(dropMk){ try{if(typeof dropMk.setMap==='function')dropMk.setMap(null);}catch(e){} dropMk=null; }
       dropMk = new mappls.Marker({ map:leafMap, position:{lat:dropCoords.lat,lng:dropCoords.lng},
         html:'<div class="drop-icon" style="transform:translate(-15px,-30px)">🏁</div>',
-        popupHtml:`<b style="color:#ef4444">🏁 ${drop}</b>` });
+        popupHtml:`<b style="color:#ef4444">🏁 ${drop}</b>
+  <br><button onclick="startNavigation(dropCoords.lat,dropCoords.lng,'${drop.replace(/'/g,'')}')"
+    style="background:#00C853;border:none;color:#fff;padding:4px 10px;border-radius:6px;
+    font-size:.72rem;font-weight:800;margin-top:6px;cursor:pointer;width:100%">
+    🗺️ Navigate Now
+  </button>` });
     }
   }
   goScr('sFare');
