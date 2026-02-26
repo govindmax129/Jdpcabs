@@ -168,17 +168,19 @@ body.lm #zoneLegend{background:rgba(255,255,255,.95);color:#000;}
 .zl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
 .zl-tag{font-size:.6rem;color:var(--muted);margin-left:auto;}
 
-/* ══ UBER BOTTOM SHEET ══ */
+/* ══ MAPPLS-STYLE FULL SCREEN BOTTOM SHEET (Glass) ══ */
 .sheet{position:fixed;bottom:0;left:0;right:0;z-index:400;
-  background:#0a0e16;
+  background:rgba(7,9,15,0.88);
+  backdrop-filter:blur(28px) saturate(1.6);
+  -webkit-backdrop-filter:blur(28px) saturate(1.6);
   border-radius:24px 24px 0 0;
-  border-top:1px solid rgba(255,255,255,.06);
+  border-top:1px solid rgba(255,255,255,.10);
   padding:0 18px 38px;
-  max-height:58vh;        /* ← KEY: never cover more than 58% of screen */
+  max-height:52vh;        /* ← Mappls style: map zyada dikhta hai */
   overflow-y:auto;display:none;
-  box-shadow:0 -8px 40px rgba(0,0,0,.6);}
+  box-shadow:0 -12px 48px rgba(0,0,0,.45);}
 .sheet::-webkit-scrollbar{display:none;}
-body.lm .sheet{background:#f8fafd;border-top:1px solid rgba(0,0,0,.05);}
+body.lm .sheet{background:rgba(240,244,251,.92);backdrop-filter:blur(28px) saturate(1.4);-webkit-backdrop-filter:blur(28px) saturate(1.4);border-top:1px solid rgba(0,0,0,.05);}
 .hdl{width:36px;height:4px;background:rgba(255,255,255,.12);border-radius:4px;margin:12px auto 16px;}
 body.lm .hdl{background:rgba(0,0,0,.1);}
 
@@ -589,8 +591,8 @@ body.lm .dcard{background:#fff;}
 
 /* ══ DRIVER PANELS ══ */
 #dPanel{position:fixed;bottom:0;left:0;right:0;z-index:400;display:none;}
-#dOff,#dOn,#dNav{background:rgba(7,9,15,.97);backdrop-filter:blur(28px);border-radius:22px 22px 0 0;border-top:1px solid rgba(255,255,255,.07);padding:18px 17px 32px;}
-body.lm #dOff,body.lm #dOn,body.lm #dNav{background:rgba(240,244,251,.97);}
+#dOff,#dOn,#dNav{background:rgba(7,9,15,.92);backdrop-filter:blur(28px) saturate(1.5);-webkit-backdrop-filter:blur(28px) saturate(1.5);border-radius:22px 22px 0 0;border-top:1px solid rgba(255,255,255,.09);padding:18px 17px 32px;}
+body.lm #dOff,body.lm #dOn,body.lm #dNav{background:rgba(240,244,251,.94);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);}
 #dOff{text-align:center;}
 #dOn,#dNav{display:none;}
 .opulse{display:flex;align-items:center;gap:9px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:13px;padding:13px;margin-bottom:12px;}
@@ -729,11 +731,11 @@ body.lm .fav-chip{background:#fff;}
 <!-- MAP — Full screen with gradient blend at bottom -->
 <div id="map"></div>
 
-<!-- ✅ Map gradient fade -->
+<!-- ✅ Map gradient fade — subtle, Mappls style -->
 <div id="mapFade" style="
   position:fixed;bottom:0;left:0;right:0;
-  height:160px;
-  background:linear-gradient(to top, rgba(10,14,22,1) 0%, rgba(10,14,22,0.7) 50%, transparent 100%);
+  height:120px;
+  background:linear-gradient(to top, rgba(7,9,15,0.6) 0%, rgba(7,9,15,0.2) 60%, transparent 100%);
   z-index:390;pointer-events:none;display:none;
 "></div>
 
@@ -2279,6 +2281,28 @@ function initMap() {
       addLandmarkMarkers();
       document.getElementById('ldStatus').textContent = '✅ Jagdalpur map loaded (Mappls)';
       document.getElementById('mapStats').style.display = 'block';
+
+      // ✅ AUTO-DETECT location on map load — Mappls style (even before login)
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(pos) {
+          myLat = pos.coords.latitude;
+          myLng = pos.coords.longitude;
+          pickLat = myLat; pickLng = myLng;
+          updateMyMarker(myLat, myLng);
+          updateMyZone();
+          leafMap.flyTo([myLat, myLng], 15);
+          // Pre-fill pickup address if logged in
+          revGeo(myLat, myLng).then(function(addr) {
+            pickAddr = addr;
+            const pAddrEl = document.getElementById('pAddr');
+            const pSubEl = document.getElementById('pSub');
+            if (pAddrEl) pAddrEl.textContent = addr;
+            if (pSubEl) pSubEl.innerHTML = '<span style="color:var(--green);font-size:.66rem">📍 GPS Live · Auto Detected</span>';
+          });
+        }, function() {
+          // GPS denied — stay at Jagdalpur center, no toast spam before login
+        }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 });
+      }
     });
 
   } catch(e) { console.error('[JDP] Map init error:', e); setTimeout(initMap, 1000); }
@@ -2871,6 +2895,12 @@ function clearRoute() {
 function startGPS() {
   if (!navigator.geolocation) { toast('GPS not available'); return; }
   if (watchId) navigator.geolocation.clearWatch(watchId);
+
+  // ✅ Mappls style: immediately show detecting status
+  const pAddrEl = document.getElementById('pAddr');
+  const pSubEl = document.getElementById('pSub');
+  if (pAddrEl && !myLat) pAddrEl.textContent = 'Detecting location...';
+  if (pSubEl && !myLat) pSubEl.innerHTML = '<div class="lspin"></div><span>Getting GPS...</span>';
 
   watchId = navigator.geolocation.watchPosition(async (pos) => {
     myLat = pos.coords.latitude; myLng = pos.coords.longitude;
