@@ -23,13 +23,10 @@
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<!-- ✅ Leaflet 1.9.4 — stable, all L.* API intact -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script>
-  // Mappls API Key
-  window.MAPPLS_KEY = '4e97759ed6a3fb245e52f7e22d820954';
-</script>
+<!-- ✅ Mappls Map SDK v3 — Full India Vector Maps (Leaflet bundled inside) -->
+<script>window.MAPPLS_KEY='4e97759ed6a3fb245e52f7e22d820954';</script>
+<link href="https://apis.mappls.com/advancedmaps/api/4e97759ed6a3fb245e52f7e22d820954/map_sdk?v=3.0" rel="stylesheet">
+<script src="https://apis.mappls.com/advancedmaps/api/4e97759ed6a3fb245e52f7e22d820954/map_sdk?v=3.0" defer></script>
 
 <style>
 :root{
@@ -44,7 +41,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 
 /* ══ MAP ══ */
 #map{position:absolute;inset:0;z-index:1;width:100vw;height:100vh;}
-.leaflet-control-zoom,.leaflet-control-scale,.mappls-control-zoom,.mappls-control-scale{display:none!important;}
+
+/* Custom Uber-style zoom buttons */
+.zoom-ctrl{position:fixed;right:15px;z-index:500;display:flex;flex-direction:column;gap:6px;}
+.zbtn{width:40px;height:40px;background:white;border:none;border-radius:10px;font-size:1.2rem;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:#000;transition:transform .1s,box-shadow .2s;}
+.zbtn:active{transform:scale(.93);box-shadow:0 2px 8px rgba(0,0,0,.3);}
+body.lm .zbtn{background:#fff;color:#000;}
+.leaflet-control-zoom,.leaflet-control-scale{display:none!important;}
 .leaflet-control-attribution,.mappls-control-attribution{font-size:7px!important;opacity:.3;bottom:2px!important;}
 .leaflet-popup-content-wrapper,
 .mappls-popup-content-wrapper{
@@ -398,6 +401,12 @@ body.lm .fav-chip{background:#fff;}
 
 <!-- MAP -->
 <div id="map"></div>
+
+<!-- ✅ Uber-style custom zoom controls -->
+<div class="zoom-ctrl" id="zoomCtrl" style="bottom:440px;">
+  <button class="zbtn" onclick="zoomIn()" title="Zoom In">+</button>
+  <button class="zbtn" onclick="zoomOut()" title="Zoom Out">−</button>
+</div>
 
 <!-- ZONE LEGEND -->
 <div id="zoneLegend">
@@ -1098,7 +1107,7 @@ let routePolyline = null;
 let zoneCircles = [];
 let landmarkMarkers = [];
 let landmarksVisible = false;
-let liveDriverMarkers = {};  // driverId → L.marker
+let liveDriverMarkers = {};  // driverId → mappls.Marker
 let liveDriversListener = null;
 
 let myMarker = null, pickupMk = null, dropMk = null, driverMk = null;
@@ -1192,59 +1201,35 @@ window.addEventListener('offline', () => document.getElementById('netB').style.d
 window.addEventListener('online', () => { document.getElementById('netB').style.display = 'none'; toast('🌐 Back online!'); });
 
 // ═══════════════════════════════════════════════════════
-// ✅ MAP — Leaflet + CartoDB Dark (Uber look)
+// ✅ MAP — Full Mappls v3 SDK (India Vector Maps, Uber-level)
 // ═══════════════════════════════════════════════════════
 function initMap() {
-  if (typeof L === 'undefined') { setTimeout(initMap, 600); return; }
+  if (typeof mappls === 'undefined') { setTimeout(initMap, 400); return; }
   try {
-    // ✅ Leaflet map — Mappls India raster tiles via API key
-    leafMap = L.map('map', {
-      center: [JDPC.lat, JDPC.lng],
+    // ✅ Mappls v3 Map — India's best vector map, MapmyIndia tiles
+    leafMap = new mappls.Map('map', {
+      center: { lat: JDPC.lat, lng: JDPC.lng },
       zoom: 13,
-      zoomControl: false,
-      attributionControl: true
+      zoomControl: false,          // we have custom Uber zoom buttons
+      clickableIcons: true,
+      fullscreenControl: false,
+      search: false
     });
 
-    // ✅ Mappls raster tile layer — India-optimized, Jagdalpur ka sahi detail
-    const mapplsTile = L.tileLayer(
-      'https://apis.mappls.com/advancedmaps/v1/' + window.MAPPLS_KEY + '/still_lite/{z}/{x}/{y}.png',
-      {
-        attribution: '© <a href="https://mappls.com">Mappls</a> © MapmyIndia',
-        maxZoom: 19,
-        tileSize: 256,
-        errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
-      }
-    );
-
-    // ✅ Dark CartoDB fallback (if Mappls tiles fail — key auth issues)
-    const darkFallback = L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-      { attribution:'© OpenStreetMap © CARTO', subdomains:'abcd', maxZoom:19 }
-    );
-
-    // Try Mappls tiles first, fallback to CartoDB dark on error
-    window._mapplsTileLayer = mapplsTile;
-    window._darkFallbackLayer = darkFallback;
-
-    mapplsTile.on('tileerror', function() {
-      if (!window._mapplsFallbackUsed) {
-        window._mapplsFallbackUsed = true;
-        try { leafMap.removeLayer(mapplsTile); } catch(e) {}
-        darkFallback.addTo(leafMap);
-        document.getElementById('ldStatus').textContent = '🗺️ Map loaded (fallback mode)';
-      }
+    // ✅ Wait for map tiles to fully load, then draw overlays
+    leafMap.on('load', function() {
+      drawCityZones();
+      addLandmarkMarkers();
+      document.getElementById('ldStatus').textContent = '✅ Jagdalpur map loaded (Mappls)';
+      document.getElementById('mapStats').style.display = 'block';
     });
 
-    mapplsTile.addTo(leafMap);
-
-    // ✅ Draw Jagdalpur city zones on map immediately
-    drawCityZones();
-    // ✅ Add landmark markers (hidden initially)
-    addLandmarkMarkers();
-
-    document.getElementById('ldStatus').textContent = '✅ Jagdalpur map loaded (Mappls)';
-  } catch(e) { console.error('Map init error:', e); setTimeout(initMap, 1200); }
+  } catch(e) { console.error('[JDP] Map init error:', e); setTimeout(initMap, 1000); }
 }
+
+// ✅ Uber-style smooth zoom functions
+function zoomIn()  { if(leafMap) leafMap.zoomIn(1,  {animate:true}); }
+function zoomOut() { if(leafMap) leafMap.zoomOut(1, {animate:true}); }
 
 // ═══════════════════════════════════════════════════════
 // ✅ JAGDALPUR CITY ZONES — 3 concentric circles
@@ -1254,52 +1239,57 @@ function drawCityZones() {
   if (!leafMap) return;
   clearZones();
 
-  // Outer area — Yellow (15km)
-  const outerZone = L.circle([JDPC.lat, JDPC.lng], {
+  // ✅ Outer area — Yellow (15km)
+  const outerZone = new mappls.Circle({
+    map: leafMap,
+    center: { lat: JDPC.lat, lng: JDPC.lng },
     radius: ZONE_OUTER * 1000,
-    color: '#f59e0b', fillColor: '#f59e0b',
-    fillOpacity: 0.03, weight: 1.5, opacity: 0.3,
-    dashArray: '8,6'
-  }).addTo(leafMap);
-
-  // City zone — Blue (8km) — main service
-  const cityZone = L.circle([JDPC.lat, JDPC.lng], {
-    radius: ZONE_CITY * 1000,
-    color: '#3b82f6', fillColor: '#3b82f6',
-    fillOpacity: 0.04, weight: 2, opacity: 0.5,
-    dashArray: '5,4'
-  }).addTo(leafMap);
-
-  // City core — Green (3km)
-  const coreZone = L.circle([JDPC.lat, JDPC.lng], {
-    radius: ZONE_CORE * 1000,
-    color: '#10b981', fillColor: '#10b981',
-    fillOpacity: 0.06, weight: 2, opacity: 0.65
-  }).addTo(leafMap);
-
-  // Center dot — Jagdalpur city center
-  const centerIcon = L.divIcon({
-    className:'',
-    html:`<div style="
-      background:rgba(245,158,11,.85);border:2px solid white;
-      width:10px;height:10px;border-radius:50%;
-      box-shadow:0 0 14px rgba(245,158,11,.9);
-    "></div>`,
-    iconSize:[10,10], iconAnchor:[5,5]
+    strokeColor: '#f59e0b', strokeWeight: 1.5, strokeOpacity: 0.3,
+    fillColor: '#f59e0b', fillOpacity: 0.03
   });
-  const centerMark = L.marker([JDPC.lat, JDPC.lng], { icon:centerIcon, zIndexOffset:50 })
-    .addTo(leafMap)
-    .bindPopup('<b>📍 Jagdalpur City Center</b><br><small>JDP Cabs Service Hub</small>');
+
+  // ✅ City zone — Blue (8km)
+  const cityZone = new mappls.Circle({
+    map: leafMap,
+    center: { lat: JDPC.lat, lng: JDPC.lng },
+    radius: ZONE_CITY * 1000,
+    strokeColor: '#3b82f6', strokeWeight: 2, strokeOpacity: 0.5,
+    fillColor: '#3b82f6', fillOpacity: 0.04
+  });
+
+  // ✅ City core — Green (3km)
+  const coreZone = new mappls.Circle({
+    map: leafMap,
+    center: { lat: JDPC.lat, lng: JDPC.lng },
+    radius: ZONE_CORE * 1000,
+    strokeColor: '#10b981', strokeWeight: 2, strokeOpacity: 0.65,
+    fillColor: '#10b981', fillOpacity: 0.06
+  });
+
+  // ✅ Center dot — Jagdalpur hub marker
+  const centerMark = new mappls.Marker({
+    map: leafMap,
+    position: { lat: JDPC.lat, lng: JDPC.lng },
+    html: `<div style="background:rgba(245,158,11,.85);border:2.5px solid white;
+      width:12px;height:12px;border-radius:50%;
+      box-shadow:0 0 18px rgba(245,158,11,1);
+      transform:translate(-6px,-6px)"></div>`,
+    popupHtml: '<b>📍 Jagdalpur City Center</b><br><small>JDP Cabs Service Hub</small>'
+  });
 
   zoneCircles = [outerZone, cityZone, coreZone, centerMark];
 
-  // Show zone legend
   document.getElementById('zoneLegend').style.display = 'block';
   document.getElementById('zoneLegend').style.bottom = '380px';
 }
 
 function clearZones() {
-  zoneCircles.forEach(c => { try { leafMap.removeLayer(c); } catch(e){} });
+  zoneCircles.forEach(c => {
+    try {
+      if (c && typeof c.setMap === 'function') c.setMap(null);
+      else if (c && typeof c.remove === 'function') c.remove();
+    } catch(e){}
+  });
   zoneCircles = [];
 }
 
@@ -1326,25 +1316,24 @@ function toggleZone() {
 // ═══════════════════════════════════════════════════════
 function addLandmarkMarkers() {
   JAGDALPUR_LANDMARKS.forEach(place => {
-    const icon = L.divIcon({
-      className:'',
-      html:`<div class="landmark-icon">${place.icon}</div>`,
-      iconSize:[24,24], iconAnchor:[12,12]
-    });
-    const mk = L.marker([place.lat, place.lng], { icon, zIndexOffset:10 })
-      .bindPopup(`<b>${place.icon} ${place.name}</b><br><small style="color:#aaa">${place.info}</small>
+    const mk = new mappls.Marker({
+      map: landmarksVisible ? leafMap : null,
+      position: { lat: place.lat, lng: place.lng },
+      html: `<div class="landmark-icon" style="transform:translate(-12px,-12px)">${place.icon}</div>`,
+      popupHtml: `<b>${place.icon} ${place.name}</b><br><small style="color:#aaa">${place.info}</small>
         <br><button onclick="setDrop('${place.name}');toast('Drop set to ${place.name}')" 
-        style="background:#f59e0b;border:none;color:#000;padding:3px 8px;border-radius:5px;font-size:.7rem;font-weight:700;margin-top:5px;cursor:pointer">Set as Drop 🚗</button>`);
+        style="background:#f59e0b;border:none;color:#000;padding:3px 8px;border-radius:5px;font-size:.7rem;font-weight:700;margin-top:5px;cursor:pointer">Set as Drop 🚗</button>`
+    });
     landmarkMarkers.push(mk);
-    if (landmarksVisible) mk.addTo(leafMap);
   });
 }
 
 function toggleLandmarks() {
   landmarksVisible = !landmarksVisible;
   landmarkMarkers.forEach(mk => {
-    if (landmarksVisible) mk.addTo(leafMap);
-    else { try { leafMap.removeLayer(mk); } catch(e){} }
+    try {
+      if (typeof mk.setMap === 'function') mk.setMap(landmarksVisible ? leafMap : null);
+    } catch(e){}
   });
   toast(landmarksVisible ? '📍 Jagdalpur landmarks shown' : '📍 Landmarks hidden');
 }
@@ -1384,31 +1373,37 @@ function startLiveDriverWatch() {
         else if (dFromMe <= 15) in15km++;
       }
 
-      // Update or add driver marker
-      const carIcon = L.divIcon({
-        className:'',
-        html:`<div class="driver-dot-wrap">
+      // ✅ Update or add driver marker — Mappls native
+      const carHtml = `<div class="driver-dot-wrap" style="transform:translate(-14px,-32px)">
           <div class="driver-car">${d.vehicleType==='cab'?'🚗':'🛺'}</div>
           <div class="driver-dot-shadow"></div>
-        </div>`,
-        iconSize:[28,32], iconAnchor:[14,32]
-      });
+        </div>`;
+      const popupHtml = `<b>${d.vehicleType==='cab'?'🚗':'🛺'} ${d.name||'Driver'}</b><br><small style="color:#aaa">Online · ${dist.toFixed(1)}km from center</small>`;
 
       if (liveDriverMarkers[id]) {
-        liveDriverMarkers[id].setLatLng([d.lat, d.lng]);
-        liveDriverMarkers[id].setIcon(carIcon);
+        try {
+          if (typeof liveDriverMarkers[id].setPosition === 'function')
+            liveDriverMarkers[id].setPosition({ lat: d.lat, lng: d.lng });
+        } catch(e){}
       } else if (leafMap) {
-        const mk = L.marker([d.lat, d.lng], { icon:carIcon, zIndexOffset:30 })
-          .addTo(leafMap)
-          .bindPopup(`<b>${d.vehicleType==='cab'?'🚗':'🛺'} ${d.name||'Driver'}</b><br><small style="color:#aaa">Online · ${dist.toFixed(1)}km from center</small>`);
+        const mk = new mappls.Marker({
+          map: leafMap,
+          position: { lat: d.lat, lng: d.lng },
+          html: carHtml,
+          popupHtml: popupHtml
+        });
         liveDriverMarkers[id] = mk;
       }
     });
 
-    // Remove offline drivers
+    // ✅ Remove offline drivers
     Object.keys(liveDriverMarkers).forEach(id => {
       if (!onlineIds.has(id)) {
-        try { leafMap.removeLayer(liveDriverMarkers[id]); } catch(e){}
+        try {
+          const mk = liveDriverMarkers[id];
+          if (typeof mk.setMap === 'function') mk.setMap(null);
+          else if (typeof mk.remove === 'function') mk.remove();
+        } catch(e){}
         delete liveDriverMarkers[id];
       }
     });
@@ -1606,13 +1601,37 @@ async function getOSRMRoute(fLat, fLng, tLat, tLng) {
 function drawRoute(geometry, color='#f59e0b') {
   clearRoute();
   if (!leafMap || !geometry?.coordinates) return;
-  const latlngs = geometry.coordinates.map(c => [c[1], c[0]]);
-  routePolyline = L.polyline(latlngs, { color, weight:5, opacity:.85, smoothFactor:1, lineJoin:'round', lineCap:'round' }).addTo(leafMap);
-  leafMap.fitBounds(routePolyline.getBounds(), { padding:[65,65] });
+  // ✅ Convert GeoJSON coords to Mappls path format
+  const path = geometry.coordinates.map(c => ({ lat: c[1], lng: c[0] }));
+
+  // ✅ Mappls Polyline — smooth Uber-style route
+  routePolyline = new mappls.Polyline({
+    map: leafMap,
+    path: path,
+    strokeColor: color,
+    strokeWeight: 5,
+    strokeOpacity: 0.88,
+    lineJoin: 'round',
+    lineCap: 'round'
+  });
+
+  // ✅ Fit map to show full route with padding
+  if (path.length > 1) {
+    const lats = path.map(p => p.lat), lngs = path.map(p => p.lng);
+    const bounds = [[Math.min(...lats)-0.01, Math.min(...lngs)-0.01],
+                    [Math.max(...lats)+0.01, Math.max(...lngs)+0.01]];
+    try { leafMap.fitBounds(bounds, { padding: [65, 65] }); } catch(e) {}
+  }
 }
 
 function clearRoute() {
-  if (routePolyline && leafMap) { leafMap.removeLayer(routePolyline); routePolyline = null; }
+  if (routePolyline) {
+    try {
+      if (typeof routePolyline.setMap === 'function') routePolyline.setMap(null);
+      else if (typeof routePolyline.remove === 'function') routePolyline.remove();
+    } catch(e){}
+    routePolyline = null;
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1655,7 +1674,7 @@ function startGPS() {
     // Show accuracy info
     const acc = pos.coords.accuracy ? Math.round(pos.coords.accuracy) : '?';
     if(pSubEl) pSubEl.innerHTML = `<span style="color:var(--green);font-size:.66rem">📍 Accuracy: ±${acc}m · GPS Live</span>`;
-    if (leafMap) leafMap.setView([myLat, myLng], 16, { animate:true });
+    if (leafMap) leafMap.flyTo([myLat, myLng], 16);
     updateMyMarker(myLat, myLng);
     updateMyZone();
     toast('📍 Location detected!');
@@ -1675,21 +1694,25 @@ function refreshGPS() {
 
 function updateMyMarker(lat, lng) {
   if (!leafMap) return;
-  const icon = L.divIcon({
-    className:'',
-    html:'<div class="my-loc-wrap"><div class="my-loc-wave"></div><div class="my-loc-dot"></div></div>',
-    iconSize:[24,24], iconAnchor:[12,12]
-  });
+  const html = '<div class="my-loc-wrap" style="transform:translate(-12px,-12px)"><div class="my-loc-wave"></div><div class="my-loc-dot"></div></div>';
   if (!myMarker) {
-    myMarker = L.marker([lat, lng], { icon, zIndexOffset:200 }).addTo(leafMap)
-      .bindPopup('<b>📍 Your Location</b>');
+    // ✅ Mappls Marker for user location
+    myMarker = new mappls.Marker({
+      map: leafMap,
+      position: { lat, lng },
+      html: html,
+      popupHtml: '<b>📍 Your Location</b>'
+    });
   } else {
-    myMarker.setLatLng([lat, lng]);
+    try {
+      if (typeof myMarker.setPosition === 'function')
+        myMarker.setPosition({ lat, lng });
+    } catch(e){}
   }
 }
 
 function locateMe() {
-  if (leafMap && myLat) leafMap.setView([myLat, myLng], 16, { animate:true });
+  if (leafMap && myLat) leafMap.flyTo([myLat, myLng], 16);
   refreshGPS();
 }
 
@@ -1721,25 +1744,31 @@ function startDriverTracking(driverId) {
 
 function moveAssignedDriverMarker(lat, lng, name, vehType) {
   if (!leafMap) return;
-  const icon = L.divIcon({
-    className:'',
-    html:`<div class="assigned-car">${vehType==='cab'?'🚗':'🛺'}</div>`,
-    iconSize:[36,36], iconAnchor:[18,36]
-  });
+  const carHtml = `<div class="assigned-car" style="transform:translate(-18px,-36px)">${vehType==='cab'?'🚗':'🛺'}</div>`;
   if (!driverMk) {
-    driverMk = L.marker([lat, lng], { icon, zIndexOffset:300 })
-      .addTo(leafMap)
-      .bindPopup(`<b>${vehType==='cab'?'🚗':'🛺'} ${name}</b><br><small style="color:#aaa">Coming to you!</small>`);
+    // ✅ Create Mappls marker for assigned driver
+    driverMk = new mappls.Marker({
+      map: leafMap,
+      position: { lat, lng },
+      html: carHtml,
+      popupHtml: `<b>${vehType==='cab'?'🚗':'🛺'} ${name}</b><br><small style="color:#aaa">Coming to you!</small>`
+    });
   } else {
+    // ✅ Smooth animated movement — cubic ease-out (Uber-style)
     const fromLat = prevDriverLat || lat, fromLng = prevDriverLng || lng;
     let step = 0;
     if (driverMarkerInterval) clearInterval(driverMarkerInterval);
     driverMarkerInterval = setInterval(() => {
       step++;
-      const t = 1 - Math.pow(1-(step/25), 3);
-      try { driverMk.setLatLng([fromLat+(lat-fromLat)*t, fromLng+(lng-fromLng)*t]); } catch(e){}
-      if (step >= 25) clearInterval(driverMarkerInterval);
-    }, 18);
+      const t = 1 - Math.pow(1 - (step / 30), 3); // cubic ease-out
+      const curLat = fromLat + (lat - fromLat) * t;
+      const curLng = fromLng + (lng - fromLng) * t;
+      try {
+        if (typeof driverMk.setPosition === 'function')
+          driverMk.setPosition({ lat: curLat, lng: curLng });
+      } catch(e){}
+      if (step >= 30) clearInterval(driverMarkerInterval);
+    }, 16); // 60fps
   }
   prevDriverLat = lat; prevDriverLng = lng;
 }
@@ -2136,9 +2165,10 @@ async function acceptReq() {
       document.getElementById('navPDist').textContent=route.distKM+'km';
       document.getElementById('navPETA').textContent=route.durationMin+' min';
     }
-    if(pickupMk) leafMap.removeLayer(pickupMk);
-    const pickIcon=L.divIcon({className:'',html:'<div class="pickup-wrap"><div class="pickup-icon">📍</div></div>',iconSize:[32,36],iconAnchor:[16,36]});
-    pickupMk=L.marker([data.pickupLat,data.pickupLng],{icon:pickIcon}).addTo(leafMap).bindPopup(`<b style="color:#10b981">📍 ${data.pickup}</b>`);
+    if(pickupMk){ try{if(typeof pickupMk.setMap==='function')pickupMk.setMap(null);}catch(e){} pickupMk=null; }
+    pickupMk = new mappls.Marker({ map:leafMap, position:{lat:data.pickupLat,lng:data.pickupLng},
+      html:'<div class="pickup-wrap" style="transform:translate(-16px,-36px)"><div class="pickup-icon">📍</div></div>',
+      popupHtml:`<b style="color:#10b981">📍 ${data.pickup}</b>` });
   }
   toast('✅ Ride accepted! Going to pickup');
 }
@@ -2166,9 +2196,10 @@ async function driverNext() {
       if(dc){
         const route=await getOSRMRoute(myLat,myLng,dc.lat,dc.lng);
         if(route) drawRoute(route.geometry,'#10b981');
-        if(dropMk) leafMap.removeLayer(dropMk);
-        const dropIcon=L.divIcon({className:'',html:'<div class="drop-icon">🏁</div>',iconSize:[30,30],iconAnchor:[15,30]});
-        dropMk=L.marker([dc.lat,dc.lng],{icon:dropIcon}).addTo(leafMap).bindPopup(`<b style="color:#ef4444">🏁 ${curReqData.drop}</b>`);
+        if(dropMk){ try{if(typeof dropMk.setMap==='function')dropMk.setMap(null);}catch(e){} dropMk=null; }
+        dropMk = new mappls.Marker({ map:leafMap, position:{lat:dc.lat,lng:dc.lng},
+          html:'<div class="drop-icon" style="transform:translate(-15px,-30px)">🏁</div>',
+          popupHtml:`<b style="color:#ef4444">🏁 ${curReqData.drop}</b>` });
       }
     }
   } else { await completeTrip(); }
@@ -2184,8 +2215,8 @@ async function completeTrip() {
     }catch(e){}
   }
   clearRoute();
-  if(pickupMk&&leafMap){leafMap.removeLayer(pickupMk);pickupMk=null;}
-  if(dropMk&&leafMap){leafMap.removeLayer(dropMk);dropMk=null;}
+  if(pickupMk){ try{if(typeof pickupMk.setMap==='function')pickupMk.setMap(null);}catch(e){} pickupMk=null; }
+  if(dropMk){ try{if(typeof dropMk.setMap==='function')dropMk.setMap(null);}catch(e){} dropMk=null; }
   curReqId=null;curReqData=null;navPhase='pickup';
   showDCard('on');
   toast(`🎉 Trip done! ₹${data.fare} earned!`);
@@ -2198,7 +2229,7 @@ async function driverCancel() {
   }
   clearRoute();
   curReqId=null;curReqData=null;navPhase='pickup';
-  if(pickupMk&&leafMap){leafMap.removeLayer(pickupMk);pickupMk=null;}
+  if(pickupMk){ try{if(typeof pickupMk.setMap==='function')pickupMk.setMap(null);}catch(e){} pickupMk=null; }
   showDCard('on');
   toast('Ride cancelled');
   if(isOnline) startListeningForRides();
@@ -2260,14 +2291,16 @@ function applyRoute({route,dropCoords},drop) {
 
   if(leafMap){
     if(pickLat){
-      if(pickupMk) leafMap.removeLayer(pickupMk);
-      const pi=L.divIcon({className:'',html:'<div class="pickup-wrap"><div class="pickup-icon">📍</div></div>',iconSize:[32,36],iconAnchor:[16,36]});
-      pickupMk=L.marker([pickLat,pickLng],{icon:pi}).addTo(leafMap).bindPopup('<b style="color:#10b981">📍 Your Pickup</b>');
+      if(pickupMk){ try{if(typeof pickupMk.setMap==='function')pickupMk.setMap(null);}catch(e){} pickupMk=null; }
+      pickupMk = new mappls.Marker({ map:leafMap, position:{lat:pickLat,lng:pickLng},
+        html:'<div class="pickup-wrap" style="transform:translate(-16px,-36px)"><div class="pickup-icon">📍</div></div>',
+        popupHtml:'<b style="color:#10b981">📍 Your Pickup</b>' });
     }
     if(dropCoords){
-      if(dropMk) leafMap.removeLayer(dropMk);
-      const di=L.divIcon({className:'',html:'<div class="drop-icon">🏁</div>',iconSize:[30,30],iconAnchor:[15,30]});
-      dropMk=L.marker([dropCoords.lat,dropCoords.lng],{icon:di}).addTo(leafMap).bindPopup(`<b style="color:#ef4444">🏁 ${drop}</b>`);
+      if(dropMk){ try{if(typeof dropMk.setMap==='function')dropMk.setMap(null);}catch(e){} dropMk=null; }
+      dropMk = new mappls.Marker({ map:leafMap, position:{lat:dropCoords.lat,lng:dropCoords.lng},
+        html:'<div class="drop-icon" style="transform:translate(-15px,-30px)">🏁</div>',
+        popupHtml:`<b style="color:#ef4444">🏁 ${drop}</b>` });
     }
   }
   goScr('sFare');
@@ -2456,7 +2489,7 @@ function listenToRide(id) {
     if(data.status==='completed'){
       if(rideListener){rideListener();rideListener=null;}
       if(driverLocListener){driverLocListener();driverLocListener=null;}
-      if(driverMk&&leafMap){leafMap.removeLayer(driverMk);driverMk=null;}
+      if(driverMk){ try{if(typeof driverMk.setMap==='function')driverMk.setMap(null);}catch(e){} driverMk=null; }
       clearRoute();
       document.getElementById('dropIn').value='';
       hideSOS();
@@ -2490,37 +2523,17 @@ async function cancelBook() {
 }
 // NOTE: cancelRide() is now defined in new features section above (with reason dialog)
 
-// THEME
+// THEME — Mappls v3 has built-in style switching
 function toggleTheme() {
   document.body.classList.toggle('lm');
-  if(leafMap){
+  // ✅ Mappls vector map supports style toggle via setStyle
+  if (leafMap && typeof leafMap.setStyle === 'function') {
     const isLight = document.body.classList.contains('lm');
-    // Remove existing tile layers
-    const tileLayers=[];
-    leafMap.eachLayer(l=>{ if(l instanceof L.TileLayer) tileLayers.push(l); });
-    tileLayers.forEach(l=>leafMap.removeLayer(l));
-
-    if(isLight){
-      // Light mode: OpenStreetMap
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        {attribution:'© OpenStreetMap',maxZoom:19}).addTo(leafMap);
-    } else {
-      // Dark mode: Mappls tiles with CartoDB dark fallback
-      const mTile = L.tileLayer(
-        'https://apis.mappls.com/advancedmaps/v1/' + window.MAPPLS_KEY + '/still_lite/{z}/{x}/{y}.png',
-        {attribution:'© Mappls © MapmyIndia',maxZoom:19}
-      );
-      mTile.on('tileerror', function() {
-        if(!window._themeFallbackUsed){ window._themeFallbackUsed=true;
-          try{leafMap.removeLayer(mTile);}catch(e){}
-          L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-            {attribution:'© CARTO',subdomains:'abcd',maxZoom:19}).addTo(leafMap);
-        }
-      });
-      mTile.addTo(leafMap);
-    }
-    setTimeout(()=>leafMap.invalidateSize(),300);
+    try {
+      leafMap.setStyle(isLight ? 'standard-day' : 'standard-night');
+    } catch(e) {}
   }
+  setTimeout(() => { try { leafMap && leafMap.invalidateSize && leafMap.invalidateSize(); } catch(e){} }, 300);
 }
 
 async function doLogout() {
@@ -2926,7 +2939,7 @@ self.addEventListener('activate', e => { self.clients.claim(); });
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   const skip = ['firebase','firebaseapp','googleapis','nominatim','osrm',
-                 'openstreetmap','gstatic','unsplash','fonts'];
+                 'openstreetmap','gstatic','unsplash','fonts','apis.mappls.com'];
   if (skip.some(d => url.hostname.includes(d))) return;
   if (e.request.method !== 'GET') return;
   e.respondWith(
