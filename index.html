@@ -1123,16 +1123,15 @@ body.lm .vrp-box{background:#f0f4fb;}
 <!-- MAP STATS — clean Uber/Ola style top pills -->
 <div id="mapStats">
   <div class="ms-row">
-    <div class="ms-chip" onclick="toggleLandmarks()" title="Tap to show landmarks">
+    <!-- ✅ Sirf drivers count — bilkul clean -->
+    <div class="ms-chip" style="cursor:default">
       <div class="ms-dot" style="background:var(--green);animation:dpulse 1.5s infinite"></div>
       <span id="liveDriverBadge">0 Drivers Live</span>
     </div>
+    <!-- Live distance chip — sirf ride ke time dikhega -->
     <div class="ms-chip" id="liveDistChip" style="display:none">
       <div class="ms-dot" style="background:var(--blue);animation:dpulse 1.2s infinite"></div>
       <span id="liveDistChipText">-- km</span>
-    </div>
-    <div class="ms-chip" onclick="toggleMapStyle()" title="Map/Satellite">
-      <span id="mapStyleIcon">🛰️</span>
     </div>
   </div>
 </div>
@@ -1253,7 +1252,7 @@ body.lm .vrp-box{background:#f0f4fb;}
 <!-- ✅ LOCATE FAB — Uber position -->
 <button class="locbtn" id="locBtn" style="display:none;bottom:340px" onclick="locateMe()">📍</button>
 <!-- ✅ MAP STYLE TOGGLE FAB -->
-<button class="locbtn" id="mapStyleBtn" style="display:flex;bottom:400px;background:#1a2535;border:1.5px solid rgba(255,255,255,.15)" onclick="toggleMapStyle()" title="Map Style">🛰️</button>
+<button class="locbtn" id="mapStyleBtn" style="display:none;bottom:400px;background:#1a2535;border:1.5px solid rgba(255,255,255,.15)" onclick="toggleMapStyle()" title="Map Style">🛰️</button>
 
 <div class="sheet" id="rSheet">
   <div class="hdl"></div>
@@ -1784,52 +1783,13 @@ body.lm .vrp-box{background:#f0f4fb;}
 ════════════════════════════════════════════════════════ -->
 
 <!-- ── SNAP-TO-ROAD INDICATOR ── -->
-<div id="snapIndicator">📡 Snap-to-Road ON</div>
+<div id="snapIndicator" style="display:none">📡 Snap-to-Road ON</div>
 
-<!-- ── eLOC SEARCH PANEL ── -->
-<div id="elocPanel">
-  <div class="eloc-bar">
-    <div class="eloc-badge">eLoc</div>
-    <input id="elocInput" type="text" maxlength="6" placeholder="Code (GOLBZR) ya naam (Hospital)..."
-           oninput="this.value=this.value.toUpperCase();onELocInput(this.value)"
-           onkeydown="if(event.key==='Enter'){hideELocSuggest();lookupELoc();}">
-    <button class="eloc-go" onclick="hideELocSuggest();lookupELoc()">🔍</button>
-    <button class="eloc-go" style="background:rgba(255,255,255,.1);margin-left:-4px" onclick="closeELoc()">✕</button>
-  </div>
-  <div class="eloc-result" id="elocResult">
-    <div class="eloc-place" id="elocPlaceName">--</div>
-    <div class="eloc-addr" id="elocPlaceAddr">--</div>
-    <div class="eloc-coords" id="elocPlaceCoords">--</div>
-    <div class="eloc-actions">
-      <button class="eloc-act pickup" onclick="elocSetPickup()">📍 Set Pickup</button>
-      <button class="eloc-act drop" onclick="elocSetDrop()">🏁 Set Drop</button>
-    </div>
-  </div>
-  <!-- Quick Browse by category -->
-  <div id="elocQuickBrowse" style="background:rgba(10,14,22,.96);backdrop-filter:blur(20px);border:1px solid rgba(99,102,241,.2);border-radius:0 0 16px 16px;padding:10px 12px;margin-top:-2px;">
-    <div style="font-size:.58rem;font-weight:800;color:#6366f1;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">📍 Jagdalpur eLoc Quick Access</div>
-    <div style="display:flex;gap:5px;flex-wrap:wrap;">
-      <button onclick="elocBrowse('transport')" style="background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);border-radius:99px;padding:4px 10px;font-size:.65rem;font-weight:800;color:#8b5cf6;cursor:pointer;">🚌 Transport</button>
-      <button onclick="elocBrowse('hospital')" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:99px;padding:4px 10px;font-size:.65rem;font-weight:800;color:#ef4444;cursor:pointer;">🏥 Hospital</button>
-      <button onclick="elocBrowse('education')" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);border-radius:99px;padding:4px 10px;font-size:.65rem;font-weight:800;color:#3b82f6;cursor:pointer;">🎓 College</button>
-      <button onclick="elocBrowse('market')" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);border-radius:99px;padding:4px 10px;font-size:.65rem;font-weight:800;color:#10b981;cursor:pointer;">🛍️ Market</button>
-      <button onclick="elocBrowse('govt')" style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:99px;padding:4px 10px;font-size:.65rem;font-weight:800;color:#6366f1;cursor:pointer;">🏛️ Govt</button>
-      <button onclick="elocBrowse('hotel')" style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.25);border-radius:99px;padding:4px 10px;font-size:.65rem;font-weight:800;color:#f97316;cursor:pointer;">🏨 Hotel</button>
-      <button onclick="elocBrowse('tourism')" style="background:rgba(236,72,153,.1);border:1px solid rgba(236,72,153,.25);border-radius:99px;padding:4px 10px;font-size:.65rem;font-weight:800;color:#ec4899;cursor:pointer;">🌿 Tourism</button>
-    </div>
-    <div id="elocBrowseList" style="margin-top:8px;max-height:140px;overflow-y:auto;"></div>
-  </div>
-</div>
+<!-- eLOC SEARCH PANEL — hidden, not needed for riders -->
+<div id="elocPanel" style="display:none"></div>
 
-<!-- ── LANGUAGE SELECTOR ── -->
-<div id="langSelector">
-  <div class="lang-pill">
-    <button class="lang-btn active" id="langHI" onclick="setMapLang('hi','HI')">🇮🇳 हिंदी</button>
-    <button class="lang-btn" id="langEN" onclick="setMapLang('en','EN')">EN</button>
-    <button class="lang-btn" id="langOR" onclick="setMapLang('or','OR')">OR</button>
-    <button class="lang-btn" id="langTE" onclick="setMapLang('te','TE')">TE</button>
-  </div>
-</div>
+<!-- LANGUAGE SELECTOR — hidden -->
+<div id="langSelector" style="display:none"></div>
 
 <!-- ── MAP FEATURE FAB ROW ── -->
 <!-- FABs hidden — admin-only features -->
@@ -2008,8 +1968,8 @@ const JAGDALPUR_LANDMARKS = [
   { name:'Swami Vivekananda Airport',    lat:19.0600, lng:82.0580, icon:'✈️', info:'Jagdalpur Airport', cat:'transport' },
   { name:'Collectorate Jagdalpur',       lat:19.0734, lng:82.0141, icon:'🏛️', info:'District Collectorate', cat:'govt' },
   { name:'Danteshwari Temple',           lat:19.0756, lng:82.0165, icon:'🛕', info:'Maa Danteshwari Mandir', cat:'temple' },
-  { name:'Chitrakote Waterfall',         lat:19.2100, lng:81.8600, icon:'🌊', info:'India Niagara, ~40km', cat:'tourism' },
-  { name:'Kanger Valley National Park',  lat:19.0500, lng:81.9000, icon:'🌿', info:'National Park entrance', cat:'tourism' },
+  { name:'Chitrakote Waterfall',         lat:19.2093, lng:81.8504, icon:'🌊', info:'India ka Niagara, ~48km road', cat:'tourism' },
+  { name:'Kanger Valley National Park',  lat:19.0389, lng:81.9267, icon:'🌿', info:'National Park entrance ~9km', cat:'tourism' },
 
   // ══ HOSPITALS & MEDICAL ══
   { name:'Maharaja Hospital',            lat:19.0712, lng:82.0223, icon:'🏥', info:'District Hospital, Main Road', cat:'hospital' },
@@ -3707,10 +3667,17 @@ async function getOSRMRoute(fLat, fLng, tLat, tLng) {
   // ║  Road-winding multiplier calibrated for Bastar roads  ║
   // ╚══════════════════════════════════════════════════════╝
   const straightKm = distKmCalc(fLat, fLng, tLat, tLng);
-  // Jagdalpur roads: ~1.38x winding factor (calibrated for this region)
-  const roadFactor = straightKm < 2 ? 1.25 : straightKm < 5 ? 1.35 : 1.42;
-  const roadDist   = parseFloat((straightKm * roadFactor).toFixed(2));
-  const avgSpeed   = 22; // km/h avg for Jagdalpur city (realistic)
+  // ✅ Bastar/Jagdalpur road factors — calibrated for actual roads
+  // City roads: 1.3x | Short routes: 1.5x | Long forest roads: 2.0-2.3x
+  let roadFactor;
+  if      (straightKm < 1)  roadFactor = 1.2;
+  else if (straightKm < 3)  roadFactor = 1.35;
+  else if (straightKm < 8)  roadFactor = 1.5;
+  else if (straightKm < 15) roadFactor = 1.8;
+  else if (straightKm < 25) roadFactor = 2.0;
+  else                       roadFactor = 2.3; // Long forest roads — very winding
+  const roadDist   = parseFloat((straightKm * roadFactor).toFixed(1));
+  const avgSpeed   = straightKm > 15 ? 35 : 22; // highway vs city speed
   showRouteAccuracy('approx', true);
   return {
     distKM: roadDist,
@@ -3780,15 +3747,15 @@ function startGPS() {
     updateMyZone();
 
     if (CU?.role === 'driver' && isOnline && window.FB_READY) {
-      // ✅ Throttle Firebase location writes — max 1 write per 6s
-      if (!window._lastGPSWrite || Date.now() - window._lastGPSWrite > 6000) {
+      // ✅ REAL LIVE LOCATION — write every 3s for driver (was 6s)
+      if (!window._lastGPSWrite || Date.now() - window._lastGPSWrite > 3000) {
         window._lastGPSWrite = Date.now();
         try {
           await window.FB.updateDoc(window.FB.doc(window.FB.db,'users',CU.uid),
             { lat:myLat, lng:myLng, lastSeen:window.FB.serverTimestamp() });
         } catch(e) {}
       }
-      // Reverse geocode with cache — don't call API on every GPS tick
+      // Reverse geocode with cache
       const geoKey = Math.round(myLat*1000)/1000 + ',' + Math.round(myLng*1000)/1000;
       const cached = window.Cache.get('geo_' + geoKey);
       if (cached) {
@@ -3796,19 +3763,19 @@ function startGPS() {
         if(el) el.textContent = '📍 ' + cached;
       } else {
         revGeo(myLat, myLng).then(addr => {
-          window.Cache.set('geo_' + geoKey, addr, 120000); // cache 2 min
+          window.Cache.set('geo_' + geoKey, addr, 60000); // cache 1 min only
           const el = document.getElementById('dLocText');
           if(el) el.textContent = '📍 ' + addr;
         }).catch(function(){});
       }
       // Throttle nearby riders count
-      if (!window._lastNearby || Date.now() - window._lastNearby > 15000) {
+      if (!window._lastNearby || Date.now() - window._lastNearby > 10000) {
         window._lastNearby = Date.now();
         updateNearbyRidersCount();
       }
     }
   }, err => { if(err.code===1) toast('📍 Location access dene se accurate service milegi'); },
-  { enableHighAccuracy:true, timeout:12000, maximumAge:2000 });
+  { enableHighAccuracy:true, timeout:8000, maximumAge:1000 }); // ✅ 1s cache only = more live
 
   navigator.geolocation.getCurrentPosition(async (pos) => {
     myLat = pos.coords.latitude; myLng = pos.coords.longitude;
@@ -3961,12 +3928,26 @@ function distKmCalc(la1, ln1, la2, ln2) {
 
 function setDrop(place) {
   document.getElementById('dropIn').value = place;
-  // Clear pre-selected coords — will geocode fresh via API
-  window._preSelectedDrop = null;
-  window._selectedDropLat = null;
-  window._selectedDropLng = null;
-  window._selectedDropName = null;
-  toast('\U0001f4cd Drop: ' + place);
+  // ✅ FIX: Search local landmark DB first for exact coords
+  const lc = place.toLowerCase().replace(/ jagdalpur$/i,'').trim();
+  const match = JAGDALPUR_LANDMARKS.find(lm =>
+    lm.name.toLowerCase().includes(lc) || lc.includes(lm.name.toLowerCase().split(' ')[0])
+  );
+  if (match) {
+    // Use exact known coords — no geocoding needed, 100% accurate!
+    window._preSelectedDrop = { lat: match.lat, lng: match.lng, name: place };
+    window._selectedDropLat = match.lat;
+    window._selectedDropLng = match.lng;
+    window._selectedDropName = place;
+    toast('📍 Drop: ' + place);
+  } else {
+    // Unknown place — will geocode via API
+    window._preSelectedDrop = null;
+    window._selectedDropLat = null;
+    window._selectedDropLng = null;
+    window._selectedDropName = null;
+    toast('📍 Drop: ' + place);
+  }
 }
 
 function filterPlaces(val) {
@@ -6183,23 +6164,11 @@ const _launchObs = new MutationObserver(() => {
 const authEl = document.getElementById('auth');
 if (authEl) _launchObs.observe(authEl, { attributes: true, attributeFilter: ['style'] });
 
-// Snap toggle in map stats row
+// Snap toggle disabled — keep map clean
 function addSnapToggleToStats() {
-  const msRow = document.querySelector('.ms-row');
-  if (!msRow || document.getElementById('snapChip')) return;
-  const snapChip = document.createElement('div');
-  snapChip.className = 'ms-chip snap-chip';
-  snapChip.id = 'snapChip';
-  snapChip.onclick = function() {
-    toggleSnap();
-    this.classList.toggle('active', snapEnabled);
-  };
-  snapChip.innerHTML = '<div class="ms-dot" style="background:#8b5cf6"></div>Snap Road';
-  msRow.appendChild(snapChip);
+  // Removed — keeping map UI minimal
 }
-
-// Run after map loads
-setTimeout(addSnapToggleToStats, 4000);
+// setTimeout(addSnapToggleToStats, 4000); // disabled
 
 // ✅ Google Maps Navigation — Ola style (Pickup + Drop)
 function openGoogleMapsNav() {
