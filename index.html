@@ -4,422 +4,1216 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>JDP CABS — Next Gen Mobility</title>
-
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
 <script>window.MAPPLS_KEY='4e97759ed6a3fb245e52f7e22d820954';</script>
 <script src="https://apis.mappls.com/advancedmaps/api/4e97759ed6a3fb245e52f7e22d820954/map_sdk?v=3.0"></script>
-
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getFirestore, doc, setDoc, getDoc, collection, addDoc, updateDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
+  import { getFirestore, doc, setDoc, getDoc, collection, addDoc, updateDoc, onSnapshot, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   const firebaseConfig = {
-    apiKey: "AIzaSyBRPV3mosWr3YFnW6xCfJaqC1bV4MhJm_Y",
-    authDomain: "jdpcabs.firebaseapp.com",
-    projectId: "jdpcabs",
-    storageBucket: "jdpcabs.firebasestorage.app",
-    messagingSenderId: "148264332732",
-    appId: "1:148264332732:web:eed512ac4e685cef97cfb9"
+    apiKey:"AIzaSyBRPV3mosWr3YFnW6xCfJaqC1bV4MhJm_Y", authDomain:"jdpcabs.firebaseapp.com",
+    projectId:"jdpcabs", storageBucket:"jdpcabs.firebasestorage.app",
+    messagingSenderId:"148264332732", appId:"1:148264332732:web:eed512ac4e685cef97cfb9"
   };
-
-  try {
-    const app = initializeApp(firebaseConfig);
-    window.FB = {
-      auth: getAuth(app), db: getFirestore(app),
-      signIn: signInWithEmailAndPassword, create: createUserWithEmailAndPassword,
-      doc, setDoc, getDoc, collection, addDoc, updateDoc, onSnapshot, query, where, signOut
-    };
-    console.log("🔥 Firebase Ready");
-    checkAuthStatus();
-  } catch(e) { console.error("Firebase Error:", e); }
+  const app = initializeApp(firebaseConfig);
+  window.FB = {
+    auth: getAuth(app), db: getFirestore(app),
+    signIn: signInWithEmailAndPassword, create: createUserWithEmailAndPassword,
+    onAuth: onAuthStateChanged, signOut,
+    doc, setDoc, getDoc, collection, addDoc, updateDoc, onSnapshot, query, where, getDocs
+  };
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      if(window.FB && window.APP) {
+        window.FB.onAuth(window.FB.auth, async (user) => {
+          if(user) await window.APP.onLogin(user);
+          else window.APP.onLogout();
+        });
+      }
+    }, 800);
+  });
 </script>
-
 <style>
-  /* ── UNIQUE "GLASS & FLOAT" UI THEME ── */
-  :root {
-    --bg-color: #f8fafc;
-    --glass-bg: rgba(255, 255, 255, 0.85);
-    --glass-border: rgba(255, 255, 255, 0.4);
-    --primary: #4338ca; /* Indigo instead of Uber Black */
-    --primary-light: #e0e7ff;
-    --accent: #f59e0b;  /* Amber */
-    --text-main: #0f172a;
-    --text-muted: #64748b;
-    --shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-  }
-  
-  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
-  body { background: var(--bg-color); color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw; }
+/* ═══════════════════════════════════════════
+   DESIGN SYSTEM: DARK NEON MOBILITY
+═══════════════════════════════════════════ */
+:root {
+  --bg:#070c14; --surface:#0e1623; --surface2:#141f32; --surface3:#1a2740;
+  --border:rgba(255,255,255,0.055); --border-glow:rgba(0,210,255,0.28);
+  --primary:#00d2ff; --primary-dim:rgba(0,210,255,0.1); --primary-glow:0 0 22px rgba(0,210,255,0.3);
+  --purple:#7c3aed; --amber:#f59e0b; --green:#10b981; --red:#ef4444;
+  --text:#eaf4ff; --muted:#5a7298; --sub:#8aa4c0;
+  --r16:16px; --r20:20px; --r28:28px;
+  --ease:cubic-bezier(0.22,1,0.36,1);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;overflow:hidden;height:100vh;width:100vw}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;overflow:hidden}
+.screen.active{display:flex}
+#map{position:absolute;inset:0;z-index:1}
+h1,h2,h3,.logo,.stat-val,.ride-name,.ride-price,.btn-primary,.badge-val{font-family:'Syne',sans-serif}
 
-  /* Map Container */
-  #map { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+/* ── BUTTONS ── */
+.btn{width:100%;padding:15px;border:none;border-radius:14px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s var(--ease);letter-spacing:.3px}
+.btn:active{transform:scale(.96)}
+.btn-primary{background:linear-gradient(135deg,var(--primary),#0099bb);color:#000;box-shadow:var(--primary-glow)}
+.btn-secondary{background:var(--surface3);color:var(--text);border:1px solid var(--border)}
+.btn-danger{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25)}
+.btn-success{background:linear-gradient(135deg,var(--green),#059669);color:#fff}
+.btn-sm{padding:10px 16px;font-size:13px;width:auto;border-radius:10px}
+.btn-icon{width:44px;height:44px;border-radius:12px;border:none;background:rgba(14,22,35,.88);backdrop-filter:blur(10px);border:1px solid var(--border);color:var(--text);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;padding:0}
+.btn-icon:active{transform:scale(.9);background:var(--surface2)}
 
-  /* ── FLOATING TOP BAR ── */
-  .top-nav {
-    position: absolute; top: 20px; left: 20px; right: 20px; z-index: 10;
-    display: flex; justify-content: space-between; align-items: center;
-    background: var(--glass-bg); backdrop-filter: blur(12px);
-    padding: 12px 20px; border-radius: 99px; box-shadow: var(--shadow);
-    border: 1px solid var(--glass-border);
-  }
-  .menu-btn { background: transparent; border: none; font-size: 20px; cursor: pointer; color: var(--primary); }
-  .logo { font-size: 18px; font-weight: 900; letter-spacing: 0.5px; color: var(--primary); }
-  .profile-dot { width: 35px; height: 35px; background: var(--primary-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; }
+/* ── INPUTS ── */
+.iw{position:relative;margin-bottom:13px}
+.iw .ico{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--muted);pointer-events:none}
+.inp{width:100%;padding:14px 14px 14px 44px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:all .2s}
+.inp:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-dim)}
+.inp::placeholder{color:var(--muted)}
+.inp-bare{background:transparent;border:none;outline:none;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;width:100%}
+.inp-bare::placeholder{color:var(--muted)}
 
-  /* ── AUTHENTICATION OVERLAY ── */
-  #authOverlay {
-    position: absolute; inset: 0; background: var(--bg-color); z-index: 1000;
-    display: flex; flex-direction: column; padding: 30px; overflow-y: auto;
-  }
-  .auth-card { background: #fff; border-radius: 24px; padding: 25px; box-shadow: var(--shadow); margin-top: auto; margin-bottom: auto; }
-  .role-toggle { display: flex; background: var(--primary-light); border-radius: 12px; margin-bottom: 20px; padding: 4px; }
-  .role-btn { flex: 1; padding: 10px; border-radius: 10px; border: none; background: transparent; font-weight: 700; color: var(--text-muted); cursor: pointer; transition: 0.3s; }
-  .role-btn.active { background: #fff; color: var(--primary); box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-  .input-field { width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; margin-bottom: 15px; font-size: 15px; outline: none; }
-  .input-field:focus { border-color: var(--primary); }
-  .btn-primary { width: 100%; background: var(--primary); color: #fff; border: none; padding: 16px; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; transition: transform 0.1s; }
-  .btn-primary:active { transform: scale(0.97); }
-  .auth-switch { text-align: center; margin-top: 15px; color: var(--primary); font-size: 14px; font-weight: 600; cursor: pointer; }
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.b-green{background:rgba(16,185,129,.13);color:var(--green)}
+.b-red{background:rgba(239,68,68,.13);color:var(--red)}
+.b-cyan{background:var(--primary-dim);color:var(--primary)}
+.b-amber{background:rgba(245,158,11,.13);color:var(--amber)}
 
-  /* ── DRAGGABLE BOTTOM SHEET (GLASSMORPHIC) ── */
-  #bottomSheet {
-    position: absolute; bottom: 0; left: 0; right: 0;
-    background: var(--glass-bg); backdrop-filter: blur(20px);
-    border-radius: 30px 30px 0 0; border-top: 1px solid var(--glass-border);
-    box-shadow: 0 -10px 40px rgba(0,0,0,0.1); z-index: 100;
-    height: 85vh; transform: translateY(60%);
-    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-    display: flex; flex-direction: column;
-  }
-  .drag-handle { padding: 15px 0; display: flex; justify-content: center; cursor: grab; }
-  .drag-bar { width: 50px; height: 5px; background: #cbd5e1; border-radius: 10px; }
-  .sheet-content { padding: 0 25px 25px; overflow-y: auto; flex: 1; }
-  .sheet-content::-webkit-scrollbar { display: none; }
-  
-  .greeting { font-size: 24px; font-weight: 800; margin-bottom: 20px; color: var(--text-main); }
-  
-  /* Floating Search Input */
-  .search-box { display: flex; align-items: center; background: #fff; padding: 16px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #f1f5f9; }
-  .search-box input { border: none; font-size: 16px; font-weight: 600; width: 100%; outline: none; margin-left: 12px; }
-  
-  .section-title { font-size: 13px; font-weight: 800; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-  
-  /* Ride Options (Cards) */
-  .ride-options { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; display: none; }
-  .ride-card { display: flex; align-items: center; justify-content: space-between; background: #fff; padding: 15px; border-radius: 16px; border: 2px solid transparent; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
-  .ride-card.active { border-color: var(--primary); background: var(--primary-light); }
-  .ride-info { flex: 1; margin-left: 15px; }
-  .ride-name { font-size: 16px; font-weight: 800; }
-  .ride-time { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
-  .ride-price { font-size: 18px; font-weight: 900; color: var(--primary); }
+/* ── DIVIDER ── */
+.dvd{height:1px;background:var(--border);margin:14px 0}
 
-  /* ── DRIVER DASHBOARD ── */
-  #driverDash { position: absolute; bottom: 0; left: 0; right: 0; background: var(--glass-bg); backdrop-filter: blur(20px); border-radius: 30px 30px 0 0; padding: 30px 25px; z-index: 100; display: none; box-shadow: var(--shadow); }
-  .status-badge { display: inline-block; padding: 6px 12px; border-radius: 99px; font-size: 12px; font-weight: 800; background: #fee2e2; color: #ef4444; margin-bottom: 15px; }
-  .status-badge.online { background: #dcfce7; color: #22c55e; }
-  .dash-stats { display: flex; gap: 15px; margin-bottom: 20px; }
-  .stat-box { flex: 1; background: #fff; padding: 15px; border-radius: 16px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
-  .stat-val { font-size: 20px; font-weight: 900; color: var(--primary); }
-  .stat-lbl { font-size: 12px; color: var(--text-muted); font-weight: 600; margin-top: 4px; }
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ═══════════════════════════════════════════
+   AUTH SCREEN
+═══════════════════════════════════════════ */
+#authScreen{background:var(--bg);overflow-y:auto}
+.auth-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 25% 25%,rgba(124,58,237,.18) 0,transparent 55%),radial-gradient(ellipse at 75% 75%,rgba(0,210,255,.12) 0,transparent 55%);pointer-events:none}
+.auth-wrap{position:relative;z-index:2;padding:55px 22px 30px;display:flex;flex-direction:column;min-height:100%}
+.auth-logo{text-align:center;margin-bottom:38px}
+.auth-logo .lico{font-size:52px;display:block;margin-bottom:10px;filter:drop-shadow(0 0 20px rgba(0,210,255,.5))}
+.auth-logo h1{font-size:38px;font-weight:800;background:linear-gradient(135deg,var(--primary),#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-1px}
+.auth-logo p{color:var(--muted);font-size:13px;margin-top:6px}
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:24px;margin-top:auto}
+.role-tog{display:grid;grid-template-columns:1fr 1fr;background:var(--bg);border-radius:12px;padding:4px;margin-bottom:20px;border:1px solid var(--border)}
+.role-btn{padding:10px;border:none;border-radius:9px;background:transparent;color:var(--muted);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .25s}
+.role-btn.act{background:var(--primary);color:#000;box-shadow:var(--primary-glow)}
+.atabs{display:flex;background:var(--bg);border-radius:10px;padding:3px;margin-bottom:20px;border:1px solid var(--border)}
+.atab{flex:1;padding:9px;border:none;border-radius:8px;background:transparent;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+.atab.act{background:var(--surface3);color:var(--text)}
+.auth-switch{text-align:center;color:var(--primary);font-size:14px;font-weight:600;cursor:pointer;margin-top:15px}
+#authErr{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:10px 14px;color:var(--red);font-size:13px;margin-bottom:13px;display:none}
+
+/* ═══════════════════════════════════════════
+   MAP SCREEN — TOP UI
+═══════════════════════════════════════════ */
+.topbar{position:absolute;top:0;left:0;right:0;z-index:50;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.logo-pill{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:var(--primary);text-shadow:0 0 20px rgba(0,210,255,.4);background:rgba(14,22,35,.9);backdrop-filter:blur(12px);padding:9px 18px;border-radius:99px;border:1px solid var(--border)}
+#myLocBtn{position:absolute;right:16px;z-index:20;width:44px;height:44px;background:rgba(14,22,35,.9);backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:12px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 15px rgba(0,0,0,.3);color:var(--text);transition:all .2s}
+#myLocBtn:active{transform:scale(.9)}
+#sosBtn{position:absolute;right:16px;z-index:50;width:52px;height:52px;background:var(--red);border:none;border-radius:50%;color:#fff;font-size:11px;font-weight:800;font-family:'Syne',sans-serif;cursor:pointer;display:none;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;animation:pulsered 2s infinite;gap:2px}
+@keyframes pulsered{0%,100%{box-shadow:0 0 12px rgba(239,68,68,.5)}50%{box-shadow:0 0 28px rgba(239,68,68,.9)}}
+#toast{position:absolute;top:78px;left:16px;right:16px;z-index:1000;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:13px 16px;display:none;align-items:center;gap:11px;box-shadow:0 8px 30px rgba(0,0,0,.4);animation:slidedn .3s ease}
+@keyframes slidedn{from{transform:translateY(-18px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* ═══════════════════════════════════════════
+   RIDER BOTTOM SHEET
+═══════════════════════════════════════════ */
+#riderSheet{position:absolute;bottom:0;left:0;right:0;background:var(--surface);border-radius:28px 28px 0 0;border-top:1px solid var(--border);z-index:40;height:82vh;transform:translateY(58%);transition:transform .38s var(--ease);display:none;flex-direction:column;overflow:hidden}
+.dh{padding:14px 0 4px;display:flex;justify-content:center;cursor:grab;flex-shrink:0}
+.db{width:40px;height:4px;background:var(--surface3);border-radius:4px}
+.shin{flex:1;overflow-y:auto;padding:4px 20px 36px}
+.shin::-webkit-scrollbar{display:none}
+
+.greet{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.greet-t h2{font-size:21px;font-weight:800;letter-spacing:-.3px}
+.greet-t p{font-size:12px;color:var(--muted);margin-top:3px}
+.wallet-c{background:var(--primary-dim);border:1px solid var(--border-glow);border-radius:99px;padding:6px 13px;display:flex;align-items:center;gap:5px;font-size:13px;font-weight:700;color:var(--primary);cursor:pointer}
+
+/* Location box */
+.loc-box{background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:4px;margin-bottom:15px}
+.loc-row{display:flex;align-items:center;padding:12px 13px;gap:12px;cursor:pointer;border-radius:12px;transition:all .15s}
+.loc-row:active{background:var(--surface3)}
+.ldot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.ldot.pick{background:var(--primary);box-shadow:0 0 8px var(--primary)}
+.ldot.drop{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+.lloc{flex:1;min-width:0}
+.lloc .lbl{font-size:11px;color:var(--muted);margin-bottom:2px}
+.lloc .val{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.swap-btn{width:28px;height:28px;background:var(--surface3);border:none;border-radius:7px;color:var(--sub);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .3s}
+.swap-btn:active{transform:rotate(180deg)}
+.loc-line{width:1px;height:14px;background:var(--border);margin-left:4px}
+
+/* Quick chips */
+.qchips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:15px;scrollbar-width:none}
+.qchips::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:8px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:12px;font-weight:600;color:var(--sub);cursor:pointer;transition:all .2s;white-space:nowrap}
+.chip:active{background:var(--primary-dim);color:var(--primary);border-color:var(--border-glow)}
+
+/* Surge */
+.surge{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.22);border-radius:10px;padding:9px 13px;display:none;align-items:center;gap:8px;font-size:12px;color:var(--amber);font-weight:600;margin-bottom:13px}
+
+/* Ride options */
+#rideOptions{display:none}
+.rcards{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+.rcard{display:flex;align-items:center;background:var(--surface2);border:2px solid transparent;border-radius:16px;padding:13px;cursor:pointer;transition:all .2s;gap:13px}
+.rcard.sel{border-color:var(--primary);background:var(--primary-dim);box-shadow:var(--primary-glow)}
+.rico{font-size:26px;width:46px;height:46px;background:var(--surface3);border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rinfo{flex:1;min-width:0}
+.rname{font-family:'Syne',sans-serif;font-size:15px;font-weight:700}
+.reta{font-size:12px;color:var(--muted);margin-top:2px}
+.rprice{font-family:'Syne',sans-serif;font-size:19px;font-weight:800;color:var(--primary)}
+
+/* Booking footer */
+.bfoot{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:13px;margin-bottom:13px;display:none}
+.brow{display:flex;align-items:center;justify-content:space-between}
+.brow+.brow{margin-top:11px}
+.pms{display:flex;gap:7px;margin-bottom:2px}
+.pm{flex:1;padding:9px 5px;background:var(--surface3);border:1px solid transparent;border-radius:9px;text-align:center;cursor:pointer;transition:all .2s;font-size:11px;font-weight:600;color:var(--sub)}
+.pm.act{border-color:var(--primary);background:var(--primary-dim);color:var(--primary)}
+.pm .pico{font-size:17px;display:block;margin-bottom:3px}
+
+/* ═══════════════════════════════════════════
+   SEARCH OVERLAY
+═══════════════════════════════════════════ */
+#searchOv{position:absolute;inset:0;background:var(--bg);z-index:200;display:none;flex-direction:column;padding:48px 18px 18px}
+.sh-head{display:flex;align-items:center;gap:13px;margin-bottom:15px}
+.sh-inps{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:5px;margin-bottom:15px}
+.sir{display:flex;align-items:center;gap:10px;padding:11px 12px}
+.sil{width:1px;height:12px;background:var(--border);margin-left:4px}
+.suggs{flex:1;overflow-y:auto}
+.si{display:flex;align-items:center;gap:13px;padding:13px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:all .15s}
+.si:active{opacity:.6}
+.sico{width:38px;height:38px;background:var(--surface2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.sname{font-size:14px;font-weight:600}
+.saddr{font-size:12px;color:var(--muted);margin-top:2px}
+
+/* ═══════════════════════════════════════════
+   FINDING DRIVER
+═══════════════════════════════════════════ */
+#findingOv{position:absolute;bottom:0;left:0;right:0;background:var(--surface);border-radius:28px 28px 0 0;border-top:1px solid var(--border);padding:32px 22px;z-index:60;display:none;text-align:center}
+.f-anim{width:88px;height:88px;margin:0 auto 22px;position:relative}
+.f-ring{position:absolute;inset:0;border-radius:50%;border:2px solid var(--primary);animation:rpulse 1.5s ease-out infinite;opacity:0}
+.f-ring:nth-child(2){animation-delay:.5s}
+.f-ring:nth-child(3){animation-delay:1s}
+@keyframes rpulse{0%{transform:scale(.5);opacity:.8}100%{transform:scale(1.5);opacity:0}}
+.f-center{position:absolute;inset:20px;background:var(--primary-dim);border:2px solid var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px}
+.f-title{font-family:'Syne',sans-serif;font-size:21px;font-weight:800;margin-bottom:6px}
+.f-sub{color:var(--muted);font-size:13px;margin-bottom:24px}
+
+/* ═══════════════════════════════════════════
+   RIDE CONFIRMED
+═══════════════════════════════════════════ */
+#ridePanel{position:absolute;bottom:0;left:0;right:0;background:var(--surface);border-radius:28px 28px 0 0;border-top:1px solid var(--border);z-index:60;display:none;flex-direction:column;max-height:76vh;overflow:hidden}
+.dphead{padding:18px 20px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
+.drow{display:flex;align-items:center;gap:13px;margin-bottom:12px}
+.dav{width:52px;height:52px;background:linear-gradient(135deg,var(--primary),var(--purple));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.dname{font-family:'Syne',sans-serif;font-size:17px;font-weight:700}
+.drat{font-size:13px;color:var(--amber);margin-top:2px}
+.dveh{font-size:12px;color:var(--muted)}
+.eta-bar{display:flex;gap:9px}
+.eta-item{flex:1;background:var(--surface2);border-radius:12px;padding:10px 11px;text-align:center}
+.eta-v{font-family:'Syne',sans-serif;font-size:19px;font-weight:800;color:var(--primary)}
+.eta-l{font-size:11px;color:var(--muted)}
+.act-row{display:flex;gap:9px;padding:13px 20px}
+.route-info{padding:0 20px 20px;overflow-y:auto}
+.ri{display:flex;align-items:flex-start;gap:13px;padding:9px 0}
+.ri .ric{font-size:15px;color:var(--muted);flex-shrink:0;margin-top:1px}
+.ri .lbl{font-size:11px;color:var(--muted)}
+.ri .val{font-size:13px;font-weight:600}
+
+/* ═══════════════════════════════════════════
+   RATING OVERLAY
+═══════════════════════════════════════════ */
+#ratingOv{position:absolute;inset:0;background:rgba(7,12,20,.96);z-index:300;display:none;flex-direction:column;align-items:center;justify-content:center;padding:28px}
+.rat-card{background:var(--surface);border:1px solid var(--border);border-radius:26px;padding:26px;width:100%;text-align:center}
+.rat-ico{font-size:52px;margin-bottom:13px}
+.rat-t{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:6px}
+.rat-sub{color:var(--muted);font-size:13px;margin-bottom:18px}
+.fare-sum{background:var(--surface2);border-radius:13px;padding:13px;margin-bottom:18px;text-align:left}
+.fr{display:flex;justify-content:space-between;font-size:13px;color:var(--sub);margin-bottom:7px}
+.fr:last-child{margin:0;color:var(--text);font-weight:700;font-size:15px;border-top:1px solid var(--border);padding-top:8px;margin-top:4px}
+.stars{display:flex;justify-content:center;gap:10px;margin-bottom:20px}
+.star{font-size:36px;cursor:pointer;transition:transform .2s;filter:grayscale(1);opacity:.35}
+.star.lit{filter:none;opacity:1}
+.star:active{transform:scale(1.3)}
+
+/* ═══════════════════════════════════════════
+   DRIVER DASHBOARD
+═══════════════════════════════════════════ */
+#driverDash{position:absolute;bottom:0;left:0;right:0;background:var(--surface);border-radius:28px 28px 0 0;border-top:1px solid var(--border);z-index:40;display:none;flex-direction:column;height:82vh;transform:translateY(22%);transition:transform .38s var(--ease);overflow:hidden}
+.d-header{padding:5px 20px 14px;flex-shrink:0}
+.d-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.d-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px}
+.sc{background:var(--surface2);border-radius:13px;padding:13px 8px;text-align:center;border:1px solid var(--border)}
+.sv{font-family:'Syne',sans-serif;font-size:19px;font-weight:800;color:var(--primary)}
+.sl{font-size:11px;color:var(--muted);margin-top:3px}
+.inc-card{margin:0 20px 18px;background:var(--surface2);border:1px solid var(--border-glow);border-radius:20px;padding:17px;box-shadow:var(--primary-glow);display:none}
+.inc-badge{display:flex;align-items:center;gap:8px;margin-bottom:13px}
+.inc-dot{width:7px;height:7px;background:var(--primary);border-radius:50%;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.inc-badge span{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--primary)}
+.tbar{height:3px;background:var(--border);border-radius:3px;margin-bottom:13px;overflow:hidden}
+.tfill{height:100%;background:var(--primary);border-radius:3px;width:100%;transition:width 15s linear}
+.irow{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.idot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.idot.p{background:var(--primary)} .idot.d{background:var(--amber)}
+.iaddr{font-size:13px;font-weight:500}
+.imeta{display:flex;gap:9px;margin-bottom:13px}
+.ic{flex:1;background:var(--surface3);border-radius:10px;padding:8px;text-align:center}
+.icv{font-family:'Syne',sans-serif;font-size:15px;font-weight:800}
+.icl{font-size:10px;color:var(--muted);margin-top:2px}
+.d-inner{flex:1;overflow-y:auto;padding:0 20px 20px}
+
+/* ═══════════════════════════════════════════
+   SIDE MENU
+═══════════════════════════════════════════ */
+#sideMenu{position:absolute;inset:0;z-index:500;display:none}
+.s-back{position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)}
+.s-panel{position:absolute;left:0;top:0;bottom:0;width:82%;max-width:310px;background:var(--surface);border-right:1px solid var(--border);padding:50px 20px 30px;overflow-y:auto;transform:translateX(-100%);transition:transform .38s var(--ease)}
+.s-panel.open{transform:translateX(0)}
+.pav{width:68px;height:68px;background:linear-gradient(135deg,var(--primary),var(--purple));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:11px}
+.pname{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;margin-bottom:4px}
+.pemail{color:var(--muted);font-size:13px;margin-bottom:20px}
+.mitem{display:flex;align-items:center;gap:13px;padding:13px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:all .15s}
+.mitem:active{opacity:.6}
+.mico{width:38px;height:38px;background:var(--surface2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.mlbl{font-size:15px;font-weight:600}
+
+/* ═══════════════════════════════════════════
+   HISTORY OVERLAY
+═══════════════════════════════════════════ */
+#historyOv{position:absolute;inset:0;background:var(--bg);z-index:400;display:none;flex-direction:column}
+.hist-head{padding:48px 20px 15px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:13px;flex-shrink:0}
+.hist-head h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:800}
+.hist-list{flex:1;overflow-y:auto;padding:15px 18px}
+.hi{background:var(--surface);border:1px solid var(--border);border-radius:15px;padding:13px;margin-bottom:9px}
+.hi-t{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+.hi-date{font-size:12px;color:var(--muted)}
+.h-route .hr{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:5px}
+.hi-b{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.hi-fare{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--primary)}
+
+/* ═══════════════════════════════════════════
+   SCHEDULE OVERLAY
+═══════════════════════════════════════════ */
+#schedOv{position:absolute;inset:0;background:rgba(7,12,20,.96);z-index:350;display:none;align-items:flex-end}
+.sched-sheet{background:var(--surface);border-radius:28px 28px 0 0;border-top:1px solid var(--border);padding:24px;width:100%}
+.sched-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+
+/* ═══════════════════════════════════════════
+   MISC
+═══════════════════════════════════════════ */
+.slbl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:9px}
+.spinner{width:20px;height:20px;border:2px solid rgba(255,255,255,.15);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+.spinner-dark{border-top-color:#000}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse-fade{0%,100%{opacity:1}50%{opacity:.3}}
+.pulse{animation:pulse-fade 2s infinite}
+.share-chip{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:7px 10px}
 </style>
 </head>
 <body>
 
+<!-- ═══ AUTH SCREEN ═══ -->
+<div id="authScreen" class="screen active">
+  <div class="auth-bg"></div>
+  <div class="auth-wrap">
+    <div class="auth-logo">
+      <span class="lico">🚖</span>
+      <h1>JDP CABS</h1>
+      <p>Premium Rides • Jagdalpur, Bastar</p>
+    </div>
+    <div class="auth-card">
+      <div class="role-tog">
+        <button class="role-btn act" id="btnRider" onclick="APP.setRole('rider')">🧍 Rider</button>
+        <button class="role-btn" id="btnDriver" onclick="APP.setRole('driver')">🚗 Driver</button>
+      </div>
+      <div class="atabs">
+        <button class="atab act" id="tabLogin" onclick="APP.setMode('login')">Login</button>
+        <button class="atab" id="tabReg" onclick="APP.setMode('register')">Register</button>
+      </div>
+      <div id="authErr"></div>
+      <div class="iw"><span class="ico">📧</span><input type="email" id="eml" class="inp" placeholder="Email Address" autocomplete="email"></div>
+      <div class="iw"><span class="ico">🔒</span><input type="password" id="pwd" class="inp" placeholder="Password (min 6 chars)" autocomplete="current-password"></div>
+      <div id="regFields" style="display:none">
+        <div class="iw"><span class="ico">👤</span><input type="text" id="nm" class="inp" placeholder="Full Name"></div>
+        <div class="iw"><span class="ico">📞</span><input type="tel" id="ph" class="inp" placeholder="Phone Number"></div>
+        <div id="drvFields" style="display:none">
+          <div class="iw"><span class="ico">🔖</span><input type="text" id="vno" class="inp" placeholder="Vehicle Number (e.g., CG17AA1234)"></div>
+          <div class="iw"><span class="ico">🚗</span><input type="text" id="vmod" class="inp" placeholder="Vehicle Model (e.g., Swift Dzire)"></div>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="authBtn" onclick="APP.handleAuth()">Login to Account</button>
+      <div class="auth-switch" onclick="APP.setMode(null)">New here? Create Account →</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MAP SCREEN ═══ -->
+<div id="mapScreen" class="screen">
   <div id="map"></div>
 
-  <div class="top-nav">
-    <button class="menu-btn" onclick="logout()">⚙️</button>
-    <div class="logo">JDP CABS</div>
-    <div class="profile-dot">👤</div>
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <button class="btn-icon" onclick="APP.openMenu()">☰</button>
+    <div class="logo-pill">JDP CABS</div>
+    <button class="btn-icon" onclick="APP.toast('📭 No new notifications',3000)">🔔</button>
   </div>
 
-  <div id="authOverlay">
-    <h1 style="font-size: 32px; font-weight: 900; color: var(--primary); text-align: center; margin-bottom: 10px;">JDP CABS</h1>
-    <p style="text-align: center; color: var(--text-muted); margin-bottom: 30px;">Premium Rides in Jagdalpur</p>
-    
-    <div class="auth-card">
-      <div class="role-toggle">
-        <button class="role-btn active" id="btnRiderAuth" onclick="setAuthRole('rider')">Rider</button>
-        <button class="role-btn" id="btnDriverAuth" onclick="setAuthRole('driver')">Driver</button>
-      </div>
+  <!-- LOCATION + SOS FABS -->
+  <button id="myLocBtn" style="bottom:330px" onclick="APP.centerMap()">📍</button>
+  <button id="sosBtn" onclick="APP.sos()"><span style="font-size:13px">🆘</span><span>SOS</span></button>
 
-      <div id="authError" style="color: red; font-size: 13px; margin-bottom: 10px; display: none; text-align: center;"></div>
-
-      <input type="email" id="emailInput" class="input-field" placeholder="Email Address">
-      <input type="password" id="passInput" class="input-field" placeholder="Password (min 6 chars)">
-      
-      <div id="driverFields" style="display: none;">
-        <input type="text" id="vehNoInput" class="input-field" placeholder="Vehicle Number (e.g., CG17 AA 1234)">
-      </div>
-
-      <button class="btn-primary" id="actionBtn" onclick="handleAuth()">Login to Account</button>
-      <div class="auth-switch" onclick="toggleAuthMode()" id="switchText">New User? Create Account</div>
-    </div>
+  <!-- TOAST -->
+  <div id="toast">
+    <span id="t-ico" style="font-size:18px">ℹ️</span>
+    <span id="t-txt" style="flex:1;font-size:13px;font-weight:500"></span>
   </div>
 
-  <div id="bottomSheet" style="display:none;">
-    <div class="drag-handle" id="dragHandle"><div class="drag-bar"></div></div>
-    
-    <div class="sheet-content">
-      <div class="greeting" id="riderGreeting">Where to?</div>
-      
-      <div class="search-box">
-        <div style="width:12px; height:12px; background: var(--accent); border-radius: 50%;"></div>
-        <input type="text" id="dropLocation" placeholder="Search destination...">
-      </div>
-
-      <div class="section-title">Ride Options</div>
-      
-      <div class="ride-options" id="rideOptionsList">
-        <div class="ride-card active" onclick="selectRideType('Auto')">
-          <div style="font-size: 30px;">🛺</div>
-          <div class="ride-info">
-            <div class="ride-name">JDP Auto</div>
-            <div class="ride-time" id="etaAuto">-- min away</div>
-          </div>
-          <div class="ride-price" id="fareAuto">₹--</div>
+  <!-- ═══ RIDER SHEET ═══ -->
+  <div id="riderSheet">
+    <div class="dh" id="dhRider"><div class="db"></div></div>
+    <div class="shin">
+      <!-- Greeting -->
+      <div class="greet">
+        <div class="greet-t">
+          <h2>Where to? 📍</h2>
+          <p id="greetSub">Ready for your ride</p>
         </div>
-        
-        <div class="ride-card" onclick="selectRideType('Cab')">
-          <div style="font-size: 30px;">🚗</div>
-          <div class="ride-info">
-            <div class="ride-name">Mini Cab</div>
-            <div class="ride-time" id="etaCab">-- min away</div>
-          </div>
-          <div class="ride-price" id="fareCab">₹--</div>
+        <div class="wallet-c" onclick="APP.toast('💳 Wallet: ₹0 · Add money coming soon',3000)">
+          💳 ₹<span id="walBal">0</span>
         </div>
       </div>
 
-      <button class="btn-primary" id="bookBtn" onclick="calculateFare()">Calculate Fare</button>
+      <!-- Location Box -->
+      <div class="loc-box">
+        <div class="loc-row" onclick="APP.openSearch('pickup')">
+          <div class="ldot pick"></div>
+          <div class="lloc">
+            <div class="lbl">Pickup</div>
+            <div class="val" id="pickLbl">Detecting location...</div>
+          </div>
+        </div>
+        <div style="padding:0 13px;position:relative">
+          <div class="dvd" style="margin:0"></div>
+          <button class="swap-btn" style="position:absolute;right:13px;top:50%;transform:translateY(-50%)" onclick="APP.swap()">⇅</button>
+        </div>
+        <div class="loc-row" onclick="APP.openSearch('drop')">
+          <div class="ldot drop"></div>
+          <div class="lloc">
+            <div class="lbl">Drop-off</div>
+            <div class="val" id="dropLbl" style="color:var(--muted);font-weight:400">Where are you going?</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Chips -->
+      <div class="qchips">
+        <div class="chip" onclick="APP.openSearch('pickup')">📍 My Location</div>
+        <div class="chip" onclick="APP.dest('Bus Stand, Jagdalpur',19.0735,82.0261)">🚌 Bus Stand</div>
+        <div class="chip" onclick="APP.dest('Railway Station, Jagdalpur',19.0803,82.0136)">🚂 Railway</div>
+        <div class="chip" onclick="APP.dest('DIMHANS Hospital',19.0600,82.0100)">🏥 Hospital</div>
+        <div class="chip" onclick="APP.dest('Jagdalpur Airport',19.0578,82.0348)">✈️ Airport</div>
+        <div class="chip" onclick="APP.showSched()">📅 Schedule</div>
+      </div>
+
+      <!-- Surge Banner -->
+      <div class="surge" id="surgeBanner">⚡ <strong>Surge 1.3×</strong> · High demand — fares temporarily higher</div>
+
+      <!-- Ride Options -->
+      <div id="rideOptions">
+        <div class="slbl">Choose your ride</div>
+        <div class="rcards">
+          <div class="rcard sel" id="cAuto" onclick="APP.selRide('Auto')">
+            <div class="rico">🛺</div>
+            <div class="rinfo">
+              <div class="rname">Auto</div>
+              <div class="reta" id="etaAuto">Calculating...</div>
+            </div>
+            <div style="text-align:right">
+              <div class="rprice" id="fAuto">₹--</div>
+              <div style="font-size:11px;color:var(--muted)" id="distLbl">--km</div>
+            </div>
+          </div>
+          <div class="rcard" id="cCab" onclick="APP.selRide('Cab')">
+            <div class="rico">🚕</div>
+            <div class="rinfo">
+              <div class="rname">Cab · Dzire</div>
+              <div class="reta" id="etaCab">Calculating...</div>
+            </div>
+            <div style="text-align:right"><div class="rprice" id="fCab">₹--</div></div>
+          </div>
+          <div class="rcard" id="cPrem" onclick="APP.selRide('Premium')">
+            <div class="rico">🚙</div>
+            <div class="rinfo">
+              <div class="rname">Premium · Innova</div>
+              <div class="reta" id="etaPrem">Calculating...</div>
+            </div>
+            <div style="text-align:right"><div class="rprice" id="fPrem">₹--</div></div>
+          </div>
+        </div>
+
+        <!-- Booking Footer: Payment + Promo -->
+        <div class="bfoot" id="bfoot">
+          <div class="brow"><span style="font-size:12px;font-weight:700;color:var(--muted)">PAYMENT METHOD</span></div>
+          <div class="pms" style="margin-top:9px">
+            <div class="pm act" id="pmCash" onclick="APP.setPay('cash')"><span class="pico">💵</span>Cash</div>
+            <div class="pm" id="pmUpi" onclick="APP.setPay('upi')"><span class="pico">📱</span>UPI</div>
+            <div class="pm" id="pmCard" onclick="APP.setPay('card')"><span class="pico">💳</span>Card</div>
+            <div class="pm" id="pmWal" onclick="APP.setPay('wallet')"><span class="pico">👛</span>Wallet</div>
+          </div>
+          <div class="dvd"></div>
+          <div class="brow">
+            <div style="display:flex;align-items:center;gap:8px">
+              <input type="text" id="promoInp" style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:8px 11px;color:var(--text);font-size:13px;outline:none;width:140px;font-family:'DM Sans',sans-serif" placeholder="🏷️ Promo code">
+              <button class="btn btn-secondary btn-sm" style="font-size:12px;padding:8px 12px" onclick="APP.applyPromo()">Apply</button>
+            </div>
+            <div id="promoSave" style="display:none;color:var(--green);font-size:13px;font-weight:700"></div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="bookBtn" onclick="APP.book()">Confirm Auto Booking</button>
+      </div>
+      <button class="btn btn-primary" id="calcBtn" onclick="APP.calcFare()" style="display:none">🔍 Find Rides</button>
     </div>
   </div>
 
+  <!-- ═══ DRIVER DASHBOARD ═══ -->
   <div id="driverDash">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-      <h2 style="font-size: 22px; font-weight: 800;">Dashboard</h2>
-      <div class="status-badge" id="driverStatus">OFFLINE</div>
-    </div>
-    
-    <div class="dash-stats">
-      <div class="stat-box">
-        <div class="stat-val" id="dEarnings">₹0</div>
-        <div class="stat-lbl">Today's Earn</div>
+    <div class="dh" id="dhDriver"><div class="db"></div></div>
+    <div class="d-header">
+      <div class="d-top">
+        <div>
+          <h2 style="font-family:Syne;font-size:20px;font-weight:800">Dashboard</h2>
+          <div id="dBadge" class="badge b-red" style="margin-top:5px"><span class="pulse">●</span> OFFLINE</div>
+        </div>
+        <button class="btn btn-success btn-sm" id="onlineBtn" onclick="APP.toggleOnline()">Go Online</button>
       </div>
-      <div class="stat-box">
-        <div class="stat-val" id="dRides">0</div>
-        <div class="stat-lbl">Total Rides</div>
+      <div class="d-stats">
+        <div class="sc"><div class="sv" id="dEarn">₹0</div><div class="sl">Today Earned</div></div>
+        <div class="sc"><div class="sv" id="dTrips">0</div><div class="sl">Trips Done</div></div>
+        <div class="sc"><div class="sv" id="dRat">5.0</div><div class="sl">Rating ⭐</div></div>
       </div>
     </div>
 
-    <button class="btn-primary" id="toggleOnlineBtn" onclick="toggleOnlineStatus()">Go Online</button>
+    <!-- Incoming Ride -->
+    <div class="inc-card" id="incCard">
+      <div class="inc-badge">
+        <div class="inc-dot"></div>
+        <span>NEW RIDE REQUEST</span>
+        <div class="badge b-cyan" id="incType">Auto</div>
+      </div>
+      <div class="tbar"><div class="tfill" id="tfill"></div></div>
+      <div class="irow"><div class="idot p"></div><div class="iaddr" id="incPick">Loading...</div></div>
+      <div class="irow" style="margin-bottom:13px"><div class="idot d"></div><div class="iaddr" id="incDrop">Loading...</div></div>
+      <div class="imeta">
+        <div class="ic"><div class="icv" id="incFare">₹--</div><div class="icl">Fare</div></div>
+        <div class="ic"><div class="icv" id="incDist">--km</div><div class="icl">Distance</div></div>
+        <div class="ic"><div class="icv" id="incETA">--m</div><div class="icl">ETA</div></div>
+      </div>
+      <div style="display:flex;gap:9px">
+        <button class="btn btn-danger" style="flex:1" onclick="APP.rejectRide()">✕ Decline</button>
+        <button class="btn btn-primary" style="flex:1" onclick="APP.acceptRide()">✓ Accept</button>
+      </div>
+    </div>
+
+    <div class="d-inner">
+      <div class="slbl">Today's activity</div>
+      <div style="background:var(--surface2);border-radius:13px;padding:14px;border:1px solid var(--border);text-align:center;color:var(--muted);font-size:13px" id="dEmptyState">
+        Go online to start receiving ride requests 🚀
+      </div>
+    </div>
   </div>
+
+  <!-- ═══ FINDING OVERLAY ═══ -->
+  <div id="findingOv">
+    <div class="f-anim">
+      <div class="f-ring"></div><div class="f-ring"></div><div class="f-ring"></div>
+      <div class="f-center">🚖</div>
+    </div>
+    <div class="f-title">Finding your driver...</div>
+    <div class="f-sub">Matching you with nearby <strong id="findType">Auto</strong></div>
+    <button class="btn btn-secondary" onclick="APP.cancelSearch()">✕ Cancel Search</button>
+  </div>
+
+  <!-- ═══ RIDE CONFIRMED PANEL ═══ -->
+  <div id="ridePanel">
+    <div class="dphead">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="badge b-green">✓ Driver Confirmed</div>
+        <div class="share-chip">
+          <button onclick="APP.shareRide()" style="background:none;border:none;color:var(--green);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">📤 Share Ride</button>
+        </div>
+      </div>
+      <div class="drow">
+        <div class="dav">👨</div>
+        <div style="flex:1">
+          <div class="dname" id="confDrv">Rajesh Kumar</div>
+          <div class="drat">⭐ 4.8 · <span id="confVeh">CG17AA1234</span></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-icon" onclick="APP.callDriver()" title="Call">📞</button>
+          <button class="btn-icon" onclick="APP.toast('💬 Chat coming soon!',3000)" title="Chat">💬</button>
+        </div>
+      </div>
+      <div class="eta-bar">
+        <div class="eta-item"><div class="eta-v" id="confETA">3</div><div class="eta-l">min away</div></div>
+        <div class="eta-item"><div class="eta-v" id="confDist">--</div><div class="eta-l">km total</div></div>
+        <div class="eta-item"><div class="eta-v" id="confFare">₹--</div><div class="eta-l">est. fare</div></div>
+      </div>
+    </div>
+    <div class="act-row">
+      <button class="btn btn-danger btn-sm" onclick="APP.cancelRide()">✕ Cancel Ride</button>
+      <button class="btn btn-secondary btn-sm" style="flex:1" onclick="APP.toast('📍 Tracking driver on map',3000)">Live Track</button>
+    </div>
+    <div class="route-info">
+      <div class="ri"><div class="ric">🟢</div><div><div class="lbl">Pickup</div><div class="val" id="confPick">Your Location</div></div></div>
+      <div class="ri"><div class="ric">🟡</div><div><div class="lbl">Drop-off</div><div class="val" id="confDropLbl">Destination</div></div></div>
+      <div class="ri"><div class="ric">💳</div><div><div class="lbl">Payment</div><div class="val" id="confPay">Cash</div></div></div>
+    </div>
+  </div>
+
+  <!-- ═══ RATING OVERLAY ═══ -->
+  <div id="ratingOv">
+    <div class="rat-card">
+      <div class="rat-ico">🎉</div>
+      <div class="rat-t">Ride Complete!</div>
+      <div class="rat-sub">Hope you had a great experience</div>
+      <div class="fare-sum">
+        <div class="fr"><span>Distance</span><span id="rDist">--km</span></div>
+        <div class="fr"><span>Base Fare</span><span id="rBase">₹--</span></div>
+        <div class="fr"><span>Payment</span><span id="rPay">Cash</span></div>
+        <div class="fr"><span>Total Paid</span><span id="rTotal">₹--</span></div>
+      </div>
+      <div class="slbl" style="margin-bottom:11px">Rate your driver</div>
+      <div class="stars">
+        <span class="star" onclick="APP.setRat(1)">⭐</span>
+        <span class="star" onclick="APP.setRat(2)">⭐</span>
+        <span class="star" onclick="APP.setRat(3)">⭐</span>
+        <span class="star" onclick="APP.setRat(4)">⭐</span>
+        <span class="star" onclick="APP.setRat(5)">⭐</span>
+      </div>
+      <button class="btn btn-primary" onclick="APP.submitRat()">Submit & Done ✓</button>
+    </div>
+  </div>
+
+  <!-- ═══ SEARCH OVERLAY ═══ -->
+  <div id="searchOv">
+    <div class="sh-head">
+      <button class="btn-icon" onclick="APP.closeSearch()">←</button>
+      <h2 style="font-family:Syne;font-size:18px;font-weight:800">Search Location</h2>
+    </div>
+    <div class="sh-inps">
+      <div class="sir">
+        <div class="ldot pick"></div>
+        <input class="inp-bare" id="pickSearch" placeholder="Pickup location">
+      </div>
+      <div class="sil"></div>
+      <div class="sir">
+        <div class="ldot drop"></div>
+        <input class="inp-bare" id="dropSearch" placeholder="Where to?">
+      </div>
+    </div>
+    <div class="suggs" id="suggs">
+      <div class="slbl" style="margin-bottom:11px">Popular in Jagdalpur</div>
+      <div class="si" onclick="APP.selPlace('Bus Stand, Jagdalpur',19.0735,82.0261)">
+        <div class="sico">🚌</div><div><div class="sname">Bus Stand</div><div class="saddr">Main Bus Stand, Jagdalpur</div></div>
+      </div>
+      <div class="si" onclick="APP.selPlace('Railway Station, Jagdalpur',19.0803,82.0136)">
+        <div class="sico">🚂</div><div><div class="sname">Railway Station</div><div class="saddr">Jagdalpur Railway Station</div></div>
+      </div>
+      <div class="si" onclick="APP.selPlace('DIMHANS Hospital',19.0600,82.0100)">
+        <div class="sico">🏥</div><div><div class="sname">DIMHANS Hospital</div><div class="saddr">Dimhans, Jagdalpur</div></div>
+      </div>
+      <div class="si" onclick="APP.selPlace('Jagdalpur Airport',19.0578,82.0348)">
+        <div class="sico">✈️</div><div><div class="sname">Jagdalpur Airport</div><div class="saddr">Vistar Airport, Jagdalpur</div></div>
+      </div>
+      <div class="si" onclick="APP.selPlace('Bastar Palace, Jagdalpur',19.1000,81.9800)">
+        <div class="sico">🏛️</div><div><div class="sname">Bastar Palace</div><div class="saddr">Heritage, Jagdalpur</div></div>
+      </div>
+      <div class="si" onclick="APP.selPlace('City Market, Jagdalpur',19.0720,82.0155)">
+        <div class="sico">🛍️</div><div><div class="sname">City Market</div><div class="saddr">Main Market, Jagdalpur</div></div>
+      </div>
+      <div class="si" onclick="APP.selPlace('Lal Bagh, Jagdalpur',19.0750,82.0200)">
+        <div class="sico">🌳</div><div><div class="sname">Lal Bagh</div><div class="saddr">Garden, Jagdalpur</div></div>
+      </div>
+      <div class="si" onclick="APP.selPlace('Chitrakote Waterfall',19.2000,81.8500)">
+        <div class="sico">💧</div><div><div class="sname">Chitrakote Waterfall</div><div class="saddr">Jagdalpur, 38km</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SIDE MENU ═══ -->
+  <div id="sideMenu">
+    <div class="s-back" onclick="APP.closeMenu()"></div>
+    <div class="s-panel" id="sPanel">
+      <div class="pav">👤</div>
+      <div class="pname" id="mName">Loading...</div>
+      <div class="pemail" id="mEmail">user@email.com</div>
+      <div class="mitem" onclick="APP.showHistory()"><div class="mico">📋</div><div class="mlbl">Ride History</div></div>
+      <div class="mitem" onclick="APP.toast('🎁 Refer & Earn: Coming soon!',3000);APP.closeMenu()"><div class="mico">🎁</div><div class="mlbl">Refer & Earn</div></div>
+      <div class="mitem" onclick="APP.toast('💳 Wallet & UPI: Coming soon!',3000);APP.closeMenu()"><div class="mico">💳</div><div class="mlbl">Wallet & Payments</div></div>
+      <div class="mitem" onclick="APP.toast('🆘 Emergency: 112 | Women Helpline: 1091',5000);APP.closeMenu()"><div class="mico">🆘</div><div class="mlbl">Safety & Emergency</div></div>
+      <div class="mitem" onclick="APP.toast('🎧 Support chat: Coming soon!',3000);APP.closeMenu()"><div class="mico">🎧</div><div class="mlbl">Help & Support</div></div>
+      <div class="mitem" onclick="APP.toast('⚙️ Settings: Coming soon!',3000);APP.closeMenu()"><div class="mico">⚙️</div><div class="mlbl">Settings</div></div>
+      <div class="mitem" style="border:none;margin-top:10px" onclick="APP.logout()"><div class="mico" style="background:rgba(239,68,68,.1)">🚪</div><div class="mlbl" style="color:var(--red)">Logout</div></div>
+      <div style="margin-top:28px;border-top:1px solid var(--border);padding-top:16px;text-align:center;color:var(--muted);font-size:12px;line-height:1.7">JDP CABS v2.0<br>Jagdalpur, Chhattisgarh<br>Made with ❤️ for Bastar</div>
+    </div>
+  </div>
+
+  <!-- ═══ HISTORY OVERLAY ═══ -->
+  <div id="historyOv">
+    <div class="hist-head">
+      <button class="btn-icon" onclick="APP.closeHistory()">←</button>
+      <h2>Ride History</h2>
+    </div>
+    <div class="hist-list" id="histList"><div style="text-align:center;padding:50px;color:var(--muted)"><div class="spinner"></div></div></div>
+  </div>
+
+  <!-- ═══ SCHEDULE OVERLAY ═══ -->
+  <div id="schedOv">
+    <div class="sched-sheet">
+      <div class="sched-head">
+        <h2 style="font-family:Syne;font-size:20px;font-weight:800">📅 Schedule Ride</h2>
+        <button class="btn-icon" onclick="APP.closeSched()">✕</button>
+      </div>
+      <div class="iw"><span class="ico">📅</span><input type="date" id="schedDate" class="inp"></div>
+      <div class="iw"><span class="ico">⏰</span><input type="time" id="schedTime" class="inp"></div>
+      <div class="iw"><span class="ico">📍</span><input type="text" id="schedDrop" class="inp" placeholder="Destination (where to go?)"></div>
+      <button class="btn btn-primary" onclick="APP.confirmSched()">✓ Confirm Schedule</button>
+    </div>
+  </div>
+
+</div><!-- end mapScreen -->
 
 <script>
-  // ── APP STATE VARIABLES ──
-  let map, myLat = 19.0760, myLng = 82.0150;
-  let currentUser = null;
-  let authMode = 'login'; // 'login' or 'register'
-  let selectedRole = 'rider'; // 'rider' or 'driver'
-  let isDriverOnline = false;
-  
-  // Rider Booking State
-  let selectedRideType = 'Auto';
-  let calculatedFare = 0;
-  let calculatedDist = 0;
+// ═══ MAP ═══
+let map, myMark, drvMark, dropMark;
+let myLat=19.0735, myLng=82.0261;
 
-  // ── 1. MAP INITIALIZATION ──
-  function initMap() {
-    try {
-      map = new mappls.Map('map', { center: { lat: myLat, lng: myLng }, zoom: 14, zoomControl: false, search: false });
-      new mappls.Marker({ map: map, position: { lat: myLat, lng: myLng }, popupHtml: "<b>Jagdalpur City</b>" });
-      getUserLocation();
-    } catch(e) { console.error("Map Load Error:", e); }
-  }
-  setTimeout(() => { if(typeof mappls !== 'undefined') initMap(); }, 1000);
+function initMap() {
+  map = new mappls.Map('map', {center:[myLat,myLng],zoom:14,zoomControl:false,attributionControl:false});
+  map.on('load', () => { placeMyMark(); getUserLoc(); });
+}
 
-  function getUserLocation() {
-    if(navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(pos => {
-        myLat = pos.coords.latitude; myLng = pos.coords.longitude;
-        map.setCenter({lat: myLat, lng: myLng});
-        new mappls.Marker({ map: map, position: { lat: myLat, lng: myLng }, html: '<div style="width:15px; height:15px; background:var(--primary); border:3px solid white; border-radius:50%; box-shadow: 0 0 10px rgba(0,0,0,0.3);"></div>' });
-      });
-    }
-  }
+function placeMyMark() {
+  if(myMark) myMark.remove();
+  const el = document.createElement('div');
+  el.innerHTML = '<div style="font-size:28px;filter:drop-shadow(0 2px 8px rgba(0,210,255,.7))">🔵</div>';
+  myMark = new mappls.Marker({map, position:{lat:myLat,lng:myLng}, draggable:false});
+}
 
-  // ── 2. AUTHENTICATION LOGIC ──
-  function setAuthRole(role) {
-    selectedRole = role;
-    document.getElementById('btnRiderAuth').className = `role-btn ${role === 'rider' ? 'active' : ''}`;
-    document.getElementById('btnDriverAuth').className = `role-btn ${role === 'driver' ? 'active' : ''}`;
-    document.getElementById('driverFields').style.display = role === 'driver' && authMode === 'register' ? 'block' : 'none';
-  }
+function placeDrvMark(lat,lng) {
+  if(drvMark) drvMark.remove();
+  drvMark = new mappls.Marker({map, position:{lat,lng}});
+}
 
-  function toggleAuthMode() {
-    authMode = authMode === 'login' ? 'register' : 'login';
-    document.getElementById('actionBtn').innerText = authMode === 'login' ? 'Login to Account' : 'Create Account';
-    document.getElementById('switchText').innerText = authMode === 'login' ? 'New User? Create Account' : 'Already have an account? Login';
-    document.getElementById('driverFields').style.display = selectedRole === 'driver' && authMode === 'register' ? 'block' : 'none';
-  }
+function placeDropMark(lat,lng) {
+  if(dropMark) dropMark.remove();
+  dropMark = new mappls.Marker({map, position:{lat,lng}});
+}
 
-  function checkAuthStatus() {
-    window.FB.auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        const docSnap = await window.FB.getDoc(window.FB.doc(window.FB.db, 'users', user.uid));
-        if (docSnap.exists()) {
-          currentUser = { uid: user.uid, ...docSnap.data() };
-          document.getElementById('authOverlay').style.display = 'none';
-          loadAppInterface();
-        }
-      } else {
-        document.getElementById('authOverlay').style.display = 'flex';
-        document.getElementById('bottomSheet').style.display = 'none';
-        document.getElementById('driverDash').style.display = 'none';
-      }
+function getUserLoc() {
+  if(navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(p => {
+      myLat=p.coords.latitude; myLng=p.coords.longitude;
+      placeMyMark();
+      if(map) map.setCenter([myLat,myLng]);
+      document.getElementById('pickLbl').innerText='Your Current Location';
+      S.pickName='Your Current Location'; S.pickLat=myLat; S.pickLng=myLng;
+    }, () => {
+      document.getElementById('pickLbl').innerText='Jagdalpur City Center';
+      S.pickName='Jagdalpur City Center';
     });
   }
+}
 
-  async function handleAuth() {
-    const email = document.getElementById('emailInput').value;
-    const pass = document.getElementById('passInput').value;
-    const errEl = document.getElementById('authError');
-    errEl.style.display = 'none';
+// Haversine distance
+function hvs(lat1,lon1,lat2,lon2) {
+  const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return (R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))).toFixed(1);
+}
 
-    if(!email || pass.length < 6) { errEl.innerText = "Invalid Email or Password (min 6 chars)"; errEl.style.display = 'block'; return; }
+// ═══ APP STATE ═══
+const S = {
+  user:null, role:'rider', mode:'login',
+  ride:'Auto', pay:'cash',
+  pickName:'Your Location', dropName:'',
+  pickLat:myLat, pickLng:myLng, dropLat:null, dropLng:null,
+  dist:0, rideId:null, searchTarget:'drop',
+  online:false, rating:0, promo:false, promoAmt:0
+};
 
+// ═══ APP ═══
+window.APP = {
+
+  // ── AUTH ──
+  setRole(role) {
+    S.role = role;
+    document.getElementById('btnRider').className = 'role-btn'+(role==='rider'?' act':'');
+    document.getElementById('btnDriver').className = 'role-btn'+(role==='driver'?' act':'');
+    document.getElementById('drvFields').style.display = role==='driver'?'block':'none';
+  },
+  setMode(m) {
+    if(!m) m = S.mode==='login'?'register':'login';
+    S.mode = m;
+    document.getElementById('tabLogin').className = 'atab'+(m==='login'?' act':'');
+    document.getElementById('tabReg').className = 'atab'+(m==='register'?' act':'');
+    document.getElementById('regFields').style.display = m==='register'?'block':'none';
+    document.getElementById('authBtn').innerText = m==='login'?'Login to Account':'Create Account';
+    document.getElementById('authErr').style.display = 'none';
+  },
+  async handleAuth() {
+    const email=document.getElementById('eml').value.trim();
+    const pass=document.getElementById('pwd').value;
+    const err=document.getElementById('authErr');
+    err.style.display='none';
+    if(!email||pass.length<6){err.innerHTML='⚠️ Check email & password (min 6 chars)';err.style.display='block';return;}
+    const btn=document.getElementById('authBtn');
+    btn.innerHTML='<div class="spinner spinner-dark" style="margin:0 auto"></div>';btn.disabled=true;
     try {
-      if (authMode === 'login') {
-        await window.FB.signIn(window.FB.auth, email, pass);
+      if(S.mode==='login') {
+        await window.FB.signIn(window.FB.auth,email,pass);
       } else {
-        const vehNo = document.getElementById('vehNoInput').value;
-        if(selectedRole === 'driver' && !vehNo) { errEl.innerText = "Vehicle Number is required"; errEl.style.display = 'block'; return; }
-        
-        const cred = await window.FB.create(window.FB.auth, email, pass);
-        const userData = { email, role: selectedRole, createdAt: new Date() };
-        if(selectedRole === 'driver') { userData.vehicleNo = vehNo; userData.earnings = 0; userData.ridesCompleted = 0; }
-        await window.FB.setDoc(window.FB.doc(window.FB.db, 'users', cred.user.uid), userData);
+        const nm=document.getElementById('nm').value||'User';
+        const ph=document.getElementById('ph').value||'';
+        const cr=await window.FB.create(window.FB.auth,email,pass);
+        const d={email,name:nm,phone:ph,role:S.role,earnings:0,ridesCompleted:0,rating:5.0,wallet:0};
+        if(S.role==='driver'){d.vehicleNo=document.getElementById('vno').value||'';d.vehicleModel=document.getElementById('vmod').value||'';}
+        await window.FB.setDoc(window.FB.doc(window.FB.db,'users',cr.user.uid),d);
       }
-    } catch(e) { errEl.innerText = e.message; errEl.style.display = 'block'; }
-  }
-
-  function logout() {
-    window.FB.signOut(window.FB.auth);
-  }
-
-  // ── 3. LOAD INTERFACE BASED ON ROLE ──
-  function loadAppInterface() {
-    if (currentUser.role === 'rider') {
-      document.getElementById('bottomSheet').style.display = 'flex';
-      document.getElementById('driverDash').style.display = 'none';
-      document.getElementById('riderGreeting').innerText = `Hello, Ready to ride?`;
-      initDraggableSheet();
-    } else {
-      document.getElementById('bottomSheet').style.display = 'none';
-      document.getElementById('driverDash').style.display = 'block';
-      document.getElementById('dEarnings').innerText = `₹${currentUser.earnings || 0}`;
-      document.getElementById('dRides').innerText = currentUser.ridesCompleted || 0;
+    } catch(e) {
+      err.innerHTML='⚠️ '+e.message.replace('Firebase: Error (auth/','').replace(').','').replace(/-/g,' ');
+      err.style.display='block';
+      btn.innerHTML=S.mode==='login'?'Login to Account':'Create Account';btn.disabled=false;
     }
-  }
-
-  // ── 4. RIDER LOGIC (Fare & Booking) ──
-  function calculateFare() {
-    const drop = document.getElementById('dropLocation').value;
-    if(!drop) { alert("Please enter destination"); return; }
-    
-    // Simulate Distance Calculation (Haversine logic goes here in full app)
-    calculatedDist = (Math.random() * 5 + 2).toFixed(1); // 2 to 7 km mock
-    
-    // Calculate Rates (JDP Specs: Auto ₹12/km base 25, Cab ₹16/km base 50)
-    const fareAuto = Math.max(25, Math.round(calculatedDist * 12));
-    const fareCab = Math.max(50, Math.round(calculatedDist * 16));
-
-    document.getElementById('fareAuto').innerText = `₹${fareAuto}`;
-    document.getElementById('fareCab').innerText = `₹${fareCab}`;
-    document.getElementById('etaAuto').innerText = `~${Math.ceil(calculatedDist * 2)} min`;
-    document.getElementById('etaCab').innerText = `~${Math.ceil(calculatedDist * 2.5)} min`;
-
-    document.getElementById('rideOptionsList').style.display = 'flex';
-    
-    const btn = document.getElementById('bookBtn');
-    btn.innerText = `Confirm ${selectedRideType} Booking`;
-    btn.onclick = confirmBooking;
-  }
-
-  function selectRideType(type) {
-    selectedRideType = type;
-    const cards = document.querySelectorAll('.ride-card');
-    cards[0].className = `ride-card ${type === 'Auto' ? 'active' : ''}`;
-    cards[1].className = `ride-card ${type === 'Cab' ? 'active' : ''}`;
-    document.getElementById('bookBtn').innerText = `Confirm ${type} Booking`;
-  }
-
-  async function confirmBooking() {
-    const drop = document.getElementById('dropLocation').value;
-    document.getElementById('bookBtn').innerText = 'Finding Driver...';
-    
-    // Create Ride in Firestore
+  },
+  async onLogin(user) {
     try {
-      await window.FB.addDoc(window.FB.collection(window.FB.db, 'rides'), {
-        riderId: currentUser.uid,
-        pickupLat: myLat, pickupLng: myLng,
-        drop: drop,
-        cabType: selectedRideType,
-        fare: selectedRideType === 'Auto' ? (calculatedDist*12) : (calculatedDist*16),
-        status: 'finding',
-        timestamp: new Date()
-      });
-      alert(`Booking Request Sent! Searching for nearby ${selectedRideType}s.`);
-      // Reset sheet
-      currentSnap = 60; document.getElementById('bottomSheet').style.transform = `translateY(${currentSnap}%)`;
-      document.getElementById('bookBtn').innerText = 'Calculate Fare';
-      document.getElementById('bookBtn').onclick = calculateFare;
-      document.getElementById('rideOptionsList').style.display = 'none';
-    } catch(e) { alert("Booking failed. Check network."); }
-  }
+      const snap=await window.FB.getDoc(window.FB.doc(window.FB.db,'users',user.uid));
+      if(!snap.exists())return;
+      S.user={uid:user.uid,...snap.data()};
+      document.getElementById('authScreen').classList.remove('active');
+      document.getElementById('mapScreen').classList.add('active');
+      document.getElementById('mName').innerText=S.user.name||'User';
+      document.getElementById('mEmail').innerText=S.user.email||'';
+      document.getElementById('walBal').innerText=S.user.wallet||0;
+      document.getElementById('greetSub').innerText='Hi '+(S.user.name||'there')+' 👋';
+      setTimeout(()=>{initMap();},300);
+      if(S.user.role==='driver') {
+        document.getElementById('driverDash').style.display='flex';
+        document.getElementById('riderSheet').style.display='none';
+        document.getElementById('dEarn').innerText='₹'+(S.user.earnings||0);
+        document.getElementById('dTrips').innerText=S.user.ridesCompleted||0;
+        document.getElementById('dRat').innerText=(S.user.rating||5.0).toFixed(1);
+        document.getElementById('myLocBtn').style.bottom='360px';
+        initDrvDrag();
+        this.listenRides();
+      } else {
+        document.getElementById('riderSheet').style.display='flex';
+        document.getElementById('driverDash').style.display='none';
+        document.getElementById('myLocBtn').style.bottom='330px';
+        initRdrDrag();
+      }
+    } catch(e){console.error(e);}
+  },
+  onLogout() {
+    S.user=null;
+    document.getElementById('mapScreen').classList.remove('active');
+    document.getElementById('authScreen').classList.add('active');
+    document.getElementById('authBtn').innerHTML='Login to Account';
+    document.getElementById('authBtn').disabled=false;
+    document.getElementById('eml').value='';document.getElementById('pwd').value='';
+  },
+  logout() { this.closeMenu(); if(window.FB) window.FB.signOut(window.FB.auth); },
 
-  // ── 5. DRIVER LOGIC ──
-  async function toggleOnlineStatus() {
-    isDriverOnline = !isDriverOnline;
-    const badge = document.getElementById('driverStatus');
-    const btn = document.getElementById('toggleOnlineBtn');
-    
-    if (isDriverOnline) {
-      badge.innerText = "ONLINE & LISTENING";
-      badge.className = "status-badge online";
-      btn.innerText = "Go Offline";
-      btn.style.background = "#ef4444"; // Red for offline
-      // Update DB
-      await window.FB.updateDoc(window.FB.doc(window.FB.db, 'users', currentUser.uid), { isOnline: true, lat: myLat, lng: myLng });
+  // ── MAP ──
+  centerMap() { if(map) map.setCenter([myLat,myLng]); },
+
+  // ── SEARCH ──
+  openSearch(t) {
+    S.searchTarget=t;
+    document.getElementById('searchOv').style.display='flex';
+    setTimeout(()=>{(t==='pickup'?document.getElementById('pickSearch'):document.getElementById('dropSearch')).focus();},80);
+  },
+  closeSearch() { document.getElementById('searchOv').style.display='none'; },
+  selPlace(name,lat,lng) {
+    if(S.searchTarget==='drop') {
+      S.dropName=name;S.dropLat=lat;S.dropLng=lng;
+      const el=document.getElementById('dropLbl');
+      el.innerText=name;el.style.color='var(--text)';el.style.fontWeight='600';
+      placeDropMark(lat,lng);
+      if(map) setTimeout(()=>map.fitBounds([[S.pickLat||myLat,S.pickLng||myLng],[lat,lng]],{padding:[90,90]}),300);
     } else {
-      badge.innerText = "OFFLINE";
-      badge.className = "status-badge";
-      btn.innerText = "Go Online";
-      btn.style.background = "var(--primary)";
-      await window.FB.updateDoc(window.FB.doc(window.FB.db, 'users', currentUser.uid), { isOnline: false });
+      S.pickName=name;S.pickLat=lat;S.pickLng=lng;
+      myLat=lat;myLng=lng;
+      document.getElementById('pickLbl').innerText=name;
+      placeMyMark();
+      if(map) map.setCenter([lat,lng]);
     }
-  }
+    this.closeSearch();
+    this.calcFare();
+  },
+  dest(name,lat,lng) { S.searchTarget='drop'; this.selPlace(name,lat,lng); },
+  swap() {
+    [S.pickName,S.dropName]=[S.dropName,S.pickName];
+    [S.pickLat,S.dropLat]=[S.dropLat,S.pickLat];
+    [S.pickLng,S.dropLng]=[S.dropLng,S.pickLng];
+    document.getElementById('pickLbl').innerText=S.pickName||'Tap to set';
+    const d=document.getElementById('dropLbl');
+    d.innerText=S.dropName||'Where are you going?';
+    d.style.color=S.dropName?'var(--text)':'var(--muted)';
+    d.style.fontWeight=S.dropName?'600':'400';
+    if(S.dropName)this.calcFare();
+  },
 
-  // ── 6. DRAGGABLE SHEET LOGIC ──
-  let currentSnap = 60; 
-  function initDraggableSheet() {
-    const sheet = document.getElementById('bottomSheet');
-    const handle = document.getElementById('dragHandle');
-    let startY = 0, isDragging = false;
-    
-    handle.addEventListener('touchstart', e => { startY = e.touches[0].clientY; isDragging = true; sheet.style.transition = 'none'; }, {passive: true});
-    handle.addEventListener('touchmove', e => {
-      if(!isDragging) return;
-      let newT = currentSnap + ((e.touches[0].clientY - startY) / window.innerHeight) * 100;
-      if(newT < 0) newT = 0; if(newT > 85) newT = 85;
-      sheet.style.transform = `translateY(${newT}%)`;
-    }, {passive: true});
-    handle.addEventListener('touchend', e => {
-      isDragging = false; sheet.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
-      const deltaY = e.changedTouches[0].clientY - startY;
-      if(deltaY < -30) currentSnap = 0; else if(deltaY > 30) currentSnap = currentSnap===0 ? 60 : 85;
-      sheet.style.transform = `translateY(${currentSnap}%)`;
-    });
+  // ── FARE ──
+  calcFare() {
+    if(!S.dropName){this.openSearch('drop');return;}
+    const dist=parseFloat(hvs(S.pickLat||myLat,S.pickLng||myLng,S.dropLat,S.dropLng));
+    S.dist=dist;
+    const surge=Math.random()>.68;const sm=surge?1.3:1;
+    document.getElementById('surgeBanner').style.display=surge?'flex':'none';
+    const fA=Math.max(25,Math.round(dist*12*sm));
+    const fC=Math.max(50,Math.round(dist*16*sm));
+    const fP=Math.max(80,Math.round(dist*22*sm));
+    const eA=Math.max(2,Math.ceil(dist*2.5));
+    const eC=Math.max(3,Math.ceil(dist*3));
+    const eP=Math.max(5,Math.ceil(dist*3.5));
+    document.getElementById('fAuto').innerText='₹'+fA;
+    document.getElementById('fCab').innerText='₹'+fC;
+    document.getElementById('fPrem').innerText='₹'+fP;
+    document.getElementById('etaAuto').innerText=eA+' min · '+dist+'km';
+    document.getElementById('etaCab').innerText=eC+' min · '+dist+'km';
+    document.getElementById('etaPrem').innerText=eP+' min · '+dist+'km';
+    document.getElementById('distLbl').innerText=dist+'km';
+    document.getElementById('rideOptions').style.display='block';
+    document.getElementById('bfoot').style.display='block';
+    document.getElementById('calcBtn').style.display='none';
+    this.selRide(S.ride);
+    const sh=document.getElementById('riderSheet');
+    sh.style.transform='translateY(0%)';rSnap=0;
+  },
+  selRide(t) {
+    S.ride=t;
+    ['Auto','Cab','Prem'].forEach(r=>{const c=document.getElementById('c'+r);if(c)c.className='rcard'+(r===t?' sel':'');});
+    const fId=t==='Auto'?'fAuto':t==='Cab'?'fCab':'fPrem';
+    const f=document.getElementById(fId).innerText;
+    document.getElementById('bookBtn').innerText='Confirm '+t+' · '+f;
+  },
+  setPay(m) {
+    S.pay=m;
+    ['Cash','Upi','Card','Wal'].forEach(x=>{const e=document.getElementById('pm'+x);if(e)e.className='pm'+(x.toLowerCase()===m||(x==='Upi'&&m==='upi')?'act':x.toLowerCase().startsWith(m.slice(0,3))?'act':'');});
+    // simpler
+    ['pmCash','pmUpi','pmCard','pmWal'].forEach(id=>{document.getElementById(id).className='pm';});
+    const map2={cash:'pmCash',upi:'pmUpi',card:'pmCard',wallet:'pmWal'};
+    if(map2[m])document.getElementById(map2[m]).className='pm act';
+  },
+  applyPromo() {
+    const code=document.getElementById('promoInp').value.trim().toUpperCase();
+    const saveEl=document.getElementById('promoSave');
+    if(code==='JDP10'){S.promo=true;S.promoAmt=10;saveEl.innerText='✓ −₹10 saved';saveEl.style.display='block';this.toast('🎉 Promo JDP10 applied! Save ₹10',3000);}
+    else if(code==='FIRST50'){S.promo=true;S.promoAmt=20;saveEl.innerText='✓ −₹20 saved';saveEl.style.display='block';this.toast('🎉 First ride promo applied!',3000);}
+    else{this.toast('❌ Invalid code. Try: JDP10 or FIRST50',3000);}
+  },
+
+  // ── BOOKING ──
+  async book() {
+    if(!S.dropName){this.toast('📍 Please enter a destination',3000);return;}
+    if(!S.user)return;
+    const btn=document.getElementById('bookBtn');
+    btn.innerHTML='<div class="spinner spinner-dark" style="margin:0 auto"></div>';btn.disabled=true;
+    const fId=S.ride==='Auto'?'fAuto':S.ride==='Cab'?'fCab':'fPrem';
+    let fare=parseInt(document.getElementById(fId).innerText.replace('₹',''));
+    if(S.promo&&S.promoAmt)fare=Math.max(10,fare-S.promoAmt);
+    try {
+      const ref=await window.FB.addDoc(window.FB.collection(window.FB.db,'rides'),{
+        riderId:S.user.uid,riderName:S.user.name||'Rider',
+        pickupName:S.pickName,pickupLat:S.pickLat||myLat,pickupLng:S.pickLng||myLng,
+        dropName:S.dropName,dropLat:S.dropLat,dropLng:S.dropLng,
+        cabType:S.ride,fare,distance:S.dist,paymentMethod:S.pay,
+        status:'finding',timestamp:new Date()
+      });
+      S.rideId=ref.id;
+      this.showFinding();
+      setTimeout(()=>this.driverFound(fare),4500);
+    } catch(e){this.toast('❌ Booking failed. Check network.',3000);btn.innerHTML='Confirm '+S.ride+' Booking';btn.disabled=false;}
+  },
+  showFinding() {
+    document.getElementById('riderSheet').style.display='none';
+    document.getElementById('findingOv').style.display='block';
+    document.getElementById('findType').innerText=S.ride;
+    document.getElementById('sosBtn').style.display='flex';
+    document.getElementById('myLocBtn').style.bottom='230px';
+  },
+  cancelSearch() {
+    document.getElementById('findingOv').style.display='none';
+    document.getElementById('riderSheet').style.display='flex';
+    document.getElementById('sosBtn').style.display='none';
+    document.getElementById('myLocBtn').style.bottom='330px';
+    document.getElementById('bookBtn').innerHTML='Confirm '+S.ride+' Booking';
+    document.getElementById('bookBtn').disabled=false;
+    if(S.rideId)window.FB.updateDoc(window.FB.doc(window.FB.db,'rides',S.rideId),{status:'cancelled'}).catch(()=>{});
+    this.toast('🚫 Search cancelled',2500);
+  },
+  driverFound(fare) {
+    document.getElementById('findingOv').style.display='none';
+    const panel=document.getElementById('ridePanel');panel.style.display='flex';
+    const names=['Rajesh Kumar','Suresh Baghel','Anil Thakur','Manoj Sori','Deepak Netam'];
+    const vehs=['CG17AA1234 · Swift Dzire','CG17BB5678 · Alto K10','CG17CC9012 · WagonR','CG17DD3456 · Baleno'];
+    const nm=names[Math.floor(Math.random()*names.length)];
+    const vh=vehs[Math.floor(Math.random()*vehs.length)];
+    const eta=Math.floor(Math.random()*4)+2;
+    document.getElementById('confDrv').innerText=nm;
+    document.getElementById('confVeh').innerText=vh;
+    document.getElementById('confETA').innerText=eta;
+    document.getElementById('confDist').innerText=S.dist;
+    document.getElementById('confFare').innerText='₹'+fare;
+    document.getElementById('confPick').innerText=S.pickName;
+    document.getElementById('confDropLbl').innerText=S.dropName;
+    document.getElementById('confPay').innerText=S.pay.toUpperCase();
+    const dLat=(S.pickLat||myLat)+(Math.random()-.5)*.012;
+    const dLng=(S.pickLng||myLng)+(Math.random()-.5)*.012;
+    placeDrvMark(dLat,dLng);
+    this.toast('🚖 Driver found! '+nm+' is on the way',4000);
+    setTimeout(()=>this.showRating(fare),14000);
+  },
+  cancelRide() {
+    if(!confirm('Cancel this ride?'))return;
+    document.getElementById('ridePanel').style.display='none';
+    document.getElementById('riderSheet').style.display='flex';
+    document.getElementById('sosBtn').style.display='none';
+    document.getElementById('myLocBtn').style.bottom='330px';
+    document.getElementById('bookBtn').innerHTML='Confirm '+S.ride+' Booking';
+    document.getElementById('bookBtn').disabled=false;
+    if(drvMark){drvMark.remove();drvMark=null;}
+    if(S.rideId)window.FB.updateDoc(window.FB.doc(window.FB.db,'rides',S.rideId),{status:'cancelled'}).catch(()=>{});
+    this.toast('🚫 Ride cancelled',2500);
+  },
+  showRating(fare) {
+    document.getElementById('ridePanel').style.display='none';
+    document.getElementById('sosBtn').style.display='none';
+    document.getElementById('ratingOv').style.display='flex';
+    document.getElementById('rDist').innerText=S.dist+'km';
+    document.getElementById('rBase').innerText='₹'+Math.round(fare*.78);
+    document.getElementById('rPay').innerText=S.pay.toUpperCase();
+    document.getElementById('rTotal').innerText='₹'+fare;
+    document.querySelectorAll('.star').forEach(s=>s.className='star');
+    S.rating=0;
+  },
+  setRat(n) {
+    S.rating=n;
+    document.querySelectorAll('.star').forEach((s,i)=>s.className='star'+(i<n?' lit':''));
+  },
+  async submitRat() {
+    if(!S.rating){this.toast('⭐ Please rate your driver',2000);return;}
+    if(S.rideId){
+      try{await window.FB.updateDoc(window.FB.doc(window.FB.db,'rides',S.rideId),{status:'completed',rating:S.rating,completedAt:new Date()});}catch(e){}
+    }
+    document.getElementById('ratingOv').style.display='none';
+    document.getElementById('riderSheet').style.display='flex';
+    document.getElementById('rideOptions').style.display='none';
+    document.getElementById('bfoot').style.display='none';
+    document.getElementById('myLocBtn').style.bottom='330px';
+    const d=document.getElementById('dropLbl');d.innerText='Where are you going?';d.style.color='var(--muted)';d.style.fontWeight='400';
+    document.getElementById('bookBtn').innerHTML='Confirm Auto Booking';document.getElementById('bookBtn').disabled=false;
+    S.dropName='';S.rideId=null;S.promo=false;S.promoAmt=0;
+    document.getElementById('promoSave').style.display='none';
+    if(drvMark){drvMark.remove();drvMark=null;}
+    if(dropMark){dropMark.remove();dropMark=null;}
+    rSnap=60;document.getElementById('riderSheet').style.transform='translateY(60%)';
+    this.toast('🙏 Thanks for your feedback! Enjoy.',3000);
+  },
+
+  // ── DRIVER ──
+  async toggleOnline() {
+    S.online=!S.online;
+    const badge=document.getElementById('dBadge'),btn=document.getElementById('onlineBtn');
+    if(S.online){
+      badge.className='badge b-green';badge.innerHTML='<span class="pulse">●</span> ONLINE';
+      btn.className='btn btn-danger btn-sm';btn.innerText='Go Offline';
+      if(S.user)await window.FB.updateDoc(window.FB.doc(window.FB.db,'users',S.user.uid),{isOnline:true,lat:myLat,lng:myLng}).catch(()=>{});
+      this.toast('✅ Online! Listening for ride requests...',3000);
+      setTimeout(()=>{if(S.online)this.simIncoming();},7000);
+    } else {
+      badge.className='badge b-red';badge.innerHTML='<span class="pulse">●</span> OFFLINE';
+      btn.className='btn btn-success btn-sm';btn.innerText='Go Online';
+      document.getElementById('incCard').style.display='none';
+      if(S.user)await window.FB.updateDoc(window.FB.doc(window.FB.db,'users',S.user.uid),{isOnline:false}).catch(()=>{});
+      this.toast('⛔ Gone offline',2000);
+    }
+  },
+  simIncoming() {
+    const picks=['Bus Stand','Railway Station','City Market','Lal Bagh','Dimhans Gate'];
+    const drops=['DIMHANS Hospital','Bastar Palace','Airport','Kondagaon','ITI College'];
+    const types=['Auto','Cab','Premium'];
+    const card=document.getElementById('incCard');
+    const pick=picks[Math.floor(Math.random()*picks.length)];
+    const drop=drops[Math.floor(Math.random()*drops.length)];
+    const type=types[Math.floor(Math.random()*types.length)];
+    const dist=(Math.random()*5+1.2).toFixed(1);
+    const fare=type==='Auto'?Math.max(25,Math.round(dist*12)):type==='Cab'?Math.max(50,Math.round(dist*16)):Math.max(80,Math.round(dist*22));
+    const eta=Math.ceil(dist*2.5);
+    document.getElementById('incPick').innerText=pick+', Jagdalpur';
+    document.getElementById('incDrop').innerText=drop;
+    document.getElementById('incType').innerText=type;
+    document.getElementById('incFare').innerText='₹'+fare;
+    document.getElementById('incDist').innerText=dist+'km';
+    document.getElementById('incETA').innerText=eta+'m';
+    card.style.display='block';
+    document.getElementById('driverDash').style.transform='translateY(0%)';dSnap=0;
+    const fill=document.getElementById('tfill');
+    fill.style.transition='none';fill.style.width='100%';
+    setTimeout(()=>{fill.style.transition='width 15s linear';fill.style.width='0%';},60);
+    setTimeout(()=>{if(card.style.display!=='none'){card.style.display='none';this.toast('⏰ Ride request expired',2000);}},15500);
+    this.toast('🔔 New ride request!',3000);
+  },
+  listenRides() {
+    if(!window.FB)return;
+    try {
+      const q=window.FB.query(window.FB.collection(window.FB.db,'rides'),window.FB.where('status','==','finding'));
+      window.FB.onSnapshot(q,(snap)=>{
+        snap.docChanges().forEach(ch=>{
+          if(ch.type==='added'&&S.online&&S.user&&ch.doc.data().riderId!==S.user.uid){
+            const r=ch.doc.data();
+            document.getElementById('incPick').innerText=r.pickupName||'...';
+            document.getElementById('incDrop').innerText=r.dropName||'...';
+            document.getElementById('incType').innerText=r.cabType||'Auto';
+            document.getElementById('incFare').innerText='₹'+(r.fare||'--');
+            document.getElementById('incDist').innerText=(r.distance||'--')+'km';
+            document.getElementById('incETA').innerText=Math.ceil((r.distance||3)*2.5)+'m';
+            document.getElementById('incCard').dataset.rideId=ch.doc.id;
+            document.getElementById('incCard').style.display='block';
+          }
+        });
+      });
+    } catch(e){}
+  },
+  acceptRide() {
+    const card=document.getElementById('incCard');card.style.display='none';
+    const addFare=parseInt(document.getElementById('incFare').innerText.replace('₹',''))||0;
+    S.user.earnings=(S.user.earnings||0)+addFare;
+    S.user.ridesCompleted=(S.user.ridesCompleted||0)+1;
+    document.getElementById('dEarn').innerText='₹'+S.user.earnings;
+    document.getElementById('dTrips').innerText=S.user.ridesCompleted;
+    if(S.user)window.FB.updateDoc(window.FB.doc(window.FB.db,'users',S.user.uid),{earnings:S.user.earnings,ridesCompleted:S.user.ridesCompleted}).catch(()=>{});
+    this.toast('✅ Ride accepted! Navigate to pickup.',3500);
+    document.getElementById('driverDash').style.transform='translateY(60%)';dSnap=60;
+  },
+  rejectRide() { document.getElementById('incCard').style.display='none';this.toast('🚫 Ride declined',2000); },
+
+  // ── SOS ──
+  sos() {
+    this.toast('🆘 SOS! Alerting emergency contacts + 112',5000);
+    if(navigator.vibrate)navigator.vibrate([200,100,200,100,200,100,300]);
+  },
+  callDriver() { this.toast('📞 Calling driver... (Demo mode)',3000); },
+  shareRide() {
+    const txt=`I'm riding with JDP CABS from ${S.pickName} to ${S.dropName}. Stay safe! 🚖`;
+    if(navigator.share)navigator.share({title:'JDP CABS Ride',text:txt});
+    else{navigator.clipboard.writeText(txt).catch(()=>{});this.toast('📋 Ride info copied!',2500);}
+  },
+
+  // ── MENU ──
+  openMenu() { document.getElementById('sideMenu').style.display='block';setTimeout(()=>document.getElementById('sPanel').classList.add('open'),10); },
+  closeMenu() { document.getElementById('sPanel').classList.remove('open');setTimeout(()=>document.getElementById('sideMenu').style.display='none',380); },
+
+  // ── HISTORY ──
+  async showHistory() {
+    this.closeMenu();
+    document.getElementById('historyOv').style.display='flex';
+    const list=document.getElementById('histList');
+    list.innerHTML='<div style="text-align:center;padding:50px;color:var(--muted)"><div class="spinner"></div></div>';
+    try {
+      const q=window.FB.query(window.FB.collection(window.FB.db,'rides'),window.FB.where('riderId','==',S.user.uid));
+      const snap=await window.FB.getDocs(q);
+      if(snap.empty){list.innerHTML='<div style="text-align:center;padding:60px;color:var(--muted);line-height:2">🚖<br>No rides yet.<br>Book your first ride!</div>';return;}
+      let h='';
+      const docs=[...snap.docs].reverse();
+      docs.forEach(d=>{
+        const r=d.data();
+        const date=r.timestamp?.toDate?.()?.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})||'N/A';
+        const sc=r.status==='completed'?'b-green':r.status==='cancelled'?'b-red':'b-amber';
+        const ico=r.cabType==='Auto'?'🛺':r.cabType==='Premium'?'🚙':'🚕';
+        h+=`<div class="hi"><div class="hi-t"><div style="display:flex;align-items:center;gap:9px"><span style="font-size:18px">${ico}</span><div><div style="font-weight:700;font-size:14px">${r.cabType||'Ride'}</div><div class="hi-date">${date}</div></div></div><div class="badge ${sc}">${r.status||'completed'}</div></div><div class="h-route"><div class="hr"><span style="color:var(--primary)">●</span>${r.pickupName||'Pickup'}</div><div class="hr"><span style="color:var(--amber)">●</span>${r.dropName||'Drop'}</div></div><div class="hi-b"><div class="hi-fare">₹${r.fare||'--'}</div><div>${r.rating?'⭐'.repeat(r.rating):'·'}</div></div></div>`;
+      });
+      list.innerHTML=h;
+    } catch(e){list.innerHTML='<div style="text-align:center;padding:40px;color:var(--red)">⚠️ Could not load history</div>';}
+  },
+  closeHistory() { document.getElementById('historyOv').style.display='none'; },
+
+  // ── SCHEDULE ──
+  showSched() {
+    document.getElementById('schedDate').value=new Date().toISOString().split('T')[0];
+    document.getElementById('schedTime').value='10:00';
+    document.getElementById('schedOv').style.display='flex';
+  },
+  closeSched() { document.getElementById('schedOv').style.display='none'; },
+  confirmSched() {
+    const dt=document.getElementById('schedDate').value;
+    const tm=document.getElementById('schedTime').value;
+    const dp=document.getElementById('schedDrop').value;
+    if(!dt||!tm){this.toast('⚠️ Pick date & time',2000);return;}
+    this.closeSched();
+    this.toast(`📅 Scheduled! ${dp?'To: '+dp+' · ':''} ${dt} at ${tm}`,4000);
+  },
+
+  // ── TOAST ──
+  _tt: null,
+  toast(msg,dur=3000) {
+    clearTimeout(this._tt);
+    const el=document.getElementById('toast');
+    document.getElementById('t-txt').innerText=msg;
+    el.style.display='flex';
+    this._tt=setTimeout(()=>{el.style.display='none';},dur);
   }
+};
+
+// ═══ DRAG — RIDER SHEET ═══
+let rSnap=60;
+function initRdrDrag() {
+  const sh=document.getElementById('riderSheet');
+  const h=document.getElementById('dhRider');
+  let sy=0,drag=false;
+  h.addEventListener('touchstart',e=>{sy=e.touches[0].clientY;drag=true;sh.style.transition='none';},{passive:true});
+  h.addEventListener('touchmove',e=>{
+    if(!drag)return;
+    let t=rSnap+((e.touches[0].clientY-sy)/window.innerHeight)*100;
+    t=Math.max(0,Math.min(82,t));sh.style.transform=`translateY(${t}%)`;
+  },{passive:true});
+  h.addEventListener('touchend',e=>{
+    drag=false;sh.style.transition='transform .38s cubic-bezier(.22,1,.36,1)';
+    const dy=e.changedTouches[0].clientY-sy;
+    if(dy<-35)rSnap=0;else if(dy>35)rSnap=rSnap===0?62:82;
+    sh.style.transform=`translateY(${rSnap}%)`;
+  });
+}
+
+// ═══ DRAG — DRIVER SHEET ═══
+let dSnap=22;
+function initDrvDrag() {
+  const sh=document.getElementById('driverDash');
+  const h=document.getElementById('dhDriver');
+  let sy=0,drag=false;
+  h.addEventListener('touchstart',e=>{sy=e.touches[0].clientY;drag=true;sh.style.transition='none';},{passive:true});
+  h.addEventListener('touchmove',e=>{
+    if(!drag)return;
+    let t=dSnap+((e.touches[0].clientY-sy)/window.innerHeight)*100;
+    t=Math.max(0,Math.min(82,t));sh.style.transform=`translateY(${t}%)`;
+  },{passive:true});
+  h.addEventListener('touchend',e=>{
+    drag=false;sh.style.transition='transform .38s cubic-bezier(.22,1,.36,1)';
+    const dy=e.changedTouches[0].clientY-sy;
+    if(dy<-35)dSnap=0;else if(dy>35)dSnap=dSnap===0?60:82;
+    sh.style.transform=`translateY(${dSnap}%)`;
+  });
+}
 </script>
 </body>
 </html>
