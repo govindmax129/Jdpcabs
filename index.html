@@ -101,7 +101,7 @@ body.lm{--bg:#f0f4fb;--card:#fff;--card2:#e8eef8;--border:#c8d4e4;--text:#0c1929
 body{font-family:'DM Sans',sans-serif;background:#0a0e16;color:var(--text);height:100vh;overflow:hidden;}
 
 /* ══ MAP ══ */
-#map{position:fixed;inset:0;z-index:1;width:100vw;height:100vh;background:#1a2535;
+#map{position:fixed;inset:0;z-index:1;width:100vw;height:100vh;background:#e8ecf0;
   will-change:transform;
   transform:translateZ(0);
   -webkit-transform:translateZ(0);}
@@ -112,11 +112,12 @@ body{font-family:'DM Sans',sans-serif;background:#0a0e16;color:var(--text);heigh
 .leaflet-control-attribution,.mappls-ctrl-attrib-container{
   font-size:7px!important;opacity:.15!important;bottom:2px!important;right:4px!important;}
 .leaflet-popup-content-wrapper,.mappls-popup-content-wrapper{
-  background:rgba(10,14,22,.97)!important;color:white!important;
-  border:1px solid rgba(255,255,255,.1)!important;border-radius:16px!important;
-  font-family:'DM Sans',sans-serif!important;box-shadow:0 12px 40px rgba(0,0,0,.7)!important;}
-.leaflet-popup-tip,.mappls-popup-tip{background:rgba(10,14,22,.97)!important;}
-.leaflet-popup-content,.mappls-popup-content{margin:12px 15px!important;font-size:.83rem!important;}
+  background:rgba(255,255,255,.97)!important;color:#0c1929!important;
+  border:none!important;border-radius:18px!important;
+  font-family:'DM Sans',sans-serif!important;
+  box-shadow:0 8px 32px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.12)!important;}
+.leaflet-popup-tip,.mappls-popup-tip{background:rgba(255,255,255,.97)!important;}
+.leaflet-popup-content,.mappls-popup-content{margin:10px 14px!important;font-size:.82rem!important;color:#0c1929!important;}
 
 /* ✅ GPU-accelerated tile layer */
 .leaflet-tile-container,.leaflet-map-pane{will-change:transform;transform:translateZ(0);}
@@ -574,6 +575,11 @@ body.lm .dcard{background:#fff;}
 .otp{background:var(--card2);padding:8px 11px;border-radius:10px;border:1px solid var(--border);text-align:center;min-width:65px;}
 .star-row{display:flex;align-items:center;gap:3px;}
 .star{color:var(--yellow);font-size:.8rem;}
+
+/* ══ LIVE FARE METER ══ */
+@keyframes farePulse{0%,100%{opacity:1}50%{opacity:.7}}
+#liveFareMeter{animation:none;}
+#liveFareMeter.running #liveFareAmount{animation:farePulse 2s infinite;}
 
 /* ══ LIVE BADGE ══ */
 .lbadge{display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:9px;margin-bottom:11px;font-size:.76rem;font-weight:600;}
@@ -1286,7 +1292,29 @@ body.lm .fare-row{border-color:rgba(0,0,0,.06);}
 
     <div class="lbadge b" style="margin-top:9px"><div class="lbd"></div><span id="driverTrackText">🚗 Tracking driver on map...</span></div>
     <div class="lbadge g"><div class="lbd"></div><span id="driverDistText">Calculating distance...</span></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+
+    <!-- ⚡ LIVE FARE METER — Uber/Ola style, shows during ongoing ride -->
+    <div id="liveFareMeter" style="display:none;background:linear-gradient(135deg,rgba(16,185,129,.12),rgba(16,185,129,.05));border:1.5px solid rgba(16,185,129,.3);border-radius:16px;padding:14px 15px;margin-top:10px;position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;right:0;background:rgba(16,185,129,.15);width:60px;height:60px;border-radius:50%;transform:translate(20px,-20px)"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div>
+          <div style="font-size:.52rem;color:rgba(16,185,129,.8);font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">⚡ Live Fare Meter</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.8rem;color:#10b981;letter-spacing:-.02em" id="liveFareAmount">₹--</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:.58rem;color:var(--muted);font-weight:700">RIDE TIME</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:.92rem;color:var(--text)" id="liveFareTime">0 min 0s</div>
+          <div style="font-size:.56rem;color:var(--muted);margin-top:2px">Running meter</div>
+        </div>
+      </div>
+      <!-- Progress bar -->
+      <div style="height:4px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;margin-top:4px">
+        <div id="liveFareBar" style="height:100%;width:0%;background:#10b981;border-radius:99px;transition:width .8s ease,background .5s"></div>
+      </div>
+      <div style="font-size:.58rem;color:var(--muted);margin-top:5px;text-align:center">Estimated fare — final amount may vary</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px">
       <button class="mbtn g" style="margin-top:0" onclick="locateMe()">📍 My Location</button>
       <button class="mbtn ro" style="margin-top:0" onclick="cancelRide()">Cancel Ride</button>
     </div>
@@ -1762,6 +1790,28 @@ const JAGDALPUR_LANDMARKS = [
   { name:'Ram Mandir Jagdalpur',         lat:19.0778, lng:82.0118, icon:'🛕', info:'Ram Mandir Colony', cat:'temple' },
   { name:'Durga Mandir',                 lat:19.0745, lng:82.0183, icon:'🛕', info:'Durga Mata Mandir', cat:'temple' },
 
+  // ══ 15KM OUTER ZONE LANDMARKS ══ (surrounding Jagdalpur)
+  { name:'Darbha',                        lat:19.1800, lng:81.9300, icon:'🏘️', info:'Darbha Town ~25km', cat:'area' },
+  { name:'Tokapal',                       lat:19.1500, lng:82.0500, icon:'🏘️', info:'Tokapal Village ~10km', cat:'area' },
+  { name:'Narayanpur Road Crossing',      lat:19.1200, lng:82.0000, icon:'🛣️', info:'NH Crossing, North', cat:'road' },
+  { name:'Bacheli Road Jagdalpur',        lat:19.0500, lng:82.1000, icon:'🛣️', info:'Road to Bacheli ~20km', cat:'road' },
+  { name:'Kondagaon Road Jagdalpur',      lat:19.0200, lng:81.9700, icon:'🛣️', info:'Road toward Kondagaon', cat:'road' },
+  { name:'Lohandiguda',                   lat:19.0600, lng:81.9200, icon:'🏘️', info:'Lohandiguda Town ~8km', cat:'area' },
+  { name:'Mudpar Village',                lat:19.0900, lng:82.0800, icon:'🏘️', info:'Mudpar ~8km east', cat:'area' },
+  { name:'Kanger Ghati Check Post',       lat:19.0300, lng:81.9300, icon:'🧳', info:'Kanger Valley Entry Gate ~9km', cat:'tourism' },
+  { name:'Tiratgarh Waterfall',           lat:19.1000, lng:81.9600, icon:'💧', info:'Tiratgarh Falls ~15km', cat:'tourism' },
+  { name:'Mendri Ghumar Falls',           lat:19.1200, lng:81.9400, icon:'💧', info:'Mendri Ghumar ~12km', cat:'tourism' },
+  { name:'Kailash Cave Jagdalpur',        lat:19.0400, lng:81.9500, icon:'🪪', info:'Kailash Cave ~10km', cat:'tourism' },
+  { name:'Kutumsar Cave',                 lat:19.0350, lng:81.9400, icon:'🪪', info:'Kutumsar Cave, Kanger ~12km', cat:'tourism' },
+  { name:'Bastar College Ground',         lat:19.0820, lng:82.0030, icon:'⚽', info:'Sports Ground, College Area', cat:'area' },
+  { name:'New Jagdalpur Township',        lat:19.0900, lng:82.0200, icon:'🏘️', info:'New Township area', cat:'area' },
+  { name:'CRPF Camp Jagdalpur',           lat:19.0650, lng:82.0450, icon:'🛡️', info:'CRPF Campus', cat:'govt' },
+  { name:'BSF Camp Jagdalpur',            lat:19.0550, lng:82.0500, icon:'🛡️', info:'BSF Campus, Airport area', cat:'govt' },
+  { name:'Forest Rest House Kanger',      lat:19.0420, lng:81.9600, icon:'🏡', info:'Forest Rest House', cat:'hotel' },
+  { name:'Jagdalpur Stadium',             lat:19.0820, lng:82.0020, icon:'🏟️', info:'Sports Stadium', cat:'area' },
+  { name:'River Indravati Bridge',        lat:19.0500, lng:82.0700, icon:'🌉', info:'Indravati River Bridge ~7km', cat:'landmark' },
+  { name:'Kanger River Point',            lat:19.0600, lng:81.9700, icon:'🏙️', info:'Kanger River Spot', cat:'tourism' },
+
   // ══ HOTELS & RESTAURANTS ══
   { name:'Hotel Bastar Residency',       lat:19.0756, lng:82.0162, icon:'🏨', info:'Hotel near City Center', cat:'hotel' },
   { name:'Hotel Panchvati',              lat:19.0758, lng:82.0158, icon:'🏨', info:'Panchvati Hotel Jagdalpur', cat:'hotel' },
@@ -1916,6 +1966,62 @@ function playDriverAssigned() {
   _assignedMusicInterval = setInterval(playOnce, 1400);
   _assignedMusicTimeout  = setTimeout(stopDriverMusic, 30000);
 }
+
+// ===================================================
+// ⚡ LIVE FARE METER — Uber/Ola style running fare counter
+// Shows real-time fare deduction during ongoing ride
+// ===================================================
+let _liveMeterInterval = null;
+let _liveMeterStartFare = 0;
+let _liveMeterStartKm = 0;
+let _liveMeterStartTime = 0;
+const RATE_PER_KM_AUTO = 12;  // Rs per km for Auto
+const RATE_PER_KM_CAB  = 16;  // Rs per km for Mini Cab
+const RATE_PER_MIN     = 0.5; // Rs per minute waiting charge
+const BASE_FARE_AUTO   = 20;  // Rs base fare Auto
+const BASE_FARE_CAB    = 40;  // Rs base fare Cab
+
+function startLiveFareMeter(baseFare, cabTypeStr) {
+  stopLiveFareMeter();
+  _liveMeterStartFare = baseFare || 25;
+  _liveMeterStartKm   = distKM || 1;
+  _liveMeterStartTime = Date.now();
+  const rateKm = (cabTypeStr && cabTypeStr.toLowerCase().includes('mini')) ? RATE_PER_KM_CAB : RATE_PER_KM_AUTO;
+
+  // Show meter UI
+  const meterEl = document.getElementById('liveFareMeter');
+  if (meterEl) meterEl.style.display = 'block';
+
+  let elapsed = 0;
+  _liveMeterInterval = setInterval(() => {
+    elapsed = (Date.now() - _liveMeterStartTime) / 1000; // seconds
+    const elapsedMin = elapsed / 60;
+    // Simulate fare increase: base + per km portion + time charge
+    const extraKmCharge = Math.max(0, (myLat && pickLat) ?
+      Math.max(0, distKmCalc(myLat, myLng, dropLat || JDPC.lat, dropLng || JDPC.lng) - _liveMeterStartKm * 0.3) * rateKm : 0);
+    const timeCharge = elapsedMin * RATE_PER_MIN;
+    const currentFare = Math.round(_liveMeterStartFare + extraKmCharge + timeCharge);
+
+    // Update display
+    const fareDispEl = document.getElementById('liveFareAmount');
+    const fareTimeEl = document.getElementById('liveFareTime');
+    const fareBarEl  = document.getElementById('liveFareBar');
+    if (fareDispEl) fareDispEl.textContent = '₹' + currentFare;
+    if (fareTimeEl) fareTimeEl.textContent = Math.floor(elapsedMin) + ' min ' + Math.floor(elapsed % 60) + 's';
+    if (fareBarEl) {
+      const pct = Math.min(100, (currentFare / (_liveMeterStartFare * 1.6)) * 100);
+      fareBarEl.style.width = pct + '%';
+      fareBarEl.style.background = pct > 85 ? '#ef4444' : pct > 60 ? '#f59e0b' : '#10b981';
+    }
+  }, 1000);
+}
+
+function stopLiveFareMeter() {
+  if (_liveMeterInterval) { clearInterval(_liveMeterInterval); _liveMeterInterval = null; }
+  const meterEl = document.getElementById('liveFareMeter');
+  if (meterEl) meterEl.style.display = 'none';
+}
+
 function playNewRide() {
   // Urgent ding-ding-ding for driver
   playTone(880, 0,   0.12, 'triangle', 0.4);
@@ -2411,13 +2517,15 @@ function initMap() {
     // ✅ Mappls v3 — India's most powerful vector map
     leafMap = new mappls.Map('map', {
       center: { lat: JDPC.lat, lng: JDPC.lng },
-      zoom: 15,
+      zoom: 13,          // Zoom 13 = shows full Jagdalpur 15km service zone
+      minZoom: 11,
+      maxZoom: 19,
       zoomControl: false,
       clickableIcons: true,
       fullscreenControl: false,
       search: false,
       indoor: false,
-      traffic: true     // ✅ Live traffic layer — Mappls exclusive India data
+      traffic: true,     // Live traffic layer — Mappls India data
     });
 
     // ✅ On full load — draw city markers & auto-detect GPS
@@ -2553,31 +2661,31 @@ function drawCityZones() {
   if (!leafMap) return;
   clearZones();
 
-  // ✅ Outer area — Yellow (15km)
+  // Outer service area — 15km (subtle dashed ring like Apple Maps)
   const outerZone = new mappls.Circle({
     map: leafMap,
     center: { lat: JDPC.lat, lng: JDPC.lng },
     radius: ZONE_OUTER * 1000,
-    strokeColor: '#f59e0b', strokeWeight: 1.5, strokeOpacity: 0.3,
-    fillColor: '#f59e0b', fillOpacity: 0.03
+    strokeColor: '#f59e0b', strokeWeight: 2, strokeOpacity: 0.45,
+    fillColor: '#f59e0b', fillOpacity: 0.04
   });
 
-  // ✅ City zone — Blue (8km)
+  // City main zone — 8km (blue, main service)
   const cityZone = new mappls.Circle({
     map: leafMap,
     center: { lat: JDPC.lat, lng: JDPC.lng },
     radius: ZONE_CITY * 1000,
-    strokeColor: '#3b82f6', strokeWeight: 2, strokeOpacity: 0.5,
-    fillColor: '#3b82f6', fillOpacity: 0.04
+    strokeColor: '#3b82f6', strokeWeight: 2.5, strokeOpacity: 0.6,
+    fillColor: '#3b82f6', fillOpacity: 0.05
   });
 
-  // ✅ City core — Green (3km)
+  // City core — 3km (green, fastest pickup zone)
   const coreZone = new mappls.Circle({
     map: leafMap,
     center: { lat: JDPC.lat, lng: JDPC.lng },
     radius: ZONE_CORE * 1000,
-    strokeColor: '#10b981', strokeWeight: 2, strokeOpacity: 0.65,
-    fillColor: '#10b981', fillOpacity: 0.06
+    strokeColor: '#10b981', strokeWeight: 3, strokeOpacity: 0.7,
+    fillColor: '#10b981', fillOpacity: 0.08
   });
 
   // ✅ Center dot — Jagdalpur hub marker
@@ -2668,7 +2776,22 @@ function renderVisibleLandmarks() {
         const mk = new mappls.Marker({
           map: leafMap,
           position: { lat: place.lat, lng: place.lng },
-          html: `<div style="background:rgba(10,14,22,.9);border:1.5px solid rgba(255,255,255,.15);border-radius:8px;padding:3px 5px;font-size:13px;transform:translate(-14px,-14px);white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.5)">${place.icon}</div>`,
+          html: (() => {
+            const catColors = {
+              hospital:'#ef4444', education:'#3b82f6', temple:'#f59e0b',
+              transport:'#8b5cf6', market:'#10b981', govt:'#6366f1',
+              hotel:'#f97316', bank:'#0ea5e9', fuel:'#84cc16',
+              tourism:'#ec4899', area:'#64748b', road:'#94a3b8'
+            };
+            const c = catColors[place.cat] || '#f59e0b';
+            return `<div style="display:flex;flex-direction:column;align-items:center;transform:translate(-12px,-38px)">
+              <div style="background:white;border:2.5px solid ${c};border-radius:12px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.25);position:relative;">
+                ${place.icon}
+                <div style="position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid ${c}"></div>
+              </div>
+              <div style="background:white;color:#0c1929;font-size:9px;font-weight:800;padding:2px 5px;border-radius:5px;margin-top:3px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.15);max-width:70px;overflow:hidden;text-overflow:ellipsis">${place.name.split(' ')[0]}</div>
+            </div>`;
+          })(),
           popupHtml: ('<b>'+place.icon+' '+place.name+'</b><br><small style="color:#aaa">'+place.info+'</small><br><button onclick="setDropFromMap('+place.lat+','+place.lng+',\''+place.name.replace(/'/g,'').replace(/"/g,'')+'\');" style="background:#f59e0b;border:none;color:#000;padding:4px 10px;border-radius:6px;font-size:.72rem;font-weight:800;margin-top:6px;cursor:pointer;width:100%">🚗 Drop Point Set</button>')
         });
         landmarkMarkers[i] = mk;
@@ -4052,20 +4175,24 @@ function selRide(el,type,vk) {
 
 // SMART BOOKING with full validation
 async function confirmBook() {
-  // Validation checks
+  // === FULL VALIDATION ===
   if (!window.CU) {
-    toast('Login karo pehle booking ke liye');
+    toast('❌ Login karo pehle booking ke liye');
     document.getElementById('auth').style.display = 'flex';
     return;
   }
-  const dropVal = document.getElementById('dropIn').value.trim();
+  const dropVal = document.getElementById('dropIn')?.value?.trim() || '';
   if (!dropVal) {
-    toast('Drop location enter karo pehle');
-    document.getElementById('dropIn').focus();
+    toast('?? Drop location enter karo pehle');
+    document.getElementById('dropIn')?.focus();
     return;
   }
   if (!cabFare || cabFare <= 0) {
-    toast('Pehle fare calculate karo — Find Fare dabao');
+    toast('⚠️ Pehle "Find Ride" button dabao fare ke liye');
+    return;
+  }
+  if (!window.FB_READY) {
+    toast('⚠️ Internet check karo — Firebase connect nahi hua');
     return;
   }
   goScr('sFind');
@@ -4096,7 +4223,10 @@ async function confirmBook() {
     '⏳ No drivers nearby — please wait...';
 
   if(window.FB_READY && nearbyCount===0){
-    setTimeout(()=>{toast('No drivers online. Try again soon.');goScr('sHome');},4500);
+    setTimeout(()=>{
+      toast('⚠️ Abhi koi driver online nahi hai. Thodi der mein try karo.');
+      goScr('sHome');
+    },3500);
     return;
   }
 
@@ -4162,7 +4292,7 @@ function listenToRide(id) {
     if(!snap.exists()) return;
     const data=snap.data();
     // ✅ FIX 2: Check rideDocId active AND not already on assigned screen (was blocking if user changed screen)
-    if(data.status==='assigned'&&rideDocId&&!document.getElementById('sAssigned').classList.contains('on')){
+    if(data.status==='assigned'&&rideDocId){
       document.getElementById('aDName').textContent=data.driverName||'--';
       document.getElementById('aVeh').textContent=`${data.driverVehicle||'--'} • ${data.cabType||'--'}`;
       document.getElementById('rideOTP').textContent=data.otp||'----';
@@ -4213,6 +4343,8 @@ function listenToRide(id) {
       if(data.etaMin) startEtaTimer(data.etaMin);
     }
     if(data.status==='ongoing'){
+      stopDriverMusic();
+      startLiveFareMeter(data.fare || cabFare, data.cabType || cabType);
       document.getElementById('driverTrackText').textContent='🚗 Driver heading to your drop';
       // ✅ Rider picked up — update ETA for drop
       if(data.dropEtaMin) startEtaTimer(data.dropEtaMin);
@@ -4220,6 +4352,7 @@ function listenToRide(id) {
       if(etaSub) etaSub.textContent = 'Drop tak ka ETA';
     }
     if(data.status==='completed'){
+      stopLiveFareMeter(); // stop live fare meter
       if(rideListener){rideListener();rideListener=null;}
       if(driverLocListener){driverLocListener();driverLocListener=null;}
       if(driverMk){ try{if(typeof driverMk.setMap==='function')driverMk.setMap(null);}catch(e){} driverMk=null; }
@@ -4236,6 +4369,7 @@ function listenToRide(id) {
       rideDocId=null;
     }
     if(data.status==='cancelled_driver'){
+      stopLiveFareMeter();
       if(rideListener){rideListener();rideListener=null;}
       hideSOS(); stopEtaTimer();
       goScr('sHome');
