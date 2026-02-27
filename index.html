@@ -1598,7 +1598,7 @@ body.lm .vrp-box{background:#f0f4fb;}
     </div>
 
     <!-- ✅ Ola-style Google Maps Navigate Button -->
-    <button onclick="openGoogleMapsNav()" style="width:100%;border:none;border-radius:14px;padding:13px;font-size:.88rem;font-weight:800;cursor:pointer;margin-bottom:8px;background:linear-gradient(135deg,#4285f4,#34a853);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 16px rgba(66,133,244,.35)">
+    <button id="gmapNavBtn" onclick="openGoogleMapsNav()" style="width:100%;border:none;border-radius:14px;padding:13px;font-size:.88rem;font-weight:800;cursor:pointer;margin-bottom:8px;background:linear-gradient(135deg,#4285f4,#34a853);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 16px rgba(66,133,244,.35)">
       🗺️ Google Maps se Navigate
     </button>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
@@ -4234,9 +4234,13 @@ function stopListeningForRides() {
   if(newRideListener){newRideListener();newRideListener=null;}
 }
 function showDCard(type) {
-  safeShow('dOff');// =type==='off'?'block':'none';
-  safeShow('dOn');// =type==='on'?'block':'none';
-  safeShow('dNav');// =type==='nav'?'block':'none';
+  // ✅ FIXED: Properly show/hide — no more overlap/hang
+  var dOff = document.getElementById('dOff');
+  var dOn  = document.getElementById('dOn');
+  var dNav = document.getElementById('dNav');
+  if(dOff) dOff.style.display = type==='off' ? 'block' : 'none';
+  if(dOn)  dOn.style.display  = type==='on'  ? 'block' : 'none';
+  if(dNav) dNav.style.display = type==='nav' ? 'block' : 'none';
 }
 function updateDStats() {
   safeText('dsEarn','₹'+dEarnings);
@@ -4306,61 +4310,59 @@ async function acceptReq() {
     }catch(e){toast('❌ Accept failed');return;}
   }
 
-  safeText('navLabel','🔵 Going to Pickup');
+  // ✅ Update nav panel info
+  safeText('navLabel','🔵 Pickup pe jao');
   safeText('navPA',data.pickup||'--');
   safeText('navDA',data.drop||'--');
   safeText('navFare','₹'+(data.fare||'--'));
   safeText('navActBtn','✅ Rider Picked Up');
-  const np = document.getElementById('navPickup');
-  if(np) np.style.opacity='1';
 
-  // ✅ Show rider contact info for driver to call
+  // ✅ Rider contact info
   const riderNameEl = document.getElementById('navRiderName');
   const riderPhoneEl = document.getElementById('navRiderPhone');
   const callBtn = document.getElementById('callRiderBtn');
-
   if(riderNameEl) riderNameEl.textContent = data.riderName || 'Rider';
-
-  // riderPhone — try multiple fields
   const rPhone = data.riderPhone || data.rPhone || data.phone || '';
-
   if(rPhone && rPhone.length >= 10){
     if(riderPhoneEl) riderPhoneEl.textContent = '📞 ' + rPhone;
-    if(callBtn){
-      callBtn.href = 'tel:' + rPhone;
-      callBtn.style.opacity = '1';
-      callBtn.style.pointerEvents = 'auto';
-    }
-    toast('🚗 Ride accepted! Rider: ' + (data.riderName||'') + ' · 📞 ' + rPhone);
+    if(callBtn){ callBtn.href = 'tel:' + rPhone; callBtn.style.opacity='1'; callBtn.style.pointerEvents='auto'; }
   } else {
     if(riderPhoneEl) riderPhoneEl.textContent = 'Phone number nahi mila';
-    if(callBtn){
-      callBtn.style.opacity = '0.5';
-      callBtn.href = '#';
-    }
-    toast('🚗 Ride accepted! (Rider phone unavailable)');
+    if(callBtn){ callBtn.style.opacity='0.5'; callBtn.href='#'; }
   }
 
-  showDCard('nav');
-
-  if(leafMap&&myLat&&data.pickupLat){
-    const route=await getOSRMRoute(myLat,myLng,data.pickupLat,data.pickupLng);
-    if(route){
-      drawRoute(route.geometry,'#3b82f6');
-      safeText('navPDist',route.distKM+'km');
-      safeText('navPETA',route.durationMin+' min');
-      // ✅ Auto-start navigation for driver to pickup
-      startNavigation(data.pickupLat, data.pickupLng, 'Pickup: ' + (data.pickup||'Rider'));
-    }
-    if(pickupMk){ try{if(typeof pickupMk.setMap==='function')pickupMk.setMap(null);}catch(e){} pickupMk=null; }
-    pickupMk = new mappls.Marker({ map:leafMap, position:{lat:data.pickupLat,lng:data.pickupLng},
-      html:'<div class="pickup-wrap" style="transform:translate(-16px,-36px)"><div class="pickup-icon">📍</div></div>',
-      popupHtml:`<b style="color:#10b981">📍 ${data.pickup}</b>` });
-  }
-  // Store pickup coords for Google Maps navigation
+  // ✅ Store coords for Google Maps navigation
   window._navPickupLat = data.pickupLat;
   window._navPickupLng = data.pickupLng;
-  toast('✅ Ride accepted! Going to pickup');
+
+  // ✅ FIXED: Show nav card first, then draw route
+  showDCard('nav');
+  toast('✅ Ride accepted! Pickup pe jao 🚗');
+
+  // ✅ Draw route on map + fly to pickup
+  if(leafMap && myLat && data.pickupLat){
+    try {
+      // Fly map to show driver → pickup route
+      leafMap.flyTo([data.pickupLat, data.pickupLng], 14);
+
+      // Draw route line
+      const route = await getOSRMRoute(myLat, myLng, data.pickupLat, data.pickupLng);
+      if(route){
+        drawRoute(route.geometry, '#3b82f6');
+        safeText('navPDist', route.distKM + ' km');
+        safeText('navPETA', route.durationMin + ' min');
+      }
+
+      // Pickup marker on map
+      if(pickupMk){ try{if(typeof pickupMk.setMap==='function')pickupMk.setMap(null);}catch(e){} pickupMk=null; }
+      pickupMk = new mappls.Marker({
+        map: leafMap,
+        position: {lat: data.pickupLat, lng: data.pickupLng},
+        html: '<div class="pickup-wrap" style="transform:translate(-16px,-36px)"><div class="pickup-icon">📍</div></div>',
+        popupHtml: `<b style="color:#10b981">📍 ${data.pickup||'Pickup'}</b>`
+      });
+    } catch(e) { console.warn('[JDP] Route draw error:', e); }
+  }
 }
 
 function declineReq() {
@@ -4381,16 +4383,24 @@ async function driverNext() {
     if(window.FB_READY&&curReqData.id){
       try{await window.FB.updateDoc(window.FB.doc(window.FB.db,'rides',curReqData.id),{status:'ongoing',pickedAt:window.FB.serverTimestamp()});}catch(e){}
     }
-    toast('Heading to drop! 🚗');
+    toast('🚗 Drop pe jao! Rider saath hai');
     if(leafMap&&myLat&&curReqData.drop){
       const dc=await geocodeAddress(curReqData.drop);
       if(dc){
+        // ✅ Store drop coords for Google Maps button
+        window._navDropLat = dc.lat;
+        window._navDropLng = dc.lng;
+        window._navDropName = curReqData.drop;
+
         const route=await getOSRMRoute(myLat,myLng,dc.lat,dc.lng);
-        if(route) drawRoute(route.geometry,'#10b981');
-        // ✅ Navigate to drop location
-        if(CU?.role==='driver') {
-          startNavigation(dc.lat, dc.lng, curReqData?.drop || 'Drop Location');
+        if(route){
+          drawRoute(route.geometry,'#10b981');
+          safeText('navPDist', route.distKM + ' km');
+          safeText('navPETA', route.durationMin + ' min');
         }
+        // Fly map to drop
+        try { leafMap.flyTo([dc.lat, dc.lng], 14); } catch(e){}
+
         if(dropMk){ try{if(typeof dropMk.setMap==='function')dropMk.setMap(null);}catch(e){} dropMk=null; }
         dropMk = new mappls.Marker({ map:leafMap, position:{lat:dc.lat,lng:dc.lng},
           html:'<div class="drop-icon" style="transform:translate(-15px,-30px)">🏁</div>',
@@ -6191,23 +6201,36 @@ function addSnapToggleToStats() {
 // Run after map loads
 setTimeout(addSnapToggleToStats, 4000);
 
-// ✅ Google Maps Navigation — Ola style
+// ✅ Google Maps Navigation — Ola style (Pickup + Drop)
 function openGoogleMapsNav() {
   if (!myLat || !myLng) { toast('📍 GPS ready nahi hai'); return; }
   let destLat, destLng, destAddr;
+
   if (navPhase === 'pickup' && window._navPickupLat) {
     destLat = window._navPickupLat;
     destLng = window._navPickupLng;
+    destAddr = document.getElementById('navPA')?.textContent || 'Pickup';
+  } else if (navPhase === 'drop' && window._navDropLat) {
+    destLat = window._navDropLat;
+    destLng = window._navDropLng;
+    destAddr = window._navDropName || 'Drop';
   }
-  if (destLat) {
+
+  if (destLat && destLng) {
     const gmUrl = `https://www.google.com/maps/dir/?api=1&origin=${myLat},${myLng}&destination=${destLat},${destLng}&travelmode=driving`;
     window.open(gmUrl, '_blank');
+    toast('🗺️ Google Maps khul raha hai...');
   } else if (curReqData) {
+    // Fallback: address-based navigation
     const addr = navPhase === 'pickup' ? curReqData.pickup : curReqData.drop;
-    const gmUrl = `https://www.google.com/maps/dir/?api=1&origin=${myLat},${myLng}&destination=${encodeURIComponent(addr+', Jagdalpur')}&travelmode=driving`;
-    window.open(gmUrl, '_blank');
+    if (addr) {
+      const gmUrl = `https://www.google.com/maps/dir/?api=1&origin=${myLat},${myLng}&destination=${encodeURIComponent(addr + ', Jagdalpur')}&travelmode=driving`;
+      window.open(gmUrl, '_blank');
+      toast('🗺️ Google Maps khul raha hai...');
+    } else {
+      toast('❌ Destination nahi mila');
+    }
   }
-  toast('🗺️ Google Maps khul raha hai...');
 }
 
 console.log('[JDP] 🆕 Mappls features loaded: eLoc, Multilingual, Snap-to-Road, VehicleProfile, FleetTracking, VRP');
