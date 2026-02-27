@@ -1880,12 +1880,41 @@ function playTone(freq, start, dur, type='sine', vol=0.4) {
     o.stop(ctx.currentTime + start + dur);
   } catch(e) {}
 }
+// DRIVER ASSIGNED MUSIC - 30 second loop
+let _assignedMusicInterval = null;
+let _assignedMusicTimeout = null;
+function stopDriverMusic() {
+  if (_assignedMusicInterval) { clearInterval(_assignedMusicInterval); _assignedMusicInterval = null; }
+  if (_assignedMusicTimeout) { clearTimeout(_assignedMusicTimeout); _assignedMusicTimeout = null; }
+}
 function playDriverAssigned() {
-  // Uber-like triumphant 4-note melody
-  playTone(523, 0,    0.15, 'sine', 0.3);
-  playTone(659, 0.18, 0.15, 'sine', 0.35);
-  playTone(784, 0.36, 0.15, 'sine', 0.4);
-  playTone(1047,0.54, 0.4,  'sine', 0.45);
+  stopDriverMusic();
+  const melody = [
+    [523,  0,    0.12, 'sine', 0.35],
+    [659,  0.14, 0.12, 'sine', 0.38],
+    [784,  0.28, 0.12, 'sine', 0.40],
+    [1047, 0.42, 0.18, 'sine', 0.45],
+    [880,  0.62, 0.12, 'sine', 0.40],
+    [784,  0.76, 0.12, 'sine', 0.38],
+    [659,  0.90, 0.12, 'sine', 0.35],
+    [523,  1.04, 0.22, 'sine', 0.30],
+    [392,  0,    0.12, 'sine', 0.18],
+    [494,  0.14, 0.12, 'sine', 0.18],
+    [587,  0.28, 0.12, 'sine', 0.20],
+    [784,  0.42, 0.18, 'sine', 0.22],
+  ];
+  function playOnce() {
+    try {
+      melody.forEach(([freq, start, dur, type, vol]) => playTone(freq, start, dur, type, vol));
+      playTone(80,   0,    0.08, 'sine', 0.5);
+      playTone(80,   0.42, 0.08, 'sine', 0.5);
+      playTone(80,   0.84, 0.08, 'sine', 0.4);
+      playTone(2093, 0.42, 0.3,  'sine', 0.15);
+    } catch(e) {}
+  }
+  playOnce();
+  _assignedMusicInterval = setInterval(playOnce, 1400);
+  _assignedMusicTimeout  = setTimeout(stopDriverMusic, 30000);
 }
 function playNewRide() {
   // Urgent ding-ding-ding for driver
@@ -4021,8 +4050,24 @@ function selRide(el,type,vk) {
   document.getElementById('bookBtnType').textContent=type;
 }
 
-// ✅ SMART BOOKING with zone matching info
+// SMART BOOKING with full validation
 async function confirmBook() {
+  // Validation checks
+  if (!window.CU) {
+    toast('Login karo pehle booking ke liye');
+    document.getElementById('auth').style.display = 'flex';
+    return;
+  }
+  const dropVal = document.getElementById('dropIn').value.trim();
+  if (!dropVal) {
+    toast('Drop location enter karo pehle');
+    document.getElementById('dropIn').focus();
+    return;
+  }
+  if (!cabFare || cabFare <= 0) {
+    toast('Pehle fare calculate karo — Find Fare dabao');
+    return;
+  }
   goScr('sFind');
 
   let nearbyCount=0,in5km=0,in8km=0;
@@ -4050,8 +4095,8 @@ async function confirmBook() {
     nearbyCount>0?'🟡 Drivers in outer zone — matching...':
     '⏳ No drivers nearby — please wait...';
 
-  if(nearbyCount===0){
-    setTimeout(()=>{toast('⚠️ No drivers online. Try again soon.');goScr('sHome');},4500);
+  if(window.FB_READY && nearbyCount===0){
+    setTimeout(()=>{toast('No drivers online. Try again soon.');goScr('sHome');},4500);
     return;
   }
 
@@ -4511,6 +4556,7 @@ async function confirmCancelRide() {
   selectedCancelReason = '';
 }
 async function doCancelRide(reason) {
+  if(typeof stopDriverMusic==='function') stopDriverMusic();
   if(rideDocId && window.FB_READY){
     try { await window.FB.updateDoc(window.FB.doc(window.FB.db,'rides',rideDocId),{
       status:'cancelled', cancelReason: reason, cancelledAt: window.FB.serverTimestamp()
