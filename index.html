@@ -309,10 +309,983 @@ function showPwStrength(inputId, barId) {
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════════
-     ✅ JDP AUTO-SCALING ENGINE — Load Balancer + Circuit Breaker
-     Baarish mein 5000 users? Koi problem nahi. System khud handle karta hai.
-     ═══════════════════════════════════════════════════════════════════ -->
+  ✅ ENTERPRISE RESILIENCE ENGINE — JDP CABS
+  Uber / Google level stability — 99.9% uptime strategy
+  MODULES:
+    1. Smart Error Logger      — Every crash captured, stored, categorized
+    2. Performance Monitor     — CPU/RAM/FPS/Latency real-time
+    3. Auto Recovery Manager   — App crash hone par khud restart
+    4. Security Threat Detector — Attack detect karo (DDoS, XSS, brute force)
+    5. Health Pulse            — 30-second heartbeat system
+    6. Crash Reporter UI       — Admin ko instant alert
+  ═══════════════════════════════════════════════════════════════════ -->
 <script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════
+// MODULE 1 — SMART ERROR LOGGER
+// Every JS crash, Firebase error, GPS fail — sab log hota hai
+// Stores in sessionStorage → visible in admin panel
+// ═══════════════════════════════════════════════════════════
+window.ErrorLogger = (function() {
+  const MAX_LOGS = 200;
+  const KEY = 'jdp_error_log';
+  let _count = 0;
+  let _handlers = [];
+
+  const LEVELS = { DEBUG:0, INFO:1, WARN:2, ERROR:3, CRITICAL:4 };
+  const LEVEL_COLORS = { DEBUG:'#6b7280', INFO:'#3b82f6', WARN:'#f59e0b', ERROR:'#ef4444', CRITICAL:'#dc2626' };
+  const LEVEL_ICONS  = { DEBUG:'🔍', INFO:'ℹ️', WARN:'⚠️', ERROR:'❌', CRITICAL:'🔥' };
+
+  function _save(logs) {
+    try { sessionStorage.setItem(KEY, JSON.stringify(logs.slice(-MAX_LOGS))); } catch(e) {}
+  }
+  function _load() {
+    try { return JSON.parse(sessionStorage.getItem(KEY) || '[]'); } catch(e) { return []; }
+  }
+
+  function _log(level, category, message, data) {
+    const entry = {
+      id: ++_count,
+      ts: Date.now(),
+      time: new Date().toLocaleTimeString('en-IN'),
+      level, category, message,
+      data: data ? JSON.stringify(data).substring(0, 200) : null,
+      url: location.pathname,
+      user: window.CU?.uid || 'anonymous',
+      role: window.CU?.role || 'unknown',
+    };
+    const logs = _load();
+    logs.push(entry);
+    _save(logs);
+
+    // Notify handlers (e.g. admin UI update)
+    _handlers.forEach(h => { try { h(entry); } catch(e) {} });
+
+    // CRITICAL → show toast + log to Firebase
+    if (level === 'CRITICAL') {
+      if(typeof toast === 'function') toast(`🔥 Critical error — ${category}: ${message.substring(0,40)}`);
+      _logToFirebase(entry);
+    }
+
+    // Console (dev only)
+    const icon = LEVEL_ICONS[level] || '•';
+    if(level === 'ERROR' || level === 'CRITICAL') console.error(`${icon}[JDP-${category}]`, message, data||'');
+    return entry;
+  }
+
+  async function _logToFirebase(entry) {
+    if(!window.FB_READY || !window.FB?.addDoc) return;
+    try {
+      await window.FB.addDoc(window.FB.collection(window.FB.db, 'errors'), {
+        ...entry, reportedAt: window.FB.serverTimestamp?.() || new Date().toISOString()
+      });
+    } catch(e) {} // Never let logging crash the app
+  }
+
+  return {
+    debug   : (cat, msg, d) => _log('DEBUG',    cat, msg, d),
+    info    : (cat, msg, d) => _log('INFO',     cat, msg, d),
+    warn    : (cat, msg, d) => _log('WARN',     cat, msg, d),
+    error   : (cat, msg, d) => _log('ERROR',    cat, msg, d),
+    critical: (cat, msg, d) => _log('CRITICAL', cat, msg, d),
+    getLogs : (level) => {
+      const all = _load();
+      return level ? all.filter(l => LEVELS[l.level] >= LEVELS[level]) : all;
+    },
+    clear   : () => { try { sessionStorage.removeItem(KEY); } catch(e){} },
+    count   : () => _load().length,
+    onLog   : (fn) => _handlers.push(fn),
+    COLORS  : LEVEL_COLORS,
+    ICONS   : LEVEL_ICONS,
+  };
+})();
+
+// Intercept all window errors → logger
+window.onerror = function(msg, src, line, col, err) {
+  window.ErrorLogger.error('JS', msg, { src: src?.split('/').pop(), line, col });
+  return true; // Prevent default browser error
+};
+window.addEventListener('unhandledrejection', e => {
+  e.preventDefault();
+  window.ErrorLogger.warn('PROMISE', e.reason?.message || String(e.reason));
+}, false);
+
+
+// ═══════════════════════════════════════════════════════════
+// MODULE 2 — PERFORMANCE MONITOR
+// CPU equivalent: JS main thread blocking time
+// RAM: JS heap usage
+// FPS: animation smoothness
+// Network: latency to Firebase
+// ═══════════════════════════════════════════════════════════
+window.PerfMonitor = (function() {
+  let _fps = 60, _frameCount = 0, _lastFpsTime = Date.now();
+  let _heapMB = 0, _heapMax = 0;
+  let _mainThreadMs = 0; // JS blocking time
+  let _pingMs = 0;
+  let _history = { fps:[], heap:[], ping:[] }; // last 20 readings
+  const MAX_HISTORY = 20;
+
+  // FPS counter
+  function _trackFPS() {
+    _frameCount++;
+    const now = Date.now();
+    if (now - _lastFpsTime >= 1000) {
+      _fps = _frameCount;
+      _frameCount = 0;
+      _lastFpsTime = now;
+      _addHistory('fps', _fps);
+      if(_fps < 20) window.ErrorLogger.warn('PERF', `Low FPS: ${_fps}fps`);
+    }
+    requestAnimationFrame(_trackFPS);
+  }
+
+  // Memory (Chrome only)
+  function _trackMemory() {
+    if(window.performance?.memory) {
+      _heapMB = Math.round(window.performance.memory.usedJSHeapSize / 1048576);
+      _heapMax = Math.round(window.performance.memory.jsHeapSizeLimit / 1048576);
+      _addHistory('heap', _heapMB);
+      if(_heapMB > 200) window.ErrorLogger.warn('PERF', `High memory: ${_heapMB}MB`);
+    }
+  }
+
+  // Main thread blocking — measure with long task detection
+  function _trackLongTasks() {
+    if(!window.PerformanceObserver) return;
+    try {
+      const obs = new PerformanceObserver(list => {
+        list.getEntries().forEach(entry => {
+          _mainThreadMs = Math.round(entry.duration);
+          if(entry.duration > 100) window.ErrorLogger.warn('PERF', `Long task: ${Math.round(entry.duration)}ms blocked`);
+        });
+      });
+      obs.observe({ entryTypes: ['longtask'] });
+    } catch(e) {}
+  }
+
+  // Firebase ping test
+  async function _pingFirebase() {
+    if(!window.FB_READY) { _pingMs = -1; return; }
+    const start = Date.now();
+    try {
+      await window.FB.getDoc(window.FB.doc(window.FB.db, '_ping', 'test'));
+      _pingMs = Date.now() - start;
+    } catch(e) {
+      // Use a dummy read that will fail gracefully
+      _pingMs = Date.now() - start;
+    }
+    _addHistory('ping', _pingMs);
+    if(_pingMs > 2000) window.ErrorLogger.warn('NETWORK', `High Firebase latency: ${_pingMs}ms`);
+  }
+
+  function _addHistory(key, val) {
+    _history[key].push(val);
+    if(_history[key].length > MAX_HISTORY) _history[key].shift();
+  }
+
+  return {
+    start() {
+      requestAnimationFrame(_trackFPS);
+      _trackLongTasks();
+      setInterval(() => { _trackMemory(); _pingFirebase(); }, 30000);
+      setTimeout(() => _pingFirebase(), 5000); // Initial ping
+      window.ErrorLogger.info('SYSTEM', 'Performance monitor started');
+    },
+    stats() {
+      return {
+        fps: _fps,
+        heapMB: _heapMB,
+        heapMaxMB: _heapMax,
+        heapPct: _heapMax > 0 ? Math.round(_heapMB / _heapMax * 100) : 0,
+        mainThreadMs: _mainThreadMs,
+        pingMs: _pingMs,
+        fpsHistory: [..._history.fps],
+        heapHistory: [..._history.heap],
+        pingHistory: [..._history.ping],
+      };
+    },
+    getFPS()     { return _fps; },
+    getHeap()    { return _heapMB; },
+    getPing()    { return _pingMs; },
+  };
+})();
+
+
+// ═══════════════════════════════════════════════════════════
+// MODULE 3 — AUTO RECOVERY MANAGER
+// Uber strategy: crash → detect → auto-restart
+// Types of recovery:
+//   • Firebase reconnect (if connection dropped)
+//   • GPS restart (if watchPosition dies)
+//   • Map re-init (if Mappls crashes)
+//   • Session save (before unload — no data loss)
+//   • Full page reload (last resort — < 2 min)
+// ═══════════════════════════════════════════════════════════
+window.RecoveryManager = (function() {
+  let _firebaseRetries = 0;
+  let _gpsRetries = 0;
+  let _mapRetries = 0;
+  let _recoveryHistory = [];
+  let _lastCrashTime = 0;
+  let _autoReloadEnabled = true;
+
+  function _record(type, action) {
+    const entry = { type, action, ts: Date.now(), time: new Date().toLocaleTimeString('en-IN') };
+    _recoveryHistory.push(entry);
+    if(_recoveryHistory.length > 50) _recoveryHistory.shift();
+    window.ErrorLogger.warn('RECOVERY', `${type}: ${action}`);
+    console.log(`[JDP Recovery] ${type} → ${action}`);
+  }
+
+  // ── Firebase Recovery ──
+  function recoverFirebase() {
+    if(!window.FB_READY) {
+      _firebaseRetries++;
+      _record('FIREBASE', `Reconnecting (attempt ${_firebaseRetries})`);
+      // Reload Firebase connection
+      setTimeout(() => {
+        if(!window.FB_READY && _firebaseRetries < 5) {
+          recoverFirebase();
+        } else if(_firebaseRetries >= 5) {
+          _record('FIREBASE', 'Max retries — switching to offline mode');
+          window.ErrorLogger.critical('FIREBASE', 'Connection lost after 5 retries');
+          if(typeof toast === 'function') toast('⚠️ Offline mode — data will sync when connected');
+        }
+      }, Math.min(30000, 3000 * _firebaseRetries));
+    } else {
+      _firebaseRetries = 0;
+    }
+  }
+
+  // ── GPS Recovery ──
+  function recoverGPS() {
+    _gpsRetries++;
+    _record('GPS', `Restarting watchPosition (attempt ${_gpsRetries})`);
+    // Clear existing watch
+    if(window.watchId) { try { navigator.geolocation.clearWatch(window.watchId); } catch(e){} }
+    // Restart GPS after delay
+    setTimeout(() => {
+      if(typeof startGPS === 'function') {
+        startGPS();
+        _record('GPS', 'Restarted successfully');
+        if(typeof toast === 'function') toast('📡 GPS reconnected');
+      }
+    }, 2000);
+  }
+
+  // ── Map Recovery ──
+  function recoverMap() {
+    if(window._mapFailed) return; // Map permanently failed, skip
+    _mapRetries++;
+    _record('MAP', `Re-initializing Mappls (attempt ${_mapRetries})`);
+    if(_mapRetries > 3) {
+      _record('MAP', 'Max retries — using offline mode');
+      window._mapFailed = true;
+      return;
+    }
+    setTimeout(() => {
+      if(typeof initMap === 'function') initMap();
+    }, 3000 * _mapRetries);
+  }
+
+  // ── Session Save (before crash/close) ──
+  function saveSession() {
+    if(!window.CU) return;
+    try {
+      sessionStorage.setItem('jdp_session_backup', JSON.stringify({
+        user: { uid: window.CU.uid, name: window.CU.name, role: window.CU.role, phone: window.CU.phone },
+        rideDocId: window.rideDocId || null,
+        myLat: window.myLat || null,
+        myLng: window.myLng || null,
+        savedAt: Date.now()
+      }));
+    } catch(e) {}
+  }
+
+  // ── Restore Session ──
+  function restoreSession() {
+    try {
+      const backup = JSON.parse(sessionStorage.getItem('jdp_session_backup') || 'null');
+      if(!backup) return null;
+      const age = Date.now() - backup.savedAt;
+      if(age > 30 * 60 * 1000) { sessionStorage.removeItem('jdp_session_backup'); return null; } // 30 min max
+      return backup;
+    } catch(e) { return null; }
+  }
+
+  // ── Auto Reload (last resort) ──
+  function safeReload(reason) {
+    if(!_autoReloadEnabled) return;
+    const now = Date.now();
+    if(now - _lastCrashTime < 60000) { // Don't reload more than once per minute
+      _record('RELOAD', 'Skipped — too soon after last reload');
+      return;
+    }
+    _lastCrashTime = now;
+    saveSession();
+    _record('RELOAD', `Auto-reload: ${reason}`);
+    window.ErrorLogger.critical('SYSTEM', `Auto-reload triggered: ${reason}`);
+    setTimeout(() => location.reload(), 1500);
+  }
+
+  // ── Health Watchdog ──
+  // Checks app health every 30 seconds
+  function _startWatchdog() {
+    setInterval(() => {
+      saveSession(); // Always save session
+
+      // Check Firebase health
+      if(!window.FB_READY) recoverFirebase();
+
+      // Check GPS (if user is active and no position for 60s)
+      if(window.CU && !window.myLat) {
+        const lastGps = window._lastGpsUpdate || 0;
+        if(Date.now() - lastGps > 60000) recoverGPS();
+      }
+
+      // Notify recovery manager tick
+      window.HealthPulse && window.HealthPulse.tick();
+
+    }, 30000);
+  }
+
+  // Save session on page unload
+  window.addEventListener('beforeunload', saveSession);
+  window.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'hidden') saveSession();
+  });
+
+  return {
+    start() { _startWatchdog(); window.ErrorLogger.info('SYSTEM', 'Recovery Manager started'); },
+    recoverFirebase,
+    recoverGPS,
+    recoverMap,
+    saveSession,
+    restoreSession,
+    safeReload,
+    getHistory() { return [..._recoveryHistory]; },
+    disableAutoReload() { _autoReloadEnabled = false; },
+    getStats() {
+      return {
+        firebaseRetries: _firebaseRetries,
+        gpsRetries: _gpsRetries,
+        mapRetries: _mapRetries,
+        recoveryCount: _recoveryHistory.length,
+      };
+    }
+  };
+})();
+
+
+// ═══════════════════════════════════════════════════════════
+// MODULE 4 — SECURITY THREAT DETECTOR
+// Real-time attack detection:
+//   • Brute Force (too many logins)
+//   • DDoS simulation (too many requests/sec)
+//   • XSS attempts in input fields
+//   • Suspicious navigation patterns
+//   • Firebase rule violation attempts
+// ═══════════════════════════════════════════════════════════
+window.ThreatDetector = (function() {
+  let _threats = [];
+  let _blockedIPs = new Set(); // simulated — can't get real IP in browser
+  let _requestCount = 0;
+  let _requestWindow = [];
+  const MAX_RPS = 50; // >50 req/sec = DDoS warning
+
+  function _logThreat(type, severity, details) {
+    const threat = {
+      id: Date.now(),
+      type, severity, details,
+      ts: Date.now(),
+      time: new Date().toLocaleTimeString('en-IN'),
+      user: window.CU?.uid || 'anonymous',
+    };
+    _threats.push(threat);
+    if(_threats.length > 100) _threats.shift();
+
+    window.ErrorLogger.error('SECURITY', `🚨 ${type}: ${details}`);
+
+    if(severity === 'HIGH' || severity === 'CRITICAL') {
+      if(typeof toast === 'function') toast(`🚨 Security Alert: ${type}`);
+      // Log to Firebase for admin
+      if(window.FB_READY && window.FB?.addDoc) {
+        try {
+          window.FB.addDoc(window.FB.collection(window.FB.db, 'threats'), {
+            ...threat, reportedAt: window.FB.serverTimestamp?.() || new Date().toISOString()
+          });
+        } catch(e) {}
+      }
+    }
+    return threat;
+  }
+
+  // XSS pattern detection
+  const XSS_PATTERNS = [
+    /<script/i, /javascript:/i, /on\w+\s*=/i, /eval\s*\(/i,
+    /document\.cookie/i, /window\.location\s*=/i, /<iframe/i, /vbscript:/i
+  ];
+
+  // SQL injection patterns (even though we use Firestore, still detect)
+  const SQLI_PATTERNS = [
+    /'\s*or\s*'1'\s*=\s*'1/i, /union\s+select/i, /drop\s+table/i, /;\s*delete/i
+  ];
+
+  return {
+    // Check input field for attacks
+    scanInput(value, fieldName) {
+      if(!value || typeof value !== 'string') return false;
+      for(const p of XSS_PATTERNS) {
+        if(p.test(value)) {
+          _logThreat('XSS_ATTEMPT', 'HIGH', `XSS in field "${fieldName}": ${value.substring(0,50)}`);
+          return true; // Threat found
+        }
+      }
+      for(const p of SQLI_PATTERNS) {
+        if(p.test(value)) {
+          _logThreat('SQLI_ATTEMPT', 'MEDIUM', `SQLi in field "${fieldName}"`);
+          return true;
+        }
+      }
+      return false;
+    },
+
+    // Track request rate — DDoS detection
+    trackRequest() {
+      _requestCount++;
+      const now = Date.now();
+      _requestWindow.push(now);
+      _requestWindow = _requestWindow.filter(t => now - t < 1000); // last 1 sec
+      const rps = _requestWindow.length;
+      if(rps > MAX_RPS) {
+        _logThreat('DDOS_PATTERN', 'HIGH', `${rps} req/sec detected`);
+        window.LoadBalancer && window.LoadBalancer.pause();
+        setTimeout(() => window.LoadBalancer && window.LoadBalancer.resume(), 5000);
+        return false; // Block request
+      }
+      return true;
+    },
+
+    // Suspicious login pattern
+    trackLoginAttempt(phone, success) {
+      if(!success) {
+        const recentFails = _threats.filter(t =>
+          t.type === 'LOGIN_FAIL' && Date.now() - t.ts < 300000 // 5 min
+        ).length;
+        if(recentFails >= 10) {
+          _logThreat('BRUTE_FORCE', 'CRITICAL', `10+ failed logins in 5 min for ${phone.substring(0,6)}***`);
+        } else {
+          _logThreat('LOGIN_FAIL', 'LOW', `Failed login: ${phone.substring(0,6)}***`);
+        }
+      }
+    },
+
+    // Account enumeration
+    trackUserEnum(phone) {
+      const recent = _threats.filter(t => t.type === 'USER_ENUM' && Date.now() - t.ts < 60000).length;
+      if(recent > 20) _logThreat('USER_ENUM', 'MEDIUM', `Mass account lookup detected`);
+    },
+
+    getThreats(severity) {
+      return severity ? _threats.filter(t => t.severity === severity) : [..._threats];
+    },
+    getThreatCount() { return _threats.length; },
+    clearThreats() { _threats = []; },
+
+    // Start passive monitoring
+    start() {
+      // Monitor console errors that look like security issues
+      const origConsoleError = console.error;
+      console.error = function(...args) {
+        const msg = args.join(' ');
+        if(msg.includes('CORS') || msg.includes('blocked') || msg.includes('CSP')) {
+          _logThreat('POLICY_VIOLATION', 'MEDIUM', msg.substring(0,100));
+        }
+        origConsoleError.apply(console, args);
+      };
+      window.ErrorLogger.info('SECURITY', 'Threat detector started');
+    }
+  };
+})();
+
+
+// ═══════════════════════════════════════════════════════════
+// MODULE 5 — HEALTH PULSE (30-second heartbeat)
+// Like AWS CloudWatch — continuous health check
+// States: HEALTHY → DEGRADED → CRITICAL → DOWN
+// ═══════════════════════════════════════════════════════════
+window.HealthPulse = (function() {
+  let _state = 'STARTING';
+  let _checks = {};
+  let _history = []; // last 48 checks (24 min)
+  let _uptimeStart = Date.now();
+  let _downtimeMs = 0;
+  let _lastDownStart = 0;
+
+  const STATES = {
+    HEALTHY:  { color: '#10b981', icon: '🟢', label: 'Healthy'  },
+    DEGRADED: { color: '#f59e0b', icon: '🟡', label: 'Degraded' },
+    CRITICAL: { color: '#ef4444', icon: '🔴', label: 'Critical' },
+    DOWN:     { color: '#7f1d1d', icon: '⚫', label: 'Down'     },
+    STARTING: { color: '#3b82f6', icon: '🔵', label: 'Starting' },
+  };
+
+  function _runChecks() {
+    const t = Date.now();
+
+    // Check 1: Firebase
+    _checks.firebase = {
+      name: 'Firebase DB',
+      ok: !!window.FB_READY,
+      ms: 0,
+      critical: true
+    };
+
+    // Check 2: Internet
+    _checks.internet = {
+      name: 'Internet',
+      ok: navigator.onLine,
+      ms: window.PerfMonitor?.getPing() || 0,
+      critical: true
+    };
+
+    // Check 3: Map
+    _checks.map = {
+      name: 'Map SDK',
+      ok: !!window.leafMap && !window._mapFailed,
+      ms: 0,
+      critical: false
+    };
+
+    // Check 4: GPS
+    _checks.gps = {
+      name: 'GPS',
+      ok: !!(window.myLat && window.myLng),
+      ms: 0,
+      critical: false
+    };
+
+    // Check 5: Performance
+    const fps = window.PerfMonitor?.getFPS() || 60;
+    _checks.performance = {
+      name: 'Performance',
+      ok: fps >= 20,
+      ms: fps,
+      critical: false
+    };
+
+    // Check 6: Memory
+    const heapMB = window.PerfMonitor?.getHeap() || 0;
+    _checks.memory = {
+      name: 'Memory',
+      ok: heapMB < 300,
+      ms: heapMB,
+      critical: false
+    };
+
+    // Check 7: Circuit Breaker
+    _checks.circuit = {
+      name: 'Circuit Breaker',
+      ok: window.CircuitBreaker?.getState() !== 'open',
+      ms: 0,
+      critical: true
+    };
+
+    // Determine overall state
+    const criticalFails = Object.values(_checks).filter(c => c.critical && !c.ok).length;
+    const totalFails = Object.values(_checks).filter(c => !c.ok).length;
+
+    let newState;
+    if(criticalFails >= 2)       newState = 'DOWN';
+    else if(criticalFails === 1) newState = 'CRITICAL';
+    else if(totalFails >= 2)     newState = 'DEGRADED';
+    else                          newState = 'HEALTHY';
+
+    // Track downtime
+    if(newState === 'DOWN' && _state !== 'DOWN') _lastDownStart = Date.now();
+    if(_state === 'DOWN' && newState !== 'DOWN' && _lastDownStart) {
+      _downtimeMs += Date.now() - _lastDownStart;
+      _lastDownStart = 0;
+    }
+
+    const prevState = _state;
+    _state = newState;
+
+    // Add to history
+    _history.push({ state: newState, ts: t, checks: Object.keys(_checks).filter(k => !_checks[k].ok) });
+    if(_history.length > 48) _history.shift();
+
+    // Log state change
+    if(prevState !== newState && prevState !== 'STARTING') {
+      window.ErrorLogger.warn('HEALTH', `State: ${prevState} → ${newState}`);
+      if(newState === 'CRITICAL' || newState === 'DOWN') {
+        window.ErrorLogger.critical('HEALTH', `System ${newState} — fails: ${Object.values(_checks).filter(c=>!c.ok).map(c=>c.name).join(', ')}`);
+      }
+    }
+
+    return newState;
+  }
+
+  return {
+    start() {
+      _uptimeStart = Date.now();
+      _runChecks();
+      setInterval(() => this.tick(), 30000);
+      window.ErrorLogger.info('SYSTEM', 'Health Pulse started — 30s intervals');
+    },
+
+    tick() {
+      _runChecks();
+      window.CrashReporter && window.CrashReporter.update();
+    },
+
+    getState()   { return _state; },
+    getStateInfo() { return STATES[_state] || STATES.HEALTHY; },
+    getChecks()  { return {..._checks}; },
+    getHistory() { return [..._history]; },
+
+    getUptime() {
+      const totalMs = Date.now() - _uptimeStart;
+      const upMs = totalMs - _downtimeMs;
+      const pct = totalMs > 0 ? (upMs / totalMs * 100).toFixed(2) : 100;
+      const hours = Math.floor(totalMs / 3600000);
+      const mins = Math.floor((totalMs % 3600000) / 60000);
+      return { pct: parseFloat(pct), hours, mins, downtimeMs: _downtimeMs };
+    },
+
+    STATES,
+  };
+})();
+
+
+// ═══════════════════════════════════════════════════════════
+// MODULE 6 — CRASH REPORTER (Admin UI + Toast Alerts)
+// Floating badge + detail drawer
+// ═══════════════════════════════════════════════════════════
+window.CrashReporter = (function() {
+  let _badge = null;
+  let _drawer = null;
+  let _visible = false;
+  let _activeTab = 'health';
+
+  function _createUI() {
+    // Badge
+    _badge = document.createElement('button');
+    _badge.id = 'crashBadge';
+    _badge.title = 'System Monitor';
+    _badge.style.cssText = `
+      position:fixed;right:14px;top:90px;z-index:8100;
+      width:44px;height:44px;border-radius:50%;border:2px solid;
+      cursor:pointer;font-size:1rem;display:none;
+      align-items:center;justify-content:center;
+      box-shadow:0 4px 16px rgba(0,0,0,.4);
+      backdrop-filter:blur(12px);transition:all .2s;
+    `;
+    _badge.onclick = () => _toggle();
+    document.body.appendChild(_badge);
+
+    // Drawer
+    _drawer = document.createElement('div');
+    _drawer.id = 'crashDrawer';
+    _drawer.style.cssText = `
+      position:fixed;right:0;top:0;bottom:0;z-index:8099;
+      width:min(340px,100vw);background:rgba(4,6,10,.98);
+      border-left:1px solid rgba(255,255,255,.08);
+      transform:translateX(100%);transition:transform .3s ease;
+      display:flex;flex-direction:column;backdrop-filter:blur(20px);
+      overflow:hidden;
+    `;
+    _drawer.innerHTML = _buildDrawerHTML();
+    document.body.appendChild(_drawer);
+  }
+
+  function _buildDrawerHTML() {
+    return `
+    <div style="padding:14px 16px 10px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:.92rem">📊 System Monitor</div>
+        <div style="font-size:.62rem;color:rgba(255,255,255,.4);margin-top:2px" id="crLastUpdate">Initializing...</div>
+      </div>
+      <button onclick="window.CrashReporter.close()" style="background:rgba(255,255,255,.07);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;color:white;font-size:.85rem">✕</button>
+    </div>
+    <div style="display:flex;gap:4px;padding:10px 14px 8px;flex-shrink:0">
+      <button class="cr-tab on" id="crTab0" onclick="window.CrashReporter.tab('health')" style="flex:1;padding:7px;border:none;border-radius:9px;font-size:.65rem;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif;background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.2)">🟢 Health</button>
+      <button class="cr-tab" id="crTab1" onclick="window.CrashReporter.tab('logs')"   style="flex:1;padding:7px;border:none;border-radius:9px;font-size:.65rem;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif;background:rgba(255,255,255,.04);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.07)">📋 Logs</button>
+      <button class="cr-tab" id="crTab2" onclick="window.CrashReporter.tab('threats')" style="flex:1;padding:7px;border:none;border-radius:9px;font-size:.65rem;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif;background:rgba(255,255,255,.04);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.07)">🚨 Threats</button>
+      <button class="cr-tab" id="crTab3" onclick="window.CrashReporter.tab('perf')"   style="flex:1;padding:7px;border:none;border-radius:9px;font-size:.65rem;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif;background:rgba(255,255,255,.04);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.07)">⚡ Perf</button>
+    </div>
+    <div id="crContent" style="flex:1;overflow-y:auto;padding:0 14px 20px">Loading...</div>
+    `;
+  }
+
+  function _renderHealth() {
+    const hp = window.HealthPulse;
+    const rm = window.RecoveryManager;
+    if(!hp) return '<div style="padding:20px;text-align:center;color:rgba(255,255,255,.3)">Starting...</div>';
+
+    const state = hp.getStateInfo();
+    const checks = hp.getChecks();
+    const uptime = hp.getUptime();
+    const recStats = rm?.getStats() || {};
+    const hist = hp.getHistory().slice(-12);
+
+    const checkRows = Object.entries(checks).map(([k,c]) => `
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid rgba(255,255,255,.05);border-radius:10px;margin-bottom:5px;background:rgba(255,255,255,.02)">
+        <span style="font-size:.85rem">${c.ok ? '✅' : (c.critical ? '🔴' : '🟡')}</span>
+        <div style="flex:1">
+          <div style="font-size:.75rem;font-weight:700">${c.name}</div>
+          ${c.ms > 0 ? `<div style="font-size:.6rem;color:rgba(255,255,255,.35);margin-top:1px">${typeof c.ms === 'number' && c.ms < 1000 ? c.ms+(k==='performance'?'fps':k==='memory'?'MB':'ms') : c.ms}</div>` : ''}
+        </div>
+        <div style="font-size:.6rem;font-weight:800;padding:2px 7px;border-radius:99px;background:rgba(${c.ok?'16,185,129':'239,68,68'},.12);color:${c.ok?'#10b981':'#ef4444'}">${c.ok?'OK':'FAIL'}</div>
+      </div>
+    `).join('');
+
+    // Mini uptime bar from history
+    const uptimeBar = hist.map(h => {
+      const col = {HEALTHY:'#10b981',DEGRADED:'#f59e0b',CRITICAL:'#ef4444',DOWN:'#7f1d1d'}[h.state]||'#10b981';
+      return `<div style="flex:1;height:20px;background:${col};border-radius:2px;margin:0 1px" title="${h.state}"></div>`;
+    }).join('');
+
+    return `
+      <div style="background:rgba(${state.color==='#10b981'?'16,185,129':state.color==='#f59e0b'?'245,158,11':'239,68,68'},.08);border:1px solid rgba(${state.color==='#10b981'?'16,185,129':state.color==='#f59e0b'?'245,158,11':'239,68,68'},.2);border-radius:14px;padding:12px 14px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:1.5rem">${state.icon}</span>
+          <div style="flex:1">
+            <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1rem">${state.label}</div>
+            <div style="font-size:.68rem;color:rgba(255,255,255,.5)">Uptime: ${uptime.pct}% · ${uptime.hours}h ${uptime.mins}m session</div>
+          </div>
+        </div>
+        <div style="margin-top:10px">
+          <div style="font-size:.6rem;color:rgba(255,255,255,.4);margin-bottom:4px">Last 12 checks (each = 30s)</div>
+          <div style="display:flex;align-items:center;height:20px">${uptimeBar}</div>
+        </div>
+      </div>
+      <div style="font-size:.6rem;font-weight:900;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">Service Checks</div>
+      ${checkRows}
+      <div style="font-size:.6rem;font-weight:900;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;margin:12px 0 7px">Auto Recovery</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+        <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:8px;text-align:center">
+          <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.1rem;color:#3b82f6">${recStats.firebaseRetries||0}</div>
+          <div style="font-size:.55rem;color:rgba(255,255,255,.4);text-transform:uppercase">Firebase</div>
+        </div>
+        <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:8px;text-align:center">
+          <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.1rem;color:#10b981">${recStats.gpsRetries||0}</div>
+          <div style="font-size:.55rem;color:rgba(255,255,255,.4);text-transform:uppercase">GPS</div>
+        </div>
+        <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:8px;text-align:center">
+          <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.1rem;color:#8b5cf6">${recStats.mapRetries||0}</div>
+          <div style="font-size:.55rem;color:rgba(255,255,255,.4);text-transform:uppercase">Map</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function _renderLogs() {
+    const logs = window.ErrorLogger.getLogs().reverse().slice(0, 50);
+    if(!logs.length) return '<div style="text-align:center;padding:30px;color:rgba(255,255,255,.3);font-size:.8rem">✅ No errors logged</div>';
+    const colors = window.ErrorLogger.COLORS;
+    const icons  = window.ErrorLogger.ICONS;
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:.65rem;font-weight:800;color:rgba(255,255,255,.5)">${logs.length} entries (newest first)</span>
+        <button onclick="window.ErrorLogger.clear();window.CrashReporter.update()" style="font-size:.6rem;background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2);border-radius:7px;padding:3px 8px;cursor:pointer">Clear</button>
+      </div>
+      ${logs.map(l=>`
+        <div style="padding:7px 9px;border-radius:9px;margin-bottom:5px;background:rgba(${l.level==='ERROR'||l.level==='CRITICAL'?'239,68,68':l.level==='WARN'?'245,158,11':'255,255,255'},.05);border-left:2px solid ${colors[l.level]||'#666'}">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+            <span style="font-size:.7rem">${icons[l.level]||'•'}</span>
+            <span style="font-size:.65rem;font-weight:800;color:${colors[l.level]}">${l.level}</span>
+            <span style="font-size:.6rem;color:rgba(255,255,255,.3)">[${l.category}]</span>
+            <span style="font-size:.58rem;color:rgba(255,255,255,.25);margin-left:auto">${l.time}</span>
+          </div>
+          <div style="font-size:.72rem;color:rgba(255,255,255,.7);line-height:1.4">${l.message}</div>
+          ${l.data?`<div style="font-size:.6rem;color:rgba(255,255,255,.3);margin-top:2px;font-family:monospace">${l.data}</div>`:''}
+        </div>
+      `).join('')}
+    `;
+  }
+
+  function _renderThreats() {
+    const threats = window.ThreatDetector.getThreats().reverse().slice(0,30);
+    const count = threats.length;
+    const sevColors = { CRITICAL:'#ef4444', HIGH:'#f97316', MEDIUM:'#f59e0b', LOW:'#3b82f6' };
+    if(!count) return '<div style="text-align:center;padding:30px;color:rgba(255,255,255,.3);font-size:.8rem">🛡️ No threats detected</div>';
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:.65rem;font-weight:800;color:#ef4444">${count} threats detected</span>
+        <button onclick="window.ThreatDetector.clearThreats();window.CrashReporter.update()" style="font-size:.6rem;background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2);border-radius:7px;padding:3px 8px;cursor:pointer">Clear</button>
+      </div>
+      ${threats.map(t=>`
+        <div style="padding:8px 10px;border-radius:9px;margin-bottom:5px;background:rgba(239,68,68,.05);border-left:2px solid ${sevColors[t.severity]||'#ef4444'}">
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
+            <span style="font-size:.65rem;font-weight:800;color:${sevColors[t.severity]||'#ef4444'}">${t.type}</span>
+            <span style="font-size:.58rem;background:rgba(${t.severity==='CRITICAL'?'239,68,68':t.severity==='HIGH'?'249,115,22':'245,158,11'},.15);color:${sevColors[t.severity]};padding:1px 6px;border-radius:99px;font-weight:800">${t.severity}</span>
+            <span style="font-size:.58rem;color:rgba(255,255,255,.25);margin-left:auto">${t.time}</span>
+          </div>
+          <div style="font-size:.7rem;color:rgba(255,255,255,.6)">${t.details}</div>
+        </div>
+      `).join('')}
+    `;
+  }
+
+  function _renderPerf() {
+    const p = window.PerfMonitor?.stats() || {};
+    const lb = window.LoadBalancer?.stats() || {};
+    const fpsColor = p.fps >= 50 ? '#10b981' : p.fps >= 20 ? '#f59e0b' : '#ef4444';
+    const heapColor = p.heapPct < 50 ? '#10b981' : p.heapPct < 80 ? '#f59e0b' : '#ef4444';
+    const pingColor = !p.pingMs||p.pingMs<200?'#10b981':p.pingMs<1000?'#f59e0b':'#ef4444';
+
+    const miniBar = (vals, color, max) => vals.slice(-10).map(v => {
+      const h = Math.min(100, Math.round(v/max*100));
+      return `<div style="flex:1;height:${Math.max(2,h/3)}px;background:${color};border-radius:1px;align-self:flex-end;margin:0 1px"></div>`;
+    }).join('');
+
+    return `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px">
+        <div style="background:rgba(255,255,255,.04);border-radius:12px;padding:11px">
+          <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.4rem;color:${fpsColor}">${p.fps||'--'}</div>
+          <div style="font-size:.58rem;color:rgba(255,255,255,.4);text-transform:uppercase;font-weight:700">FPS</div>
+          <div style="display:flex;align-items:flex-end;height:20px;margin-top:6px">${miniBar(p.fpsHistory||[],fpsColor,60)}</div>
+        </div>
+        <div style="background:rgba(255,255,255,.04);border-radius:12px;padding:11px">
+          <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.4rem;color:${heapColor}">${p.heapMB||'--'}<span style="font-size:.7rem">MB</span></div>
+          <div style="font-size:.58rem;color:rgba(255,255,255,.4);text-transform:uppercase;font-weight:700">Memory</div>
+          <div style="display:flex;align-items:flex-end;height:20px;margin-top:6px">${miniBar(p.heapHistory||[],heapColor,300)}</div>
+        </div>
+        <div style="background:rgba(255,255,255,.04);border-radius:12px;padding:11px">
+          <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.4rem;color:${pingColor}">${p.pingMs||'--'}<span style="font-size:.7rem">ms</span></div>
+          <div style="font-size:.58rem;color:rgba(255,255,255,.4);text-transform:uppercase;font-weight:700">Firebase Ping</div>
+          <div style="display:flex;align-items:flex-end;height:20px;margin-top:6px">${miniBar(p.pingHistory||[],pingColor,2000)}</div>
+        </div>
+        <div style="background:rgba(255,255,255,.04);border-radius:12px;padding:11px">
+          <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.4rem;color:#3b82f6">${lb.rps||0}</div>
+          <div style="font-size:.58rem;color:rgba(255,255,255,.4);text-transform:uppercase;font-weight:700">Req/sec</div>
+          <div style="font-size:.65rem;color:rgba(255,255,255,.3);margin-top:4px">${lb.tierLabel||'--'}</div>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,.04);border-radius:12px;padding:10px">
+        <div style="font-size:.6rem;color:rgba(255,255,255,.4);text-transform:uppercase;font-weight:700;margin-bottom:7px">Cache Performance</div>
+        ${(()=>{const c=window.SmartCache?.stats()||{};return `<div style="display:flex;gap:8px">
+          <div style="flex:1;text-align:center"><div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.2rem;color:#8b5cf6">${c.hitRate||0}%</div><div style="font-size:.58rem;color:rgba(255,255,255,.4)">Hit Rate</div></div>
+          <div style="flex:1;text-align:center"><div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.2rem;color:#10b981">${c.hits||0}</div><div style="font-size:.58rem;color:rgba(255,255,255,.4)">Hits</div></div>
+          <div style="flex:1;text-align:center"><div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.2rem;color:#ef4444">${c.misses||0}</div><div style="font-size:.58rem;color:rgba(255,255,255,.4)">Misses</div></div>
+          <div style="flex:1;text-align:center"><div style="font-family:'Syne',sans-serif;font-weight:900;font-size:1.2rem;color:#f59e0b">${c.size||0}</div><div style="font-size:.58rem;color:rgba(255,255,255,.4)">Cached</div></div>
+        </div>`;})()}
+      </div>
+    `;
+  }
+
+  function _toggle() { _visible ? exports.close() : exports.open(); }
+
+  function _updateBadge() {
+    if(!_badge) return;
+    const state = window.HealthPulse?.getStateInfo() || { color:'#3b82f6', icon:'📊' };
+    const errors = window.ErrorLogger?.getLogs('ERROR').length || 0;
+    const threats = window.ThreatDetector?.getThreatCount() || 0;
+    _badge.innerHTML = threats > 0 ? '🚨' : errors > 0 ? '⚠️' : state.icon;
+    _badge.style.background = `rgba(${state.color==='#10b981'?'16,185,129':state.color==='#f59e0b'?'245,158,11':'239,68,68'},.15)`;
+    _badge.style.borderColor = state.color;
+    _badge.style.color = state.color;
+    // Pulse on alert
+    if(threats > 0 || errors > 5) {
+      _badge.style.animation = 'sosPulse 1.5s infinite';
+    } else {
+      _badge.style.animation = '';
+    }
+  }
+
+  function _setContent(html) {
+    const el = document.getElementById('crContent');
+    if(el) el.innerHTML = html;
+  }
+
+  function _setTabActive(idx) {
+    [0,1,2,3].forEach(i => {
+      const t = document.getElementById(`crTab${i}`);
+      if(!t) return;
+      if(i===idx) { t.style.background='rgba(16,185,129,.15)'; t.style.color='#10b981'; t.style.borderColor='rgba(16,185,129,.2)'; }
+      else { t.style.background='rgba(255,255,255,.04)'; t.style.color='rgba(255,255,255,.5)'; t.style.borderColor='rgba(255,255,255,.07)'; }
+    });
+  }
+
+  const exports = {
+    init() {
+      _createUI();
+      setTimeout(() => this.update(), 3000);
+      setInterval(() => { if(_visible) this.update(); }, 5000);
+    },
+    open() {
+      _visible = true;
+      if(_drawer) _drawer.style.transform = 'translateX(0)';
+      this.update();
+    },
+    close() {
+      _visible = false;
+      if(_drawer) _drawer.style.transform = 'translateX(100%)';
+    },
+    show() {
+      if(_badge) { _badge.style.display = 'flex'; }
+    },
+    tab(name) {
+      _activeTab = name;
+      const idx = {health:0,logs:1,threats:2,perf:3}[name]||0;
+      _setTabActive(idx);
+      this.update();
+    },
+    update() {
+      _updateBadge();
+      const now = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      const el = document.getElementById('crLastUpdate');
+      if(el) el.textContent = 'Updated: ' + now;
+
+      if(!_visible) return;
+      switch(_activeTab) {
+        case 'health':   _setContent(_renderHealth()); break;
+        case 'logs':     _setContent(_renderLogs()); break;
+        case 'threats':  _setContent(_renderThreats()); break;
+        case 'perf':     _setContent(_renderPerf()); break;
+      }
+    }
+  };
+  return exports;
+})();
+
+
+// ═══════════════════════════════════════════════════════════
+// BOOT — Start all enterprise systems
+// ═══════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  // Start all modules
+  window.PerfMonitor.start();
+  window.ThreatDetector.start();
+  window.RecoveryManager.start();
+  window.HealthPulse.start();
+  window.CrashReporter.init();
+
+  window.ErrorLogger.info('SYSTEM', 'JDP Enterprise Resilience Engine v2.0 started');
+  window.ErrorLogger.info('SYSTEM', `Modules: Logger + PerfMonitor + RecoveryMgr + ThreatDetector + HealthPulse + CrashReporter`);
+
+  // Show crash reporter badge after login
+  const _showTimer = setInterval(() => {
+    const auth = document.getElementById('auth');
+    if(auth && auth.style.display === 'none') {
+      window.CrashReporter.show();
+      clearInterval(_showTimer);
+    }
+  }, 2000);
+});
+
+// Integrate ThreatDetector into LoginGuard
+const _origRecordFail = window.LoginGuard?.recordFail;
+if(_origRecordFail) {
+  window.LoginGuard.recordFail = function(phone) {
+    window.ThreatDetector.trackLoginAttempt(phone || '', false);
+    return _origRecordFail.call(window.LoginGuard);
+  };
+}
+</script>
 'use strict';
 
 // ═══════════════════════════════════════════════════════════
@@ -1323,6 +2296,15 @@ body.lm .fi{background:#fff;color:#0c1929;}
 .vc{background:rgba(255,255,255,.04);border:1.5px solid var(--border);border-radius:11px;padding:11px;text-align:center;cursor:pointer;transition:all .2s;}
 .vc.on{border-color:var(--green);background:rgba(16,185,129,.08);}
 .asub{width:100%;border:none;border-radius:13px;padding:15px;font-size:.94rem;font-weight:800;cursor:pointer;font-family:'Syne',sans-serif;}
+/* OTP Input Boxes */
+.otp-box{width:42px;height:52px;background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.15);border-radius:12px;text-align:center;font-size:1.3rem;font-weight:900;color:white;outline:none;font-family:'Syne',sans-serif;transition:all .15s;caret-color:transparent;}
+.otp-box:focus{border-color:rgba(245,158,11,.7);background:rgba(245,158,11,.08);transform:scale(1.05);}
+.otp-box.filled{border-color:rgba(16,185,129,.5);background:rgba(16,185,129,.08);}
+.otp-box.error{border-color:rgba(239,68,68,.6);animation:shake .3s ease;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+/* Sending animation */
+.otp-sending{opacity:.6;pointer-events:none;}
+#sendOtpBtn:disabled{opacity:.6;cursor:not-allowed;}
 .asub.y{background:var(--yellow);color:#000;}
 .asub.g{background:var(--green);color:#fff;}
 .fbb{display:inline-flex;align-items:center;gap:5px;border-radius:99px;padding:4px 11px;font-size:.63rem;font-weight:700;margin-bottom:13px;background:rgba(255,165,0,.1);border:1px solid rgba(255,165,0,.2);color:orange;}
@@ -2000,9 +2982,112 @@ body.lm .vrp-box{background:#f0f4fb;}
     </div>
     <div class="afrm sh" id="loginForm">
       <div id="loginErr" class="eb"></div>
-      <div class="fg"><label class="fl">Mobile Number</label><input type="tel" class="fi" id="lId" placeholder="9876543210" maxlength="10"></div>
-      <div class="fg"><label class="fl">Password</label><input type="password" class="fi" id="lPass" placeholder="••••••••"></div>
-      <button class="asub y" onclick="doLogin()">🚀 Login</button>
+
+      <!-- ── LOGIN METHOD TOGGLE ── -->
+      <div style="display:flex;gap:6px;margin-bottom:14px;background:rgba(255,255,255,.05);border-radius:11px;padding:4px">
+        <button id="loginMethodOTP" onclick="setLoginMethod('otp')"
+          style="flex:1;padding:9px;border:none;border-radius:8px;font-size:.75rem;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif;background:rgba(245,158,11,.2);color:#f59e0b;border:1px solid rgba(245,158,11,.3);transition:all .2s">
+          📱 OTP Login
+        </button>
+        <button id="loginMethodPW" onclick="setLoginMethod('password')"
+          style="flex:1;padding:9px;border:none;border-radius:8px;font-size:.75rem;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:rgba(255,255,255,.4);border:1px solid transparent;transition:all .2s">
+          🔑 Password
+        </button>
+      </div>
+
+      <!-- Mobile number (common for both methods) -->
+      <div class="fg">
+        <label class="fl">Mobile Number</label>
+        <input type="tel" class="fi" id="lId" placeholder="9876543210" maxlength="10"
+          oninput="this.value=this.value.replace(/\D/g,'')">
+      </div>
+
+      <!-- ── OTP FLOW ── -->
+      <div id="otpFlow">
+        <!-- Step 1: Send OTP button -->
+        <div id="otpStep1">
+          <div id="recaptcha-container" style="margin-bottom:10px;min-height:40px"></div>
+          <button class="asub y" id="sendOtpBtn" onclick="sendOTP()">
+            📤 OTP Bhejo
+          </button>
+          <div style="text-align:center;font-size:.65rem;color:rgba(255,255,255,.3);margin-top:8px">
+            Free SMS — Firebase se verified
+          </div>
+        </div>
+
+        <!-- Step 2: Enter OTP -->
+        <div id="otpStep2" style="display:none;animation:fup .3s ease">
+          <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:11px;padding:10px 13px;margin-bottom:12px">
+            <div style="font-size:.72rem;font-weight:800;color:#10b981">✅ OTP Bheja Gaya!</div>
+            <div style="font-size:.67rem;color:rgba(255,255,255,.5);margin-top:3px" id="otpSentTo">+91 xxxxxxxxxx pe SMS aaya hai</div>
+          </div>
+
+          <!-- 6-digit OTP boxes -->
+          <div style="display:flex;gap:8px;justify-content:center;margin-bottom:14px" id="otpBoxes">
+            <input type="tel" maxlength="1" class="otp-box" id="otp0" oninput="otpBoxInput(this,0)" onkeydown="otpBoxKey(event,0)">
+            <input type="tel" maxlength="1" class="otp-box" id="otp1" oninput="otpBoxInput(this,1)" onkeydown="otpBoxKey(event,1)">
+            <input type="tel" maxlength="1" class="otp-box" id="otp2" oninput="otpBoxInput(this,2)" onkeydown="otpBoxKey(event,2)">
+            <input type="tel" maxlength="1" class="otp-box" id="otp3" oninput="otpBoxInput(this,3)" onkeydown="otpBoxKey(event,3)">
+            <input type="tel" maxlength="1" class="otp-box" id="otp4" oninput="otpBoxInput(this,4)" onkeydown="otpBoxKey(event,4)">
+            <input type="tel" maxlength="1" class="otp-box" id="otp5" oninput="otpBoxInput(this,5)" onkeydown="otpBoxKey(event,5)">
+          </div>
+
+          <button class="asub y" id="verifyOtpBtn" onclick="verifyOTP()">🔓 Verify OTP & Login</button>
+
+          <!-- Resend timer -->
+          <div style="text-align:center;margin-top:10px">
+            <span id="resendTimer" style="font-size:.68rem;color:rgba(255,255,255,.35)">Resend in <b id="resendCount">30</b>s</span>
+            <button id="resendBtn" onclick="resendOTP()" style="display:none;font-size:.68rem;font-weight:800;color:#f59e0b;background:none;border:none;cursor:pointer;text-decoration:underline">
+              🔄 OTP Dobara Bhejo
+            </button>
+          </div>
+
+          <button onclick="resetOTPFlow()" style="display:block;width:100%;margin-top:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:10px;color:rgba(255,255,255,.5);padding:9px;font-size:.72rem;cursor:pointer">
+            ← Number Change Karo
+          </button>
+        </div>
+      </div>
+
+      <!-- ── PASSWORD FLOW ── -->
+      <div id="pwFlow" style="display:none">
+        <div class="fg">
+          <label class="fl">Password</label>
+          <input type="password" class="fi" id="lPass" placeholder="••••••••"
+            onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+        <button class="asub y" onclick="doLogin()">🚀 Login</button>
+        <div style="text-align:center;margin-top:10px">
+          <button onclick="showForgotPassword()" style="font-size:.68rem;font-weight:700;color:rgba(245,158,11,.7);background:none;border:none;cursor:pointer">
+            🔑 Password bhool gaye?
+          </button>
+        </div>
+      </div>
+
+      <!-- Forgot Password Panel -->
+      <div id="forgotPwPanel" style="display:none;animation:fup .3s ease">
+        <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:11px;padding:11px 13px;margin-bottom:10px">
+          <div style="font-size:.75rem;font-weight:800">🔑 Password Reset via OTP</div>
+          <div style="font-size:.65rem;color:rgba(255,255,255,.45);margin-top:2px">Mobile number pe OTP aayega, phir naya password set karo</div>
+        </div>
+        <button class="asub" style="background:rgba(59,130,246,.15);color:#3b82f6;border:1px solid rgba(59,130,246,.25)" onclick="startPasswordReset()">
+          📤 Reset OTP Bhejo
+        </button>
+        <div id="resetStep2" style="display:none;margin-top:10px">
+          <div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px" id="resetOtpBoxes">
+            <input type="tel" maxlength="1" class="otp-box" id="rotp0" oninput="rotpBoxInput(this,0)" onkeydown="rotpBoxKey(event,0)">
+            <input type="tel" maxlength="1" class="otp-box" id="rotp1" oninput="rotpBoxInput(this,1)" onkeydown="rotpBoxKey(event,1)">
+            <input type="tel" maxlength="1" class="otp-box" id="rotp2" oninput="rotpBoxInput(this,2)" onkeydown="rotpBoxKey(event,2)">
+            <input type="tel" maxlength="1" class="otp-box" id="rotp3" oninput="rotpBoxInput(this,3)" onkeydown="rotpBoxKey(event,3)">
+            <input type="tel" maxlength="1" class="otp-box" id="rotp4" oninput="rotpBoxInput(this,4)" onkeydown="rotpBoxKey(event,4)">
+            <input type="tel" maxlength="1" class="otp-box" id="rotp5" oninput="rotpBoxInput(this,5)" onkeydown="rotpBoxKey(event,5)">
+          </div>
+          <input type="password" class="fi" id="newPwInput" placeholder="Naya password (min 6 chars)" style="margin-bottom:8px">
+          <button class="asub" style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.25)" onclick="confirmPasswordReset()">✅ Password Reset Karo</button>
+        </div>
+        <button onclick="hideForgotPassword()" style="display:block;width:100%;margin-top:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:10px;color:rgba(255,255,255,.5);padding:9px;font-size:.72rem;cursor:pointer">
+          ← Wapas Login
+        </button>
+      </div>
     </div>
     <div class="afrm" id="rRegForm">
       <div id="rRegErr" class="eb"></div>
@@ -3163,7 +4248,7 @@ body.lm .vrp-box{background:#f0f4fb;}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, RecaptchaVerifier, signInWithPhoneNumber, linkWithCredential, PhoneAuthProvider, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, getDocs, collection, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, serverTimestamp, GeoPoint } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const cfg = {
@@ -3179,6 +4264,7 @@ try {
   const auth = getAuth(fbApp);
   const db = getFirestore(fbApp);
   window.FB = { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged,
+    RecaptchaVerifier, signInWithPhoneNumber, linkWithCredential, PhoneAuthProvider, updatePassword,
     doc, setDoc, getDoc, getDocs, collection, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, serverTimestamp, GeoPoint };
   window.FB_READY = true;
   // Auto-login check on Firebase ready
@@ -5304,6 +6390,296 @@ function showErr(id,msg) {
   el.textContent='⚠️ '+msg; el.style.display='block';
   setTimeout(()=>el.style.display='none',4000);
 }
+// ═══════════════════════════════════════════════════════════
+// ✅ OTP LOGIN SYSTEM — Firebase Phone Authentication
+// Flow: Mobile → reCAPTCHA → SMS OTP → Verify → Login/Register
+// ═══════════════════════════════════════════════════════════
+
+let _loginMethod = 'otp';      // 'otp' | 'password'
+let _otpConfirmResult = null;  // Firebase confirmationResult
+let _resetConfirmResult = null;// For password reset
+let _resendTimer = null;
+let _otpPhone = '';
+
+// ── Switch between OTP and Password login ──
+function setLoginMethod(method) {
+  _loginMethod = method;
+  const otpBtn = document.getElementById('loginMethodOTP');
+  const pwBtn  = document.getElementById('loginMethodPW');
+  const otpFlow = document.getElementById('otpFlow');
+  const pwFlow  = document.getElementById('pwFlow');
+
+  if(method === 'otp') {
+    if(otpBtn){ otpBtn.style.background='rgba(245,158,11,.2)'; otpBtn.style.color='#f59e0b'; otpBtn.style.borderColor='rgba(245,158,11,.3)'; }
+    if(pwBtn){ pwBtn.style.background='transparent'; pwBtn.style.color='rgba(255,255,255,.4)'; pwBtn.style.borderColor='transparent'; }
+    if(otpFlow) otpFlow.style.display='block';
+    if(pwFlow)  pwFlow.style.display='none';
+    document.getElementById('forgotPwPanel') && (document.getElementById('forgotPwPanel').style.display='none');
+  } else {
+    if(pwBtn){ pwBtn.style.background='rgba(245,158,11,.2)'; pwBtn.style.color='#f59e0b'; pwBtn.style.borderColor='rgba(245,158,11,.3)'; }
+    if(otpBtn){ otpBtn.style.background='transparent'; otpBtn.style.color='rgba(255,255,255,.4)'; otpBtn.style.borderColor='transparent'; }
+    if(otpFlow) otpFlow.style.display='none';
+    if(pwFlow)  pwFlow.style.display='block';
+  }
+}
+
+// ── OTP Box navigation (auto-advance to next box) ──
+function otpBoxInput(el, idx) {
+  el.value = el.value.replace(/\D/,'');
+  if(el.value) {
+    el.classList.add('filled');
+    el.classList.remove('error');
+    if(idx < 5) { document.getElementById('otp'+(idx+1))?.focus(); }
+    else { verifyOTP(); } // Auto-verify on last digit
+  } else {
+    el.classList.remove('filled');
+  }
+}
+function otpBoxKey(e, idx) {
+  if(e.key === 'Backspace' && !e.target.value && idx > 0) {
+    document.getElementById('otp'+(idx-1))?.focus();
+  }
+}
+
+// Reset OTP boxes
+function rotpBoxInput(el, idx) {
+  el.value = el.value.replace(/\D/,'');
+  if(el.value) {
+    el.classList.add('filled');
+    if(idx < 5) document.getElementById('rotp'+(idx+1))?.focus();
+  } else el.classList.remove('filled');
+}
+function rotpBoxKey(e, idx) {
+  if(e.key === 'Backspace' && !e.target.value && idx > 0) document.getElementById('rotp'+(idx-1))?.focus();
+}
+
+function _getOTPValue(prefix='otp') {
+  let code = '';
+  for(let i=0;i<6;i++) code += (document.getElementById(prefix+i)?.value||'');
+  return code;
+}
+function _clearOTPBoxes(prefix='otp') {
+  for(let i=0;i<6;i++){
+    const el=document.getElementById(prefix+i);
+    if(el){el.value='';el.classList.remove('filled','error');}
+  }
+}
+function _shakeOTPBoxes(prefix='otp') {
+  for(let i=0;i<6;i++) document.getElementById(prefix+i)?.classList.add('error');
+  setTimeout(()=>{ for(let i=0;i<6;i++) document.getElementById(prefix+i)?.classList.remove('error'); },600);
+}
+
+// ── Setup reCAPTCHA (invisible) ──
+function _setupRecaptcha(buttonId) {
+  if(!window.FB_READY) { showErr('loginErr','Firebase ready nahi — thoda wait karo'); return false; }
+  try {
+    if(window._recaptchaVerifier) {
+      try { window._recaptchaVerifier.clear(); } catch(e) {}
+    }
+    window._recaptchaVerifier = new window.FB.RecaptchaVerifier(window.FB.auth, buttonId, {
+      size: 'invisible',
+      callback: () => {},
+      'expired-callback': () => {
+        showErr('loginErr','reCAPTCHA expired — phir se try karo');
+        window._recaptchaVerifier = null;
+      }
+    });
+    return true;
+  } catch(e) {
+    window.ErrorLogger?.error('OTP', 'reCAPTCHA setup failed: ' + e.message);
+    return false;
+  }
+}
+
+// ── Resend timer ──
+function _startResendTimer() {
+  let sec = 30;
+  const countEl = document.getElementById('resendCount');
+  const timerEl = document.getElementById('resendTimer');
+  const resendBtn = document.getElementById('resendBtn');
+  if(timerEl) timerEl.style.display='inline';
+  if(resendBtn) resendBtn.style.display='none';
+
+  clearInterval(_resendTimer);
+  _resendTimer = setInterval(() => {
+    sec--;
+    if(countEl) countEl.textContent = sec;
+    if(sec <= 0) {
+      clearInterval(_resendTimer);
+      if(timerEl) timerEl.style.display='none';
+      if(resendBtn) resendBtn.style.display='inline';
+    }
+  }, 1000);
+}
+
+// ── STEP 1: Send OTP ──
+async function sendOTP() {
+  showErr('loginErr','');
+  const phone = document.getElementById('lId')?.value?.trim();
+  if(!phone || !window.SEC.isValidPhone(phone)) {
+    return showErr('loginErr','✏️ Valid 10-digit mobile number likho (6-9 se shuru)');
+  }
+  if(!window.FB_READY) return showErr('loginErr','Firebase connect ho raha hai — thoda wait karo');
+
+  _otpPhone = phone;
+  const btn = document.getElementById('sendOtpBtn');
+  if(btn){ btn.textContent='📤 Bhej raha hai...'; btn.disabled=true; }
+
+  try {
+    if(!_setupRecaptcha('sendOtpBtn')) {
+      if(btn){ btn.textContent='📤 OTP Bhejo'; btn.disabled=false; }
+      return;
+    }
+
+    const phoneNumber = '+91' + phone;
+    _otpConfirmResult = await window.FB.signInWithPhoneNumber(window.FB.auth, phoneNumber, window._recaptchaVerifier);
+
+    // Show Step 2
+    document.getElementById('otpStep1').style.display = 'none';
+    document.getElementById('otpStep2').style.display = 'block';
+    const sentEl = document.getElementById('otpSentTo');
+    if(sentEl) sentEl.textContent = `+91 ${phone.substring(0,5)}XXXXX pe 6-digit OTP bheja gaya`;
+    _clearOTPBoxes('otp');
+    setTimeout(() => document.getElementById('otp0')?.focus(), 100);
+    _startResendTimer();
+    toast('✅ OTP bheja gaya! SMS check karo');
+    window.ErrorLogger?.info('OTP', `OTP sent to +91${phone.substring(0,5)}*****`);
+
+  } catch(e) {
+    if(btn){ btn.textContent='📤 OTP Bhejo'; btn.disabled=false; }
+    const msg = e.code==='auth/too-many-requests' ? '⏳ Bahut zyada attempts — 10 min baad try karo' :
+                e.code==='auth/invalid-phone-number' ? '❌ Invalid phone number' :
+                e.code==='auth/quota-exceeded' ? '📵 SMS quota full — developer se contact karo' :
+                e.code==='auth/captcha-check-failed' ? '🤖 reCAPTCHA failed — page reload karo' :
+                '❌ OTP bhejne mein problem: ' + (e.message||e.code||'');
+    showErr('loginErr', msg);
+    window.ErrorLogger?.error('OTP', 'sendOTP failed: ' + e.code, e);
+  }
+}
+
+// ── STEP 2: Verify OTP & Login/Register ──
+async function verifyOTP() {
+  const code = _getOTPValue('otp');
+  if(code.length < 6) return;
+
+  showErr('loginErr','');
+  const btn = document.getElementById('verifyOtpBtn');
+  if(btn){ btn.textContent='🔄 Verify ho raha hai...'; btn.disabled=true; }
+
+  try {
+    const result = await _otpConfirmResult.confirm(code);
+    const user = result.user;
+
+    // Check if user already has a Firestore profile
+    const snap = await window.FB.getDoc(window.FB.doc(window.FB.db,'users',user.uid));
+
+    if(snap.exists()) {
+      // Existing user → login
+      window.LoginGuard.reset();
+      window.SessionGuard.reset();
+      CU = { uid: user.uid, ...snap.data() };
+      toast('✅ OTP verified! Welcome back ' + (CU.name||''));
+      window.ErrorLogger?.info('AUTH', `OTP Login: ${CU.role} ${CU.name}`);
+      launch();
+    } else {
+      // New user via OTP → need to create profile
+      // Save phone for registration
+      window._otpNewUser = { uid: user.uid, phone: _otpPhone, firebaseUser: user };
+      toast('✅ Number verified! Abhi register karo');
+      // Switch to register tab (pre-fill phone)
+      setTab('register');
+      const role = document.getElementById('rTab')?.classList.contains('on') ? 'rider' : 'driver';
+      if(role === 'rider') {
+        document.getElementById('rPh') && (document.getElementById('rPh').value = _otpPhone);
+      } else {
+        document.getElementById('dPh') && (document.getElementById('dPh').value = _otpPhone);
+      }
+      toast('📝 Phone verified! Baaki details bharo');
+    }
+  } catch(e) {
+    _shakeOTPBoxes('otp');
+    if(btn){ btn.textContent='🔓 Verify OTP & Login'; btn.disabled=false; }
+    const msg = e.code==='auth/invalid-verification-code' ? '❌ Wrong OTP — dobara check karo' :
+                e.code==='auth/code-expired' ? '⏳ OTP expire ho gaya — dobara bhejo' :
+                e.code==='auth/session-expired' ? '⏳ Session expired — phir se OTP bhejo' :
+                '❌ Verification failed: ' + (e.code||'');
+    showErr('loginErr', msg);
+    window.ErrorLogger?.error('OTP', 'verifyOTP failed: ' + e.code);
+  }
+}
+
+// ── Resend OTP ──
+async function resendOTP() {
+  document.getElementById('otpStep2').style.display='none';
+  document.getElementById('otpStep1').style.display='block';
+  const btn = document.getElementById('sendOtpBtn');
+  if(btn){ btn.textContent='📤 OTP Bhejo'; btn.disabled=false; }
+  window._recaptchaVerifier = null;
+  showErr('loginErr','');
+  await sendOTP();
+}
+
+// ── Reset OTP flow ──
+function resetOTPFlow() {
+  document.getElementById('otpStep2').style.display='none';
+  document.getElementById('otpStep1').style.display='block';
+  const btn = document.getElementById('sendOtpBtn');
+  if(btn){ btn.textContent='📤 OTP Bhejo'; btn.disabled=false; }
+  _clearOTPBoxes('otp');
+  window._recaptchaVerifier = null;
+  _otpConfirmResult = null;
+  showErr('loginErr','');
+}
+
+// ── Forgot Password ──
+function showForgotPassword() {
+  document.getElementById('pwFlow').style.display='none';
+  document.getElementById('forgotPwPanel').style.display='block';
+}
+function hideForgotPassword() {
+  document.getElementById('forgotPwPanel').style.display='none';
+  document.getElementById('pwFlow').style.display='block';
+}
+
+async function startPasswordReset() {
+  const phone = document.getElementById('lId')?.value?.trim();
+  if(!phone || !window.SEC.isValidPhone(phone)) return showErr('loginErr','✏️ Mobile number likho pehle');
+  if(!window.FB_READY) return showErr('loginErr','Firebase ready nahi');
+
+  try {
+    if(!_setupRecaptcha('sendOtpBtn')) return;
+    const result = await window.FB.signInWithPhoneNumber(window.FB.auth, '+91'+phone, window._recaptchaVerifier);
+    _resetConfirmResult = result;
+    document.getElementById('resetStep2').style.display='block';
+    toast('✅ Reset OTP bheja gaya!');
+  } catch(e) {
+    showErr('loginErr','OTP send failed: ' + (e.code||e.message||''));
+  }
+}
+
+async function confirmPasswordReset() {
+  const code = _getOTPValue('rotp');
+  if(code.length < 6) return showErr('loginErr','6-digit OTP enter karo');
+  const newPw = document.getElementById('newPwInput')?.value || '';
+  if(newPw.length < 6) return showErr('loginErr','Password min 6 characters hona chahiye');
+
+  try {
+    const result = await _resetConfirmResult.confirm(code);
+    // Update password using Firebase Auth
+    await window.FB.updatePassword(result.user, newPw);
+    toast('✅ Password reset ho gaya! Ab login karo');
+    hideForgotPassword();
+    setLoginMethod('password');
+    window.ErrorLogger?.info('AUTH', 'Password reset via OTP');
+  } catch(e) {
+    _shakeOTPBoxes('rotp');
+    const msg = e.code==='auth/invalid-verification-code' ? '❌ Wrong OTP' :
+                e.code==='auth/requires-recent-login' ? '⚠️ Session purani — phir se OTP bhejo' :
+                'Reset failed: ' + (e.code||'');
+    showErr('loginErr', msg);
+  }
+}
+
 async function doLogin() {
   if (!window.FB_READY) return toast('Firebase not ready');
 
@@ -5336,25 +6712,51 @@ async function doRiderReg() {
   if (!window.FB_READY) return toast('Firebase not ready');
   const fn = window.SEC.sanitize(document.getElementById('rFn').value.trim());
   const ph = document.getElementById('rPh').value.trim();
-  const pw = document.getElementById('rPw').value;
-  if(!fn||!ph||!pw) return showErr('rRegErr','Fill all fields');
+  const pw = document.getElementById('rPw')?.value || '';
+
+  if(!fn||!ph) return showErr('rRegErr','Naam aur mobile number zaroori hai');
   if(!window.SEC.isValidPhone(ph)) return showErr('rRegErr','Valid 10-digit mobile required (starts with 6-9)');
-  if(pw.length<6) return showErr('rRegErr','Password min 6 characters');
-  if(checkPwStrength(pw) < 1) return showErr('rRegErr','Zyada strong password use karo');
+
+  // ── Check if user came via OTP verification ──
+  const otpUser = window._otpNewUser;
+  const isOtpReg = otpUser && otpUser.phone === ph;
+
+  if(!isOtpReg) {
+    // Password registration
+    if(!pw) return showErr('rRegErr','Password zaroori hai — ya OTP se register karo');
+    if(pw.length<6) return showErr('rRegErr','Password min 6 characters');
+    if(checkPwStrength(pw) < 1) return showErr('rRegErr','Zyada strong password use karo');
+  }
+
   try{
-    // ✅ Firebase Auth handles bcrypt hashing server-side
-    const c=await window.FB.createUserWithEmailAndPassword(window.FB.auth,ph+'@jdpcabs.in',pw);
-    const ud={
+    let uid, userData;
+
+    if(isOtpReg) {
+      // OTP verified user — Firebase Auth account already created
+      uid = otpUser.uid;
+      window._otpNewUser = null; // Clear
+      toast('✅ OTP verified account se register ho raha hai...');
+    } else {
+      // Password registration
+      const c = await window.FB.createUserWithEmailAndPassword(window.FB.auth, ph+'@jdpcabs.in', pw);
+      uid = c.user.uid;
+    }
+
+    const ud = {
       name:fn, phone:ph, role:'rider',
-      createdAt:window.FB.serverTimestamp(),
-      // ✅ SECURITY: No password stored in Firestore (Firebase Auth manages it)
-      secVersion: 2  // marks account as security v2
+      createdAt: window.FB.serverTimestamp(),
+      authMethod: isOtpReg ? 'phone_otp' : 'email_password',
+      secVersion: 2
     };
-    await window.FB.setDoc(window.FB.doc(window.FB.db,'users',c.user.uid),ud);
+    await window.FB.setDoc(window.FB.doc(window.FB.db,'users', uid), ud);
     window.LoginGuard.reset();
     window.SessionGuard.reset();
-    CU={uid:c.user.uid,...ud};launch();
-  }catch(e){showErr('rRegErr',e.code==='auth/email-already-in-use'?'Mobile already registered. Login.':'Registration failed.');}
+    CU = { uid, ...ud };
+    window.ErrorLogger?.info('AUTH', `Rider registered via ${ud.authMethod}: ${fn}`);
+    launch();
+  } catch(e) {
+    showErr('rRegErr', e.code==='auth/email-already-in-use' ? '📱 Mobile already registered. Login karo.' : 'Registration failed: '+(e.message||''));
+  }
 }
 function fmtAadhar(el) {
   let v = el.value.replace(/\D/g,'').slice(0,12);
@@ -5405,9 +6807,11 @@ function handleDriverPhoto(input) {
 function showKycStep() {
   const fn=document.getElementById('dFn').value.trim(),ph=document.getElementById('dPh').value.trim();
   const veh=document.getElementById('dVeh').value.trim().toUpperCase(),pw=document.getElementById('dPw').value;
-  if(!fn||!ph||!veh||!pw) return showErr('dRegErr','Fill all basic fields first');
+  const isOtpDriver = window._otpNewUser && window._otpNewUser.phone === ph;
+  if(!fn||!ph||!veh) return showErr('dRegErr','Fill all basic fields first');
+  if(!isOtpDriver && !pw) return showErr('dRegErr','Password zaroori hai — ya OTP se register karo');
   if(!window.SEC.isValidPhone(ph)) return showErr('dRegErr','Valid 10-digit mobile (starts with 6-9)');
-  if(pw.length<6) return showErr('dRegErr','Password min 6 chars');
+  if(!isOtpDriver && pw.length<6) return showErr('dRegErr','Password min 6 chars');
   if(veh.length<5) return showErr('dRegErr','Valid vehicle number required');
   document.getElementById('dStep1').style.display='none';
   document.getElementById('dStep2').style.display='block';
@@ -5425,9 +6829,14 @@ async function doDriverReg() {
   const accNo = document.getElementById('dAccNo').value.trim();
   const ifsc = document.getElementById('dIfsc').value.trim().toUpperCase();
 
-  if(!fn||!ph||!veh||!pw) return showErr('dRegErr','Basic details missing');
+  // OTP verified user doesn't need password
+  const dOtpUser = window._otpNewUser;
+  const isDOtpReg = dOtpUser && dOtpUser.phone === ph;
+  
+  if(!fn||!ph||!veh) return showErr('dRegErr','Basic details missing');
+  if(!isDOtpReg && !pw) return showErr('dRegErr','Password zaroori hai — ya OTP se register karo');
   if(!window.SEC.isValidPhone(ph)) return showErr('dRegErr','Valid 10-digit mobile required (starts with 6-9)');
-  if(pw.length<6) return showErr('dRegErr','Password min 6 chars');
+  if(!isDOtpReg && pw.length<6) return showErr('dRegErr','Password min 6 chars');
   if(!driverPhotoBase64) return showErr('dRegErr','📸 Profile photo zaroori hai — please upload karo');
   if(!window.SEC.isValidAadhaar(aadhar)) return showErr('dRegErr','Aadhaar 12 digits required');
   if(!window.SEC.isValidPAN(pan)) return showErr('dRegErr','PAN format galat hai (e.g. ABCDE1234F)');
@@ -5436,8 +6845,14 @@ async function doDriverReg() {
   if(!window.SEC.isValidIFSC(ifsc)) return showErr('dRegErr','IFSC code format galat hai (e.g. SBIN0001234)');
 
   try{
-    const c = await window.FB.createUserWithEmailAndPassword(window.FB.auth, ph+'@jdpcabs.in', pw);
-    const uid = c.user.uid;
+    let uid;
+    if(isDOtpReg) {
+      uid = dOtpUser.uid;
+      window._otpNewUser = null;
+    } else {
+      const c = await window.FB.createUserWithEmailAndPassword(window.FB.auth, ph+'@jdpcabs.in', pw);
+      uid = c.user.uid;
+    }
 
     // ✅ SECURITY: Encrypt all sensitive KYC + Bank data with AES-GCM before storing
     toast('🔒 Encrypting sensitive data...');
