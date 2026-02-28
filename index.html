@@ -86,6 +86,13 @@ window.Cache = {
 
 // GPS cache — don't call GPS more than once per 3s
 window.GPS_CACHE = { lat: null, lng: null, ts: 0, TTL: 3000 };
+
+// ✅ CRITICAL GLOBAL FLAGS — initialized here so they're ALWAYS defined
+// even before DOMContentLoaded, even before enterprise engine loads
+window._mapFailed   = false;  // Map SDK load status
+window._gpsActive   = false;  // GPS watchPosition status
+window._appStartTime = Date.now(); // App start timestamp
+window._lastGpsUpdate = 0;    // Last GPS fix timestamp
 </script>
 
 <!-- ✅ JDP SECURITY ENGINE — HTTPS + Hashing + Rate Limit + KYC Encrypt -->
@@ -871,14 +878,16 @@ window.HealthPulse = (function() {
     };
 
     // Check 3: Map SDK — with grace period (loading takes 5-15s)
-    const _mapLoaded = !!window.leafMap && !window._mapFailed;
+    // Triple-safe: default to false if ANYTHING is undefined
+    const _mapFailedSafe = (typeof window !== 'undefined' && typeof window._mapFailed !== 'undefined') ? !!window._mapFailed : false;
+    const _mapLoaded = !!(typeof window !== 'undefined' && window.leafMap) && !_mapFailedSafe;
     const _mapGrace = !window._appStartTime || (Date.now() - window._appStartTime) < 30000;
     const _mapOk = _mapLoaded || _mapGrace;
     _checks.map = {
       name: 'Map SDK',
       ok: _mapOk,
       ms: 0,
-      label: _mapLoaded ? 'Loaded' : (_mapFailed ? 'Failed' : (_mapGrace ? 'Loading...' : 'Failed')),
+      label: _mapLoaded ? 'Loaded' : (_mapFailedSafe ? 'Failed' : (_mapGrace ? 'Loading...' : 'Failed')),
       critical: false
     };
 
@@ -1284,8 +1293,13 @@ window.CrashReporter = (function() {
 // BOOT — Start all enterprise systems
 // ═══════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
+  // Initialize auth mode class
+  try { const authEl = document.getElementById('auth'); if(authEl) authEl.classList.add('rider-mode'); } catch(e){}
+  
   // Start all modules
-  window._appStartTime = Date.now(); // Track app start for GPS grace period
+  // ✅ Globals already initialized in first script tag — just confirm/refresh
+  window._appStartTime = window._appStartTime || Date.now();
+  window._mapFailed = window._mapFailed || false;
   window.PerfMonitor.start();
   window.ThreatDetector.start();
   window.RecoveryManager.start();
@@ -2297,13 +2311,100 @@ body.lm #zoneLegend{background:rgba(255,255,255,.95);color:#000;}
 .ld-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--yellow),#f97316);border-radius:99px;transition:width .25s;}
 
 /* ══ AUTH ══ */
-#auth{position:fixed;inset:0;z-index:8000;display:none;flex-direction:column;background:var(--bg);overflow-y:auto;}
+
+/* ══════════════════════ PREMIUM AUTH SCREEN ══════════════════════ */
+#auth{
+  position:fixed;inset:0;z-index:8000;display:none;flex-direction:column;
+  background:#07090f;overflow-y:auto;overflow-x:hidden;
+}
 #auth::-webkit-scrollbar{display:none;}
-.ah{position:relative;height:195px;overflow:hidden;flex-shrink:0;}
-.ah img{width:100%;height:100%;object-fit:cover;opacity:.3;}
-.ah-ov{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,9,15,.05),rgba(7,9,15,1));display:flex;flex-direction:column;justify-content:flex-end;padding:20px;}
-.ah-tag{display:inline-flex;align-items:center;gap:5px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);border-radius:99px;padding:3px 10px;font-size:.62rem;font-weight:700;color:var(--yellow);margin-bottom:6px;}
-.ab{padding:0 16px 48px;}
+
+/* Full-screen hero */
+.ah{position:relative;height:280px;overflow:hidden;flex-shrink:0;}
+.ah img{width:100%;height:100%;object-fit:cover;opacity:.25;transform:scale(1.05);transition:transform 8s ease;}
+.ah-vid-bg{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% 120%, rgba(245,158,11,.18) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 60% at 30% 0%, rgba(245,158,11,.06) 0%, transparent 50%),
+    linear-gradient(to bottom, rgba(7,9,15,0) 0%, rgba(7,9,15,.6) 50%, rgba(7,9,15,1) 100%);
+}
+.ah-driver-bg{
+  background:
+    radial-gradient(ellipse 120% 80% at 50% 120%, rgba(16,185,129,.18) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 60% at 70% 0%, rgba(16,185,129,.06) 0%, transparent 50%),
+    linear-gradient(to bottom, rgba(7,9,15,0) 0%, rgba(7,9,15,.6) 50%, rgba(7,9,15,1) 100%);
+}
+.ah-ov{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;justify-content:flex-end;
+  padding:20px 20px 18px;
+}
+.ah-brand{
+  font-family:'Syne',sans-serif;font-weight:900;font-size:2.6rem;
+  color:white;line-height:1;letter-spacing:-.03em;
+  text-shadow:0 2px 30px rgba(0,0,0,.5);
+}
+.ah-sub{font-size:.78rem;color:rgba(255,255,255,.45);margin-top:4px;font-weight:500;}
+.ah-tag{
+  display:inline-flex;align-items:center;gap:5px;
+  background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);
+  border-radius:99px;padding:4px 12px;
+  font-size:.64rem;font-weight:800;color:var(--yellow);
+  margin-bottom:10px;letter-spacing:.04em;text-transform:uppercase;
+}
+.ah-tag-driver{background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.3);color:#10b981;}
+
+/* Bottom form panel */
+.ab{padding:0 16px 56px;}
+
+/* Role selector — premium pill cards */
+.rtog{
+  display:flex;gap:6px;margin-bottom:14px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:16px;padding:5px;
+}
+.rtab{
+  flex:1;padding:14px 10px;border-radius:12px;border:none;
+  background:transparent;color:rgba(255,255,255,.4);
+  font-weight:800;cursor:pointer;font-size:.88rem;
+  font-family:'DM Sans',sans-serif;
+  transition:all .2s cubic-bezier(.4,0,.2,1);
+  display:flex;align-items:center;justify-content:center;gap:7px;
+}
+.rtab.ar{
+  background:linear-gradient(135deg,rgba(245,158,11,.25),rgba(245,158,11,.12));
+  color:#f59e0b;
+  border:1px solid rgba(245,158,11,.3);
+  box-shadow:0 4px 20px rgba(245,158,11,.12);
+}
+.rtab.ad{
+  background:linear-gradient(135deg,rgba(16,185,129,.25),rgba(16,185,129,.12));
+  color:#10b981;
+  border:1px solid rgba(16,185,129,.3);
+  box-shadow:0 4px 20px rgba(16,185,129,.12);
+}
+
+/* Login/Register tabs */
+.atabs{
+  display:flex;gap:0;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:12px;padding:3px;margin-bottom:18px;
+}
+.atab{
+  flex:1;padding:10px;border-radius:9px;border:none;
+  background:transparent;color:rgba(255,255,255,.4);
+  font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif;
+  font-size:.85rem;transition:all .2s;
+}
+.atab.on{
+  background:rgba(255,255,255,.1);
+  color:white;
+  box-shadow:0 1px 8px rgba(0,0,0,.3);
+}
+
 .rtog{display:flex;gap:4px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:13px;padding:4px;margin-bottom:14px;}
 .rtab{flex:1;padding:11px;border-radius:9px;border:none;background:transparent;color:var(--muted);font-weight:700;cursor:pointer;font-size:.87rem;font-family:'DM Sans',sans-serif;}
 .rtab.ar{background:var(--yellow);color:#000;}
@@ -2347,7 +2448,7 @@ body.lm .tbtn{background:rgba(255,255,255,.88);color:#000;}
 .locbtn{position:fixed;right:15px;z-index:500;width:44px;height:44px;background:white;border-radius:50%;border:none;cursor:pointer;font-size:1.05rem;box-shadow:0 4px 18px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;}
 
 /* ══ SHEETS ══ */
-.sheet{position:fixed;bottom:0;left:0;right:0;z-index:400;background:rgba(7,9,15,.97);backdrop-filter:blur(32px);border-radius:22px 22px 0 0;border-top:1px solid rgba(255,255,255,.07);padding:0 17px 34px;max-height:88vh;overflow-y:auto;display:none;}
+.sheet{position:fixed;bottom:0;left:0;right:0;z-index:400;background:rgba(7,9,15,.97);backdrop-filter:blur(30px);border-radius:26px 26px 0 0;border-top:1px solid rgba(255,255,255,.07);padding:0 17px 34px;max-height:78vh;overflow-y:auto;display:none;box-shadow:0 -8px 40px rgba(0,0,0,.6);}
 .sheet::-webkit-scrollbar{display:none;}
 body.lm .sheet{background:rgba(240,244,251,.97);}
 .hdl{width:34px;height:4px;background:rgba(255,255,255,.1);border-radius:4px;margin:11px auto 17px;}
@@ -2989,20 +3090,40 @@ body.lm .vrp-box{background:#f0f4fb;}
 
 <!-- AUTH -->
 <div id="auth">
-  <div class="ah">
-    <img src="https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=800&q=80">
+  <!-- Hero Image (role-responsive) -->
+  <div class="ah" id="authHero">
+    <img id="authHeroImg" src="https://images.unsplash.com/photo-1542296332-2e4473faf563?auto=format&fit=crop&w=900&q=85" alt="">
+    <div class="ah-vid-bg" id="authHeroBg"></div>
     <div class="ah-ov">
-      <div class="ah-tag">🗺️ Jagdalpur • Bastar</div>
-      <div style="font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:900;color:white;">JDP CABS</div>
-      <div style="color:rgba(255,255,255,.5);font-size:.8rem;margin-top:3px;">Jagdalpur's Smartest Cab System</div>
+      <div class="ah-tag" id="authHeroTag">🗺️ Jagdalpur · Bastar</div>
+      <div class="ah-brand">JDP CABS</div>
+      <div class="ah-sub" id="authHeroSub">India ka sabse smart cab booking — Jagdalpur</div>
     </div>
   </div>
+
   <div class="ab">
-    <div class="fbb" id="fbBadge">⏳ Connecting to Firebase...</div>
-    <div id="secBadge" style="margin-bottom:8px;font-size:.6rem">🔒 Checking...</div>
-    <div class="rtog">
-      <button class="rtab ar" id="rTab" onclick="setRole('rider')">🧍 Rider</button>
-      <button class="rtab" id="dTab" onclick="setRole('driver')">🚖 Driver</button>
+    <!-- Status badges -->
+    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+      <div class="fbb" id="fbBadge" style="flex:1">⏳ Connecting...</div>
+      <div id="secBadge" style="font-size:.6rem;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.15);border-radius:99px;padding:3px 10px;color:rgba(16,185,129,.8);font-weight:700;white-space:nowrap;align-self:center">🔒 Checking...</div>
+    </div>
+
+    <!-- ROLE SELECTOR — Big premium cards -->
+    <div class="rtog" id="roleToggleGroup">
+      <button class="rtab ar" id="rTab" onclick="setRole('rider')">
+        <span style="font-size:1.3rem">🧍</span>
+        <div>
+          <div style="font-size:.88rem;font-weight:800">Rider</div>
+          <div style="font-size:.6rem;opacity:.7;font-weight:500">Book a ride</div>
+        </div>
+      </button>
+      <button class="rtab" id="dTab" onclick="setRole('driver')">
+        <span style="font-size:1.3rem">🚖</span>
+        <div>
+          <div style="font-size:.88rem;font-weight:800">Driver</div>
+          <div style="font-size:.6rem;opacity:.7;font-weight:500">Earn money</div>
+        </div>
+      </button>
     </div>
     <div class="atabs">
       <button class="atab on" id="loginTab" onclick="setTab('login')">Login</button>
@@ -3199,7 +3320,7 @@ body.lm .vrp-box{background:#f0f4fb;}
   <div class="tb-logo">JDP CABS</div>
   <div class="tb-actions">
     <div class="tbtn tbtn-icon" onclick="openModal('histModal')" title="Ride History">📋</div>
-    <div class="tbtn tbtn-icon" onclick="toggleTheme()">☀️</div>
+    <div class="tbtn tbtn-icon" id="themeBtn" onclick="toggleTheme()" title="Day/Night mode" style="font-size:1.1rem">🌙</div>
     <div class="tbtn" style="color:rgba(255,80,80,1);border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.12)" onclick="doLogout()">Exit</div>
   </div>
 </div>
@@ -3397,7 +3518,52 @@ body.lm .vrp-box{background:#f0f4fb;}
 
   <!-- ASSIGNED SCREEN -->
   <div class="scr" id="sAssigned">
-    <div id="assignedBanner" style="background:rgba(16,185,129,.1);color:var(--green);padding:9px;border-radius:11px;text-align:center;font-weight:800;margin-bottom:13px;border:1px solid rgba(16,185,129,.25);font-size:.88rem">✅ Driver Assigned!</div>
+    <!-- 🗺️ LIVE NAVIGATION MAP STRIP — Rider sees driver coming -->
+    <div id="rNavMapWrap" style="
+      position:relative;height:180px;border-radius:16px;overflow:hidden;
+      margin-bottom:12px;border:1.5px solid rgba(59,130,246,.25);
+      background:rgba(15,20,40,.9);
+    ">
+      <div id="rNavMap" style="width:100%;height:100%"></div>
+      <div style="
+        position:absolute;top:8px;left:10px;
+        background:rgba(0,0,0,.75);backdrop-filter:blur(8px);
+        border-radius:99px;padding:4px 10px;
+        font-size:.62rem;font-weight:800;color:white;
+        border:1px solid rgba(255,255,255,.1);
+        display:flex;align-items:center;gap:5px;
+      ">
+        <div style="width:6px;height:6px;border-radius:50%;background:#3b82f6;animation:dpulse 1.2s infinite"></div>
+        <span id="rNavMapStatus">Driver tracking live</span>
+      </div>
+      <button onclick="expandNavMap()" style="
+        position:absolute;top:8px;right:10px;
+        background:rgba(0,0,0,.75);backdrop-filter:blur(8px);
+        border:1px solid rgba(255,255,255,.1);border-radius:8px;
+        color:white;font-size:.62rem;font-weight:800;
+        padding:4px 9px;cursor:pointer;
+      ">⤢ Map</button>
+    </div>
+    <div id="assignedBanner" style="background:rgba(16,185,129,.1);color:var(--green);padding:9px;border-radius:11px;text-align:center;font-weight:800;margin-bottom:10px;border:1px solid rgba(16,185,129,.25);font-size:.88rem">
+      ✅ Driver Assigned!
+      <div id="assignedSoundBar" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:6px;font-size:.65rem;font-weight:700;color:rgba(16,185,129,.8)">
+        <div style="display:flex;gap:3px;align-items:center">
+          <div class="sound-bar" style="animation-delay:0s"></div>
+          <div class="sound-bar" style="animation-delay:.1s"></div>
+          <div class="sound-bar" style="animation-delay:.2s"></div>
+          <div class="sound-bar" style="animation-delay:.3s"></div>
+          <div class="sound-bar" style="animation-delay:.15s"></div>
+        </div>
+        <span id="soundCountdown">🔔 60s</span>
+        <div style="display:flex;gap:3px;align-items:center">
+          <div class="sound-bar" style="animation-delay:.2s"></div>
+          <div class="sound-bar" style="animation-delay:.05s"></div>
+          <div class="sound-bar" style="animation-delay:.25s"></div>
+          <div class="sound-bar" style="animation-delay:.15s"></div>
+          <div class="sound-bar" style="animation-delay:.1s"></div>
+        </div>
+      </div>
+    </div>
     <div class="dcard" id="driverCard">
       <!-- Driver photo or emoji fallback -->
       <div class="dava-verified" id="dAvaWrap">
@@ -3541,6 +3707,18 @@ body.lm .vrp-box{background:#f0f4fb;}
   </div>
 
   <div id="dNav">
+    <!-- 🗺️ DRIVER LIVE NAVIGATION MAP STRIP -->
+    <div id="dNavMapWrap" style="position:relative;height:160px;border-radius:14px;overflow:hidden;margin-bottom:11px;border:1.5px solid rgba(16,185,129,.25);background:rgba(7,9,15,.9);">
+      <div id="dNavMap" style="width:100%;height:100%"></div>
+      <div style="position:absolute;inset:0;pointer-events:none;background:linear-gradient(to bottom,transparent 60%,rgba(7,9,15,.7) 100%)"></div>
+      <div style="position:absolute;bottom:8px;left:10px;right:10px;display:flex;align-items:center;justify-content:space-between">
+        <div style="background:rgba(0,0,0,.8);backdrop-filter:blur(6px);border-radius:99px;padding:4px 10px;font-size:.62rem;font-weight:800;color:var(--green);border:1px solid rgba(16,185,129,.2);display:flex;align-items:center;gap:5px">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:dpulse 1s infinite"></div>
+          <span id="dNavETA">Route loading...</span>
+        </div>
+        <button onclick="expandNavMap()" style="background:rgba(0,0,0,.8);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:white;font-size:.62rem;font-weight:800;padding:4px 9px;cursor:pointer">⤢ Full Map</button>
+      </div>
+    </div>
     <!-- Phase label -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:.88rem" id="navLabel">🔵 Pickup pe jaao</div>
@@ -3692,6 +3870,197 @@ body.lm .vrp-box{background:#f0f4fb;}
 /* Admin Login */
 #adminLogin{padding:20px 18px 32px;}
 .adm-lock{font-size:2.5rem;margin-bottom:12px;text-align:center;}
+
+/* ══════════════════ PREMIUM AUTH UPGRADES ══════════════════ */
+
+/* Auth screen full redesign */
+#auth { background: #050709; }
+
+/* Role-specific hero tints */
+#auth.rider-mode .ah-vid-bg {
+  background:
+    radial-gradient(ellipse 100% 60% at 50% 100%, rgba(245,158,11,.22) 0%, transparent 55%),
+    linear-gradient(to bottom, rgba(5,7,9,0) 30%, rgba(5,7,9,1) 100%);
+}
+#auth.driver-mode .ah-vid-bg {
+  background:
+    radial-gradient(ellipse 100% 60% at 50% 100%, rgba(16,185,129,.22) 0%, transparent 55%),
+    linear-gradient(to bottom, rgba(5,7,9,0) 30%, rgba(5,7,9,1) 100%);
+}
+#auth.driver-mode .ah-brand { 
+  background: linear-gradient(90deg, #10b981, #34d399);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+#auth.rider-mode .ah-brand {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Smooth role transition */
+.ah, .ah-vid-bg, .rtab { transition: all .35s cubic-bezier(.4,0,.2,1); }
+
+/* Form card feel */
+.ab {
+  background: linear-gradient(180deg, #050709 0%, #07090f 100%);
+  border-radius: 24px 24px 0 0;
+  margin-top: -24px;
+  position: relative;
+  z-index: 2;
+  padding: 20px 18px 60px;
+}
+
+/* Input upgrade */
+.fi {
+  background: rgba(255,255,255,.04) !important;
+  border: 1.5px solid rgba(255,255,255,.08) !important;
+  border-radius: 13px !important;
+  padding: 13px 14px !important;
+  font-size: .88rem !important;
+  transition: border-color .2s, box-shadow .2s;
+}
+.fi:focus {
+  border-color: rgba(245,158,11,.5) !important;
+  box-shadow: 0 0 0 3px rgba(245,158,11,.08) !important;
+  outline: none;
+}
+#auth.driver-mode .fi:focus {
+  border-color: rgba(16,185,129,.5) !important;
+  box-shadow: 0 0 0 3px rgba(16,185,129,.08) !important;
+}
+
+/* Submit button glow */
+.asub { 
+  border-radius: 14px !important;
+  padding: 15px !important;
+  font-size: .92rem !important;
+  font-weight: 900 !important;
+  letter-spacing: .01em;
+  transition: all .2s, transform .1s;
+}
+.asub:active { transform: scale(.97); }
+.asub.y { 
+  box-shadow: 0 4px 20px rgba(245,158,11,.3);
+}
+
+/* Day/Night button premium */
+#themeBtn {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.12);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .2s;
+  font-size: 1rem;
+}
+#themeBtn:active { transform: scale(.9); }
+
+/* Nav map strips */
+#rNavMapWrap, #dNavMapWrap {
+  box-shadow: 0 4px 20px rgba(0,0,0,.4);
+}
+
+/* Sheet bottom border-radius upgrade */
+.sheet {
+  border-radius: 24px 24px 0 0 !important;
+}
+
+/* Rider sHome — bigger, more breathing room */
+#sHome { padding-top: 4px; }
+
+/* ══════════ SOUND VISUALIZER BARS ══════════ */
+.sound-bar {
+  width: 3px;
+  background: var(--green);
+  border-radius: 3px;
+  animation: soundWave 0.6s ease-in-out infinite alternate;
+  height: 8px;
+}
+@keyframes soundWave {
+  from { height: 4px; opacity: .5; }
+  to { height: 14px; opacity: 1; }
+}
+
+/* ══════════ UBER-STYLE MAP CONTROLS ══════════ */
+#locBtn, #mapStyleBtn {
+  box-shadow: 0 4px 20px rgba(0,0,0,.4), 0 2px 8px rgba(0,0,0,.3) !important;
+  width: 46px !important; height: 46px !important;
+  border-radius: 14px !important;
+  font-size: 1.1rem !important;
+}
+
+/* ══════════ PREMIUM BUTTON STYLES ══════════ */
+.mbtn {
+  border-radius: 14px !important;
+  font-weight: 800 !important;
+  letter-spacing: .01em;
+  transition: all .18s, transform .1s !important;
+}
+.mbtn:active { transform: scale(.97) !important; }
+.mbtn.y { box-shadow: 0 4px 16px rgba(245,158,11,.25) !important; }
+.mbtn.g { box-shadow: 0 4px 16px rgba(16,185,129,.2) !important; }
+
+/* ══════════ PREMIUM TOP BAR ══════════ */
+.tb {
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  background: rgba(7,9,15,.85) !important;
+  border-bottom: 1px solid rgba(255,255,255,.06) !important;
+}
+
+/* ══════════ RIDE CARD UPGRADES ══════════ */
+.dcard {
+  border-radius: 18px !important;
+  background: linear-gradient(135deg, rgba(30,35,55,.9), rgba(15,18,30,.9)) !important;
+}
+
+/* ══════════ DAY MODE (LIGHT) UPGRADES ══════════ */
+body.lm #auth { background: #f0f4fb; }
+body.lm .ah-brand { 
+  background: linear-gradient(90deg, #d97706, #b45309) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+body.lm.driver-active .ah-brand {
+  background: linear-gradient(90deg, #059669, #047857) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+body.lm .ab { background: #f0f4fb; }
+
+/* ══════════ AUTH FORM FADE ANIMATION ══════════ */
+.afrm.sh { animation: authSlideIn .3s cubic-bezier(.4,0,.2,1); }
+@keyframes authSlideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ══════════ ROLE TAB BADGE ══════════ */
+.rtab { position: relative; overflow: hidden; }
+.rtab::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  transition: background .2s;
+}
+.rtab.ar::after { background: radial-gradient(ellipse at center, rgba(245,158,11,.08) 0%, transparent 70%); }
+.rtab.ad::after { background: radial-gradient(ellipse at center, rgba(16,185,129,.08) 0%, transparent 70%); }
+
+/* ══════════ HANDLE BAR ══════════ */
+.hdl {
+  width: 36px;
+  height: 4px;
+  background: rgba(255,255,255,.15);
+  border-radius: 99px;
+  margin: 6px auto 14px;
+}
+body.lm .hdl { background: rgba(0,0,0,.12); }
 </style>
 
 <!-- Admin FAB -->
@@ -4683,7 +5052,23 @@ function playDriverAssigned() {
   }
   playOnce();
   _assignedMusicInterval = setInterval(playOnce, 1400);
-  _assignedMusicTimeout  = setTimeout(stopDriverMusic, 30000);
+  _assignedMusicTimeout  = setTimeout(() => {
+    stopDriverMusic();
+    // Hide sound bar
+    const bar = document.getElementById('assignedSoundBar');
+    if(bar) bar.style.opacity = '0';
+  }, 60000); // ✅ 60 second alert
+  
+  // ✅ 60-second countdown display
+  let _cdSecs = 60;
+  const cdEl = document.getElementById('soundCountdown');
+  if(cdEl) {
+    const cdInterval = setInterval(() => {
+      _cdSecs--;
+      if(cdEl) cdEl.textContent = '🔔 ' + _cdSecs + 's';
+      if(_cdSecs <= 0) clearInterval(cdInterval);
+    }, 1000);
+  }
 }
 
 // ===================================================
@@ -5259,8 +5644,15 @@ function initMap() {
       console.warn('[JDP] Map SDK failed to load');
       // Show user-friendly fallback
       const mapEl = document.getElementById('map');
-      if(mapEl) mapEl.innerHTML = '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0a0e16;color:rgba(255,255,255,.5);font-size:.85rem;gap:10px"><div style=\'font-size:2rem\'>🗺️</div><div style=\'font-weight:700\'>Map load nahi hua</div><div style=\'font-size:.72rem;text-align:center;padding:0 30px\'>Internet check karo ya page refresh karo.<br>Booking aur tracking baaki kaam karega.</div><button onclick=\'location.reload()\' style=\'background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:#f59e0b;border-radius:99px;padding:8px 20px;font-size:.78rem;font-weight:800;cursor:pointer;margin-top:8px\'>🔄 Reload</button></div>';
-      toast('⚠️ Map load nahi hua — internet check karo');
+      if(mapEl) {
+        const _isLocal = location.protocol === 'file:';
+        const _mapHint = _isLocal
+          ? 'Local file mein map kaam nahi karta — Vercel pe deploy karo (jdpcabs.vercel.app)'
+          : 'Internet check karo ya page refresh karo.<br>Booking aur tracking baaki kaam karega.';
+        mapEl.innerHTML = `<div style='position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0a0e16;color:rgba(255,255,255,.5);font-size:.85rem;gap:10px;padding:20px;text-align:center'><div style='font-size:2.5rem'>🗺️</div><div style='font-weight:700;color:white'>Map load nahi hua</div><div style='font-size:.72rem;color:rgba(255,255,255,.4);margin-top:6px'>${_mapHint}</div>${_isLocal ? '' : `<button onclick='location.reload()' style='background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:#f59e0b;border-radius:99px;padding:8px 20px;font-size:.78rem;font-weight:800;cursor:pointer;margin-top:12px'>🔄 Reload</button>`}</div>`;
+      }
+      const _isLocalToast = location.protocol === 'file:';
+      toast(_isLocalToast ? '📁 Local file: deploy to Vercel for map' : '⚠️ Map load nahi hua — internet check karo');
       // Still allow non-map features
       window._mapFailed = true;
       return;
@@ -6412,6 +6804,28 @@ function setRole(r) {
   authRole = r;
   document.getElementById('rTab').className='rtab'+(r==='rider'?' ar':'');
   document.getElementById('dTab').className='rtab'+(r==='driver'?' ad':'');
+  
+  // ✅ Premium: update hero visuals per role
+  const auth = document.getElementById('auth');
+  const tag = document.getElementById('authHeroTag');
+  const sub = document.getElementById('authHeroSub');
+  const heroImg = document.getElementById('authHeroImg');
+  const heroBg = document.getElementById('authHeroBg');
+  
+  if(r === 'driver') {
+    auth.classList.add('driver-mode'); auth.classList.remove('rider-mode');
+    if(tag) { tag.className = 'ah-tag ah-tag-driver'; tag.textContent = '🚖 Driver Partner Zone'; }
+    if(sub) sub.textContent = 'Jagdalpur mein kamaao — apna waqt, apni kamaai';
+    if(heroImg) heroImg.src = 'https://images.unsplash.com/photo-1621498659838-30a7c7b73d3b?auto=format&fit=crop&w=900&q=85';
+    if(heroBg) heroBg.className = 'ah-driver-bg';
+  } else {
+    auth.classList.add('rider-mode'); auth.classList.remove('driver-mode');
+    if(tag) { tag.className = 'ah-tag'; tag.textContent = '🗺️ Jagdalpur · Bastar'; }
+    if(sub) sub.textContent = 'India ka sabse smart cab booking — Jagdalpur';
+    if(heroImg) heroImg.src = 'https://images.unsplash.com/photo-1542296332-2e4473faf563?auto=format&fit=crop&w=900&q=85';
+    if(heroBg) heroBg.className = 'ah-vid-bg';
+  }
+  
   setTab(document.getElementById('loginTab').classList.contains('on')?'login':'register');
 }
 function setTab(t) {
@@ -6930,6 +7344,15 @@ async function doDriverReg() {
 // LAUNCH
 // ═══════════════════════════════════════════════════════
 function launch() {
+  // ✅ Show role-specific welcome toast
+  setTimeout(() => {
+    if(CU?.role === 'rider') {
+      toast('🧍 Welcome ' + (CU.name?.split(' ')[0] || 'Rider') + '! Rider Dashboard');
+    } else if(CU?.role === 'driver') {
+      toast('🚖 Welcome ' + (CU.name?.split(' ')[0] || 'Driver') + '! Driver Earnings Dashboard');
+    }
+  }, 1500);
+
   window._launchPending = false;
   document.getElementById('auth').style.display='none';
   setTimeout(()=>{ if(leafMap) leafMap.invalidateSize(); },300);
@@ -7041,6 +7464,13 @@ function showDCard(type) {
   if(dOff) dOff.style.display = type==='off' ? 'block' : 'none';
   if(dOn)  dOn.style.display  = type==='on'  ? 'block' : 'none';
   if(dNav) dNav.style.display = type==='nav' ? 'block' : 'none';
+  // Init driver nav map when navigation panel opens
+  if(type === 'nav') {
+    setTimeout(() => {
+      const r = window._curDriverRide;
+      if(r) initDriverNavMap(r.pickupLat, r.pickupLng, r.dropLat, r.dropLng);
+    }, 600);
+  }
 }
 function updateDStats() {
   safeText('dsEarn','₹'+dEarnings);
@@ -7097,6 +7527,7 @@ async function acceptReq() {
   hideReqPopup();
   stopListeningForRides();
   const data=curReqData;
+  window._curDriverRide = data; // Save for nav map
   navPhase='pickup';
 
   if(window.FB_READY){
@@ -7107,6 +7538,7 @@ async function acceptReq() {
         window.CircuitBreaker.call(() =>
           window.FB.updateDoc(window.FB.doc(window.FB.db,'rides',data.id),{
             status:'assigned',driverId:CU.uid,driverName:CU.name,driverPhone:CU.phone,
+          driverLat: myLat || null, driverLng: myLng || null,
             driverVehicle:CU.vehicleNo,driverVehicleType:CU.vehicleType,otp,
             acceptedAt:window.FB.serverTimestamp()
           })
@@ -7350,7 +7782,7 @@ async function calcFare() {
       return;
     }
 
-    toast('\U0001f5fa\ufe0f Finding best route...');
+    toast('🗺️ Finding best route...');
 
     // Step 1: Get drop coordinates
     let dropCoords = null;
@@ -7371,7 +7803,7 @@ async function calcFare() {
 
     if (!dropCoords || !dropCoords.lat || !dropCoords.lng) {
       toast('\u274c Location nahi mili — aur specific naam likho');
-      if (findBtn) { findBtn.textContent = 'Find Ride \U0001f697'; findBtn.disabled = false; }
+      if (findBtn) { findBtn.textContent = 'Find Ride 🚗'; findBtn.disabled = false; }
       return;
     }
 
@@ -7390,7 +7822,7 @@ async function calcFare() {
       toast('\u274c Route calculate nahi hua — retry karo');
     }
   } finally {
-    if (findBtn) { findBtn.textContent = 'Find Ride \U0001f697'; findBtn.disabled = false; }
+    if (findBtn) { findBtn.textContent = 'Find Ride 🚗'; findBtn.disabled = false; }
   }
 }
 
@@ -7542,8 +7974,7 @@ async function confirmBook() {
     toast('⚠️ Internet check karo — Firebase connect nahi hua');
     return;
   }
-  goScr('sFind');
-
+  // ✅ FIX: Check drivers availability first (don't show sFind screen prematurely)
   let nearbyCount=0,in5km=0,in8km=0;
   if(window.FB_READY){
     try{
@@ -7570,12 +8001,12 @@ async function confirmBook() {
     '⏳ No drivers nearby — please wait...');
 
   if(window.FB_READY && nearbyCount===0){
-    setTimeout(()=>{
-      toast('⚠️ Abhi koi driver online nahi hai. Thodi der mein try karo.');
-      goScr('sHome');
-    },3500);
-    return;
+    toast('⚠️ Abhi koi driver online nahi hai — thodi der mein try karo');
+    return; // Stay on home screen
   }
+  
+  // ✅ NOW show the finding screen (only when drivers are available)
+  goScr('sFind');
 
   // Get rider phone — try all possible fields
   const riderPhoneVal = CU?.phone || CU?.mobile || CU?.phoneNumber || '';
@@ -7603,6 +8034,22 @@ async function confirmBook() {
     createdAt:window.FB_READY?window.FB.serverTimestamp():new Date().toISOString()
   };
 
+  // ✅ FIX: Verify Firebase auth is still valid before booking
+  // (Session can expire silently causing PERMISSION_DENIED)
+  if(window.FB_READY && !window.FB.auth.currentUser) {
+    toast('🔐 Session expire ho gayi — dobara login karo');
+    document.getElementById('auth').style.display = 'flex';
+    goScr('sHome');
+    return;
+  }
+  
+  // ✅ FIX: Verify Circuit Breaker is not open
+  if(window.CircuitBreaker?.getState() === 'open') {
+    toast('⚡ Server temporarily busy — 30 second baad try karo');
+    goScr('sHome');
+    return;
+  }
+
   try{
     if(window.FB_READY){
       // ✅ AUTO-SCALING: Route through LoadBalancer + CircuitBreaker
@@ -7619,7 +8066,43 @@ async function confirmBook() {
     }else{
       setTimeout(()=>{toast('❌ Firebase required');goScr('sHome');},3000);
     }
-  }catch(e){toast('❌ Booking failed. Check internet.');goScr('sHome');}
+  } catch(e) {
+    console.error('[JDP] Booking failed:', e);
+    window.ErrorLogger?.error('BOOKING', 'confirmBook failed: ' + (e?.message || e?.code || String(e)));
+    
+    // Specific error messages based on failure type
+    let errMsg = '❌ Booking failed — phir se try karo';
+    const em = e?.message || '';
+    
+    if(em.includes('Circuit Open') || em.includes('Circuit Half-Open')) {
+      errMsg = '⚡ Server busy — 30 second mein phir try karo';
+    } else if(em.includes('PERMISSION_DENIED') || e?.code === 'permission-denied') {
+      errMsg = '🔐 Login session expire — dobara login karo';
+      // Force re-login
+      setTimeout(() => {
+        if(window.FB?.auth?.currentUser === null) {
+          document.getElementById('auth') && (document.getElementById('auth').style.display = 'flex');
+        }
+      }, 2000);
+    } else if(em.includes('UNAVAILABLE') || em.includes('offline') || !navigator.onLine) {
+      errMsg = '📵 Internet nahi — connected hokar try karo';
+      // Queue for retry when online
+      window.OfflineQueue?.enqueue({type:'booking',data:rideData});
+    } else if(em.includes('DEADLINE_EXCEEDED') || em.includes('timeout')) {
+      errMsg = '⏱️ Server slow — thodi der baad try karo';
+    } else if(em.includes('RESOURCE_EXHAUSTED')) {
+      errMsg = '⚠️ Server busy — 1 minute baad try karo';
+    }
+    
+    toast(errMsg);
+    
+    // Don't go home if it's a temporary error — let user retry
+    if(!em.includes('Circuit Open') && !em.includes('UNAVAILABLE')) {
+      setTimeout(() => goScr('sHome'), 1500);
+    } else {
+      goScr('sHome');
+    }
+  }
 }
 
 // ✅ Separate async function to fetch and show driver photo safely
@@ -7639,6 +8122,94 @@ async function fetchAndShowDriverPhoto(driverId) {
   } catch(e) {}
 }
 
+
+// ═══════════════════════════════════════════════════════════
+// ✅ MINI NAVIGATION MAPS — In-panel maps for rider & driver
+// ═══════════════════════════════════════════════════════════
+let rNavMap = null, dNavMap = null;
+
+function initRiderNavMap(driverLat, driverLng, riderLat, riderLng) {
+  if(!window.mappls) return;
+  const el = document.getElementById('rNavMap');
+  if(!el) return;
+  try {
+    if(!rNavMap) {
+      rNavMap = new mappls.Map('rNavMap', {
+        center: { lat: riderLat || JDPC.lat, lng: riderLng || JDPC.lng },
+        zoom: 14, zoomControl: false, scrollWheelZoom: false,
+        gestureHandling: 'none'
+      });
+    }
+    // Show driver marker + rider marker + line
+    if(driverLat && riderLat) {
+      if(typeof mappls.Marker !== 'undefined') {
+        try {
+          new mappls.Marker({ position: {lat:riderLat,lng:riderLng}, map: rNavMap, icon: {html:'<div style="font-size:1.4rem">🧍</div>'} });
+          new mappls.Marker({ position: {lat:driverLat,lng:driverLng}, map: rNavMap, icon: {html:'<div style="font-size:1.4rem">🚖</div>'} });
+        } catch(e) {}
+      }
+      // Fit bounds
+      try {
+        const bounds = [[Math.min(riderLat,driverLat)-0.005, Math.min(riderLng,driverLng)-0.005],
+                       [Math.max(riderLat,driverLat)+0.005, Math.max(riderLng,driverLng)+0.005]];
+        rNavMap.fitBounds(bounds);
+      } catch(e) {}
+    }
+  } catch(e) { console.warn('rNavMap init:', e); }
+}
+
+function initDriverNavMap(pickLat, pickLng, dropLat, dropLng) {
+  if(!window.mappls) return;
+  const el = document.getElementById('dNavMap');
+  if(!el) return;
+  try {
+    if(!dNavMap) {
+      dNavMap = new mappls.Map('dNavMap', {
+        center: { lat: pickLat || JDPC.lat, lng: pickLng || JDPC.lng },
+        zoom: 14, zoomControl: false, scrollWheelZoom: false,
+        gestureHandling: 'none'
+      });
+    }
+    if(pickLat) {
+      try {
+        new mappls.Marker({ position: {lat:pickLat,lng:pickLng}, map: dNavMap, icon: {html:'<div style="font-size:1.3rem">📍</div>'} });
+        if(dropLat) new mappls.Marker({ position: {lat:dropLat,lng:dropLng}, map: dNavMap, icon: {html:'<div style="font-size:1.3rem">🏁</div>'} });
+      } catch(e) {}
+      // Fit
+      try {
+        if(dropLat) {
+          const bounds = [[Math.min(pickLat,dropLat)-0.005, Math.min(pickLng,dropLng)-0.005],
+                         [Math.max(pickLat,dropLat)+0.005, Math.max(pickLng,dropLng)+0.005]];
+          dNavMap.fitBounds(bounds);
+        }
+      } catch(e) {}
+    }
+  } catch(e) { console.warn('dNavMap init:', e); }
+}
+
+function updateRiderNavMapDriver(driverLat, driverLng) {
+  if(!rNavMap || !driverLat) return;
+  try {
+    rNavMap.setCenter({lat: driverLat, lng: driverLng});
+    const statusEl = document.getElementById('rNavMapStatus');
+    if(statusEl) {
+      const dist = myLat ? Math.round(distKmCalc(myLat,myLng,driverLat,driverLng)*10)/10 : null;
+      if(dist !== null) statusEl.textContent = `Driver ${dist}km away · Live`;
+    }
+  } catch(e) {}
+}
+
+function expandNavMap() {
+  // Collapse sheet to show full background map
+  const sheet = document.getElementById('rSheet');
+  if(sheet) {
+    const isCollapsed = sheet.style.transform.includes('100px');
+    sheet.style.transform = isCollapsed ? '' : 'translateY(calc(100% - 90px))';
+    sheet.style.transition = 'transform .4s cubic-bezier(.4,0,.2,1)';
+  }
+  setTimeout(() => { try { leafMap?.invalidateSize?.(); } catch(e){} }, 350);
+}
+
 function listenToRide(id) {
   if(rideListener){rideListener();rideListener=null;}
   rideListener=window.FB.onSnapshot(window.FB.doc(window.FB.db,'rides',id), snap=>{
@@ -7646,6 +8217,10 @@ function listenToRide(id) {
     const data=snap.data();
     // ✅ FIX 2: Check rideDocId active AND not already on assigned screen (was blocking if user changed screen)
     if(data.status==='assigned'&&rideDocId){
+      // ✅ Init rider mini nav map showing driver location
+      if(data.driverLat && data.driverLng) {
+        setTimeout(() => initRiderNavMap(data.driverLat, data.driverLng, myLat, myLng), 800);
+      }
       safeText('aDName',data.driverName||'--');
       safeText('aVeh',`${data.driverVehicle||'--'} • ${data.cabType||'--'}`);
       safeText('rideOTP',data.otp||'----');
@@ -7746,12 +8321,15 @@ async function cancelBook() {
 // THEME — Mappls v3 has built-in style switching
 function toggleTheme() {
   document.body.classList.toggle('lm');
-  // ✅ Mappls vector map supports style toggle via setStyle
+  const isLight = document.body.classList.contains('lm');
+  // Update button icon
+  const btn = document.getElementById('themeBtn');
+  if(btn) btn.textContent = isLight ? '☀️' : '🌙';
+  // Show toast
+  toast(isLight ? '☀️ Day Mode' : '🌙 Night Mode');
+  // Mappls map style
   if (leafMap && typeof leafMap.setStyle === 'function') {
-    const isLight = document.body.classList.contains('lm');
-    try {
-      leafMap.setStyle(isLight ? 'standard-day' : 'standard-night');
-    } catch(e) {}
+    try { leafMap.setStyle(isLight ? 'standard-day' : 'standard-night'); } catch(e) {}
   }
   setTimeout(() => { try { leafMap && leafMap.invalidateSize && leafMap.invalidateSize(); } catch(e){} }, 300);
 }
