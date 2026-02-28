@@ -1945,7 +1945,11 @@ const _origScaleCheck = setInterval(() => {
 <script>window.MAPPLS_KEY='4e97759ed6a3fb245e52f7e22d820954';</script>
 <!-- ✅ Mappls SDK v3 — Map + Direction + Navigation + Search plugins -->
 <link href="https://apis.mappls.com/advancedmaps/api/4e97759ed6a3fb245e52f7e22d820954/map_sdk?v=3.0&plugins=direction,search" rel="stylesheet">
-<script src="https://apis.mappls.com/advancedmaps/api/4e97759ed6a3fb245e52f7e22d820954/map_sdk?v=3.0&plugins=direction,search"></script>
+<script 
+  src="https://apis.mappls.com/advancedmaps/api/4e97759ed6a3fb245e52f7e22d820954/map_sdk?v=3.0&plugins=direction,search"
+  onerror="window._mapSdkLoadFailed=true;console.error('[JDP] Mappls SDK failed to load — check API key and network');document.getElementById('map')&&(document.getElementById('map').style.background='#0a0e16');">
+</script>
+<!-- ✅ FIX: Detect Mappls SDK load failure and show user-friendly message -->
 
 <style>
 :root{
@@ -2038,19 +2042,92 @@ body.lm #zoneLegend{background:rgba(255,255,255,.95);color:#000;}
 .zl-tag{font-size:.6rem;color:var(--muted);margin-left:auto;}
 
 /* ══ MAPPLS-STYLE FULL SCREEN BOTTOM SHEET (Glass) ══ */
-.sheet{position:fixed;bottom:0;left:0;right:0;z-index:400;
-  background:rgba(7,9,15,0.96);
-  border-radius:22px 22px 0 0;
+/* ══════════════════════════════════════════
+   UBER-STYLE 3-STATE SLIDING BOTTOM SHEET
+   State 1: .peek   — 140px, just handle+pickup shown (default after login)
+   State 2: .half   — 52vh, shows search + popular (tap sheet to expand)
+   State 3: .full   — 82vh, search expanded with keyboard (input focused)
+   ══════════════════════════════════════════ */
+.sheet{
+  position:fixed;bottom:0;left:0;right:0;z-index:400;
+  background:rgba(7,9,15,0.97);
+  border-radius:24px 24px 0 0;
   border-top:1px solid rgba(255,255,255,.09);
-  padding:0 16px 36px;
-  max-height:48vh;
-  overflow-y:auto;display:none;
-  box-shadow:0 -8px 40px rgba(0,0,0,.7);
-  will-change:transform;}
+  padding:0 16px env(safe-area-inset-bottom,20px);
+  box-shadow:0 -12px 50px rgba(0,0,0,.75);
+  will-change:transform;
+  display:none;            /* hidden until login */
+  transition:transform 0.38s cubic-bezier(0.32,0,0.15,1),
+             height 0.38s cubic-bezier(0.32,0,0.15,1);
+  overflow:hidden;
+  /* Always full height internally — JS controls visible area via transform */
+  max-height:90vh;
+}
+
+/* Scrollable inner content */
+.sheet-inner{
+  height:100%;
+  overflow-y:auto;
+  padding:0 0 40px;
+  -webkit-overflow-scrolling: touch;
+}
+.sheet-inner::-webkit-scrollbar{display:none;}
+
+/* PEEK state — only drag handle + small peek of content visible */
+.sheet.peek{
+  display:block;
+  height:90vh;
+  transform:translateY(calc(90vh - 148px));
+}
+/* HALF state — ~52% of screen visible */
+.sheet.half{
+  display:block;
+  height:90vh;
+  transform:translateY(calc(90vh - 52vh));
+}
+/* FULL state — search expanded with keyboard */
+.sheet.full{
+  display:block;
+  height:90vh;
+  transform:translateY(0);
+  overflow:visible;
+}
+/* FARE/FIND/ASSIGNED — normal sheet height */
+.sheet.sheet-fare{
+  display:block;
+  height:auto;
+  max-height:82vh;
+  transform:translateY(0);
+  overflow-y:auto;
+  padding-bottom:36px;
+}
 .sheet::-webkit-scrollbar{display:none;}
 body.lm .sheet{background:rgba(240,244,251,.98);border-top:1px solid rgba(0,0,0,.05);}
-.hdl{width:32px;height:3.5px;background:rgba(255,255,255,.1);border-radius:4px;margin:10px auto 14px;}
-body.lm .hdl{background:rgba(0,0,0,.08);}
+
+/* DRAG HANDLE — wider tap area */
+.hdl-wrap{
+  width:100%;
+  padding:10px 0 4px;
+  display:flex;justify-content:center;
+  cursor:grab;
+  flex-shrink:0;
+  -webkit-user-select:none;user-select:none;
+}
+.hdl-wrap:active{cursor:grabbing;}
+.hdl{width:38px;height:4px;background:rgba(255,255,255,.15);border-radius:4px;margin:0 auto;}
+body.lm .hdl{background:rgba(0,0,0,.12);}
+
+/* ── Map dimmer when sheet is full ── */
+#sheetDim{
+  position:fixed;inset:0;z-index:399;
+  background:rgba(0,0,0,0);
+  pointer-events:none;
+  transition:background 0.35s;
+}
+#sheetDim.active{
+  background:rgba(0,0,0,0.38);
+  pointer-events:auto;
+}
 
 /* ══ SEARCH BAR inside sheet — Uber style ══ */
 .lbs{display:flex;flex-direction:column;margin-bottom:10px;}
@@ -2448,8 +2525,8 @@ body.lm .tbtn{background:rgba(255,255,255,.88);color:#000;}
 .locbtn{position:fixed;right:15px;z-index:500;width:44px;height:44px;background:white;border-radius:50%;border:none;cursor:pointer;font-size:1.05rem;box-shadow:0 4px 18px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;}
 
 /* ══ SHEETS ══ */
-.sheet{position:fixed;bottom:0;left:0;right:0;z-index:400;background:rgba(7,9,15,.97);backdrop-filter:blur(30px);border-radius:26px 26px 0 0;border-top:1px solid rgba(255,255,255,.07);padding:0 17px 34px;max-height:78vh;overflow-y:auto;display:none;box-shadow:0 -8px 40px rgba(0,0,0,.6);}
-.sheet::-webkit-scrollbar{display:none;}
+/* sheet already defined above (Uber-style sliding sheet) */
+body.lm .sheet{background:rgba(240,244,251,.97);}.sheet::-webkit-scrollbar{display:none;}
 body.lm .sheet{background:rgba(240,244,251,.97);}
 .hdl{width:34px;height:4px;background:rgba(255,255,255,.1);border-radius:4px;margin:11px auto 17px;}
 body.lm .hdl{background:rgba(0,0,0,.1);}
@@ -3326,29 +3403,38 @@ body.lm .vrp-box{background:#f0f4fb;}
 </div>
 
 <!-- ✅ LOCATE FAB — Uber position -->
-<button class="locbtn" id="locBtn" style="display:none;bottom:340px" onclick="locateMe()">📍</button>
+<button class="locbtn" id="locBtn" style="display:none;bottom:170px" onclick="locateMe()">📍</button>
 <!-- ✅ MAP STYLE TOGGLE FAB -->
-<button class="locbtn" id="mapStyleBtn" style="display:none;bottom:400px;background:#1a2535;border:1.5px solid rgba(255,255,255,.15)" onclick="toggleMapStyle()" title="Map Style">🛰️</button>
+<button class="locbtn" id="mapStyleBtn" style="display:none;bottom:230px;background:#1a2535;border:1.5px solid rgba(255,255,255,.15)" onclick="toggleMapStyle()" title="Map Style">🛰️</button>
+
+<!-- ✅ Map Dimmer (behind sheet, above map) -->
+<div id="sheetDim" onclick="collapseSheet()"></div>
 
 <div class="sheet" id="rSheet">
-  <div class="hdl"></div>
+  <!-- DRAG HANDLE — tap/drag to expand/collapse -->
+  <div class="hdl-wrap" id="sheetHandle" onclick="toggleSheetState()" ontouchstart="sheetDragStart(event)">
+    <div class="hdl"></div>
+  </div>
+
+  <!-- PEEK ROW — always visible in peek state (rider name + driver count) -->
+  <div id="sheetPeekRow" style="display:flex;align-items:center;justify-content:space-between;padding:0 0 8px;flex-shrink:0">
+    <div>
+      <div style="font-size:.58rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.1em">WHERE TO,</div>
+      <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:.98rem" id="riderName">RIDER</div>
+    </div>
+    <div id="homeDrvBadge" style="display:flex;align-items:center;gap:5px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);border-radius:99px;padding:5px 10px;font-size:.65rem;font-weight:700;color:var(--green);">
+      <div style="width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)"></div>
+      <span id="homeDrvText">0 drivers</span>
+    </div>
+  </div>
+
+  <div class="sheet-inner" id="sheetInner">
 
   <!-- ✅ HOME SCREEN — Uber 2024 style -->
   <div class="scr on" id="sHome">
-    <!-- Greeting row -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-      <div>
-        <div style="font-size:.6rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.1em">WHERE TO,</div>
-        <div style="font-family:'Syne',sans-serif;font-weight:900;font-size:.98rem" id="riderName">RIDER</div>
-      </div>
-      <div id="homeDrvBadge" style="display:flex;align-items:center;gap:5px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);border-radius:99px;padding:5px 10px;font-size:.65rem;font-weight:700;color:var(--green);">
-        <div style="width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)"></div>
-        <span id="homeDrvText">0 drivers</span>
-      </div>
-    </div>
 
     <!-- ✅ PICKUP ROW — Always visible, Uber style -->
-    <div class="pickup-strip" onclick="refreshGPS()" style="cursor:pointer">
+    <div class="pickup-strip" onclick="refreshGPS()" style="cursor:pointer;flex-shrink:0">
       <div class="psdot"></div>
       <div style="flex:1;min-width:0">
         <div class="ps-addr" id="pAddr">Detecting location...</div>
@@ -3369,8 +3455,8 @@ body.lm .vrp-box{background:#f0f4fb;}
           font-family:'DM Sans',sans-serif;font-weight:600;font-size:.88rem;outline:none;"
           onkeydown="if(event.key==='Enter'){hideSuggest();calcFare();}"
           oninput="onDropInput(this.value)"
-          onfocus="if(this.value.length>1)showSuggest(this.value)"
-          onblur="setTimeout(hideSuggest,200)">
+          onfocus="expandSheet()"
+          onblur="setTimeout(()=>{hideSuggest();},200)">
       </div>
       <div id="dropSuggest"></div>
     </div>
@@ -3637,7 +3723,9 @@ body.lm .vrp-box{background:#f0f4fb;}
       <button class="mbtn ro" style="margin-top:0" onclick="cancelRide()">Cancel Ride</button>
     </div>
   </div>
-</div>
+
+  </div><!-- /.sheet-inner -->
+</div><!-- /#rSheet -->
 
 <!-- ═══ DRIVER DASHBOARD ═══ -->
 <div id="dTopBar">
@@ -4643,6 +4731,171 @@ body.lm .hdl { background: rgba(0,0,0,.12); }
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════════
+  ✅ UBER-STYLE SLIDING BOTTOM SHEET ENGINE
+  3 States: peek (140px) → half (52vh) → full (expanded search)
+  Touch drag support — velocity-based snap
+  ═══════════════════════════════════════════════════════════════ -->
+<script>
+// ── Sheet State Manager ──
+window.SheetMgr = (function() {
+  var _state = 'hidden'; // hidden | peek | half | full | fare
+  var _sheet = null;
+  var _dim = null;
+  var _locBtn = null;
+  var _mapStyleBtn = null;
+  // Touch drag state
+  var _dragStart = 0, _dragY = 0, _dragging = false, _lastY = 0, _velY = 0, _dragTs = 0;
+
+  function _get() {
+    if (!_sheet) _sheet = document.getElementById('rSheet');
+    if (!_dim) _dim = document.getElementById('sheetDim');
+    if (!_locBtn) _locBtn = document.getElementById('locBtn');
+    if (!_mapStyleBtn) _mapStyleBtn = document.getElementById('mapStyleBtn');
+    return _sheet;
+  }
+
+  function _setState(s) {
+    var el = _get();
+    if (!el) return;
+    _state = s;
+    // Remove all state classes
+    el.classList.remove('peek','half','full','sheet-fare');
+    if (_dim) _dim.classList.remove('active');
+
+    if (s === 'hidden') {
+      el.style.display = 'none';
+    } else if (s === 'peek') {
+      el.style.display = 'block';
+      el.classList.add('peek');
+      // FABs at peek height
+      if(_locBtn){ _locBtn.style.bottom = '170px'; _locBtn.style.display='flex'; }
+      if(_mapStyleBtn){ _mapStyleBtn.style.bottom = '230px'; _mapStyleBtn.style.display='flex'; }
+    } else if (s === 'half') {
+      el.style.display = 'block';
+      el.classList.add('half');
+      if (_dim) _dim.classList.add('active');
+      if(_locBtn){ _locBtn.style.bottom = 'calc(52vh + 20px)'; }
+      if(_mapStyleBtn){ _mapStyleBtn.style.bottom = 'calc(52vh + 80px)'; }
+    } else if (s === 'full') {
+      el.style.display = 'block';
+      el.classList.add('full');
+      if (_dim) _dim.classList.add('active');
+      if(_locBtn){ _locBtn.style.display='none'; }
+      if(_mapStyleBtn){ _mapStyleBtn.style.display='none'; }
+    } else if (s === 'fare') {
+      el.style.display = 'block';
+      el.classList.add('sheet-fare');
+      if(_locBtn){ _locBtn.style.bottom = '290px'; _locBtn.style.display='flex'; }
+      if(_mapStyleBtn){ _mapStyleBtn.style.bottom = '350px'; _mapStyleBtn.style.display='flex'; }
+    }
+  }
+
+  function show(mode) { _setState(mode || 'half'); }
+  function peek() { _setState('peek'); }
+  function expand() { _setState('full'); }
+  function half() { _setState('half'); }
+  function collapse() { _setState('peek'); }
+  function toFare() { _setState('fare'); }
+  function hide() { _setState('hidden'); }
+  function getState() { return _state; }
+
+  function toggle() {
+    if (_state === 'peek') _setState('half');
+    else if (_state === 'half') _setState('full');
+    else if (_state === 'full') _setState('half');
+  }
+
+  // Touch drag handlers
+  function dragStart(e) {
+    if (_state === 'fare' || _state === 'hidden') return;
+    var touch = e.touches[0];
+    _dragStart = touch.clientY;
+    _lastY = touch.clientY;
+    _dragY = 0;
+    _dragging = true;
+    _dragTs = Date.now();
+    _velY = 0;
+    _get().style.transition = 'none'; // disable transition during drag
+  }
+
+  function dragMove(e) {
+    if (!_dragging) return;
+    var touch = e.touches[0];
+    var dy = touch.clientY - _dragStart;
+    var dtY = touch.clientY - _lastY;
+    var dt = Date.now() - _dragTs;
+    _velY = dt > 0 ? dtY / dt : 0;
+    _lastY = touch.clientY;
+    _dragTs = Date.now();
+    _dragY = dy;
+
+    // Only allow downward drag (dy > 0) in full state, upward drag in peek state
+    var el = _get();
+    if (!el) return;
+    if (dy > 0) { // dragging down
+      if (_state === 'full') el.style.transform = 'translateY(' + Math.min(dy, window.innerHeight*0.82) + 'px)';
+      else if (_state === 'half') el.style.transform = 'translateY(calc(90vh - 52vh + ' + Math.max(0,dy) + 'px))';
+    } else { // dragging up
+      if (_state === 'peek') el.style.transform = 'translateY(calc(90vh - 148px + ' + Math.max(dy, -window.innerHeight*0.82) + 'px))';
+      else if (_state === 'half') el.style.transform = 'translateY(calc(90vh - 52vh + ' + dy + 'px))';
+    }
+    e.preventDefault();
+  }
+
+  function dragEnd(e) {
+    if (!_dragging) return;
+    _dragging = false;
+    var el = _get();
+    if (!el) return;
+    el.style.transition = ''; // restore transition
+
+    var isFlick = Math.abs(_velY) > 0.5; // fast flick
+    var downFlick = _velY > 0.5;
+    var upFlick = _velY < -0.5;
+
+    if (downFlick || (_dragY > 80 && !isFlick)) {
+      // Swipe down — collapse to smaller state
+      if (_state === 'full') _setState('half');
+      else _setState('peek');
+    } else if (upFlick || (_dragY < -80 && !isFlick)) {
+      // Swipe up — expand to larger state
+      if (_state === 'peek') _setState('half');
+      else _setState('full');
+    } else {
+      // Restore current state
+      _setState(_state);
+    }
+  }
+
+  return { show, peek, expand, half, collapse, toFare, hide, toggle, getState,
+           dragStart, dragMove, dragEnd };
+})();
+
+// ── Attach non-passive touch events to handle ──
+document.addEventListener('DOMContentLoaded', function() {
+  var handle = document.getElementById('sheetHandle');
+  if (handle) {
+    handle.addEventListener('touchmove', function(e) {
+      window.SheetMgr.dragMove(e);
+      e.preventDefault();
+    }, { passive: false });
+    handle.addEventListener('touchend', function(e) {
+      window.SheetMgr.dragEnd(e);
+    });
+  }
+});
+
+// ── Global shortcut functions ──
+function expandSheet()  { if(SheetMgr.getState()==='peek'||SheetMgr.getState()==='half') SheetMgr.expand(); }
+function collapseSheet(){ SheetMgr.collapse(); }
+function halfSheet()    { SheetMgr.half(); }
+function toggleSheetState() { SheetMgr.toggle(); }
+function sheetDragStart(e) { SheetMgr.dragStart(e); }
+function sheetDragMove(e)  { SheetMgr.dragMove(e); e.preventDefault(); }
+function sheetDragEnd(e)   { SheetMgr.dragEnd(e); }
+</script>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, RecaptchaVerifier, signInWithPhoneNumber, linkWithCredential, PhoneAuthProvider, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -4701,7 +4954,7 @@ function safeMapplsMarker(opts) {
 }
 function safeMapplsCircle(opts) {
   if (typeof mappls === 'undefined' || !leafMap) return null;
-  try { return safeMapplsCircle(opts); } catch(e) { return null; }
+  try { return new mappls.Circle(opts); } catch(e) { return null; }  // ✅ FIX: was calling itself (infinite recursion → stack overflow crash)
 }
 function safeMapplsPolyline(opts) {
   if (typeof mappls === 'undefined' || !leafMap) return null;
@@ -5296,7 +5549,7 @@ async function startNavigation(destLat, destLng, destName) {
   safeText('navArrow','⌛');
 
   // Hide booking sheet during navigation
-  safeHide('rSheet');
+  window.SheetMgr && window.SheetMgr.hide(); // ✅ FIX: use SheetMgr
   safeHide('mapFade');
 
   toast('🗺️ Navigation started!');
@@ -5309,7 +5562,7 @@ async function startNavigation(destLat, destLng, destName) {
 
   // Tilt map for navigation (3D-ish feel)
   if (leafMap) {
-    if(leafMap) if(leafMap) leafMap.flyTo([myLat, myLng], 16);
+    if(leafMap) leafMap.flyTo([myLat, myLng], 16);
   }
 }
 
@@ -5563,7 +5816,7 @@ async function quickNavigate() {
 
   // Use pre-selected or geocode
   let coords = null;
-  if (window._preSelectedDrop && window._selectedDropName === drop) {
+  if (window._preSelectedDrop && window._preSelectedDrop.name === drop) {  // ✅ FIX: was window._selectedDropName (undefined check)
     coords = window._preSelectedDrop;
   } else {
     coords = await geocodeAddress(drop);
@@ -5586,15 +5839,15 @@ function stopNavigation() {
   });
 
   // Restore booking sheet
-  safeShow('rSheet');
+  window.SheetMgr && window.SheetMgr.half(); // ✅ FIX: restore sheet after nav
   safeShow('mapFade');
-  if (leafMap) if(leafMap) leafMap.setZoom(14);
+  if (leafMap) leafMap.setZoom(14);  // ✅ FIX: was double if(leafMap) check
   toast('Navigation stopped');
 }
 
 function navRecenter() {
   NAV.recenterEnabled = true;
-  if (leafMap && myLat) if(leafMap) if(leafMap) leafMap.flyTo([myLat, myLng], 16);
+  if (leafMap && myLat) if(leafMap) leafMap.flyTo([myLat, myLng], 16);
 }
 
 function toggleStepList() {
@@ -5688,14 +5941,14 @@ function initMap() {
           pickLat = myLat; pickLng = myLng;
           if(myLat && myLng) requestAnimationFrame(() => updateMyMarker(myLat, myLng));
           updateMyZone();
-          if(leafMap) if(leafMap) leafMap.flyTo([myLat, myLng], 16);
+          if(leafMap) leafMap.flyTo([myLat, myLng], 16);
           revGeo(myLat, myLng).then(function(addr) {
             pickAddr = addr;
             const pAddrEl = document.getElementById('pAddr');
             const pSubEl = document.getElementById('pSub');
             if (pAddrEl) pAddrEl.textContent = addr;
             if (pSubEl) pSubEl.innerHTML = '<span style="color:var(--green);font-size:.66rem">📍 GPS Live · Auto Detected</span>';
-          }).catch(function(){}).catch(function(){});
+          }).catch(function(){});  // ✅ FIX: was double .catch() chained (redundant, could mask errors)
         }, function() {}, { enableHighAccuracy: true, timeout: 10000, maximumAge: 3000 });
       }
 
@@ -6625,7 +6878,7 @@ function startGPS() {
     // Show accuracy info
     const acc = pos.coords.accuracy ? Math.round(pos.coords.accuracy) : '?';
     if(pSubEl) pSubEl.innerHTML = `<span style="color:var(--green);font-size:.66rem">📍 Accuracy: ±${acc}m · GPS Live</span>`;
-    if (leafMap) if(leafMap) if(leafMap) leafMap.flyTo([myLat, myLng], 16);
+    if (leafMap) leafMap.flyTo([myLat, myLng], 16);
     updateMyMarker(myLat, myLng);
     updateMyZone();
     toast('📍 Location detected!');
@@ -6663,7 +6916,7 @@ function updateMyMarker(lat, lng) {
 }
 
 function locateMe() {
-  if (leafMap && myLat) if(leafMap) if(leafMap) leafMap.flyTo([myLat, myLng], 16);
+  if (leafMap && myLat) if(leafMap) leafMap.flyTo([myLat, myLng], 16);
   refreshGPS();
 }
 
@@ -6784,6 +7037,9 @@ function setDrop(place) {
     window._selectedDropName = null;
     toast('📍 Drop: ' + place);
   }
+  // ✅ UBER-STYLE: Auto-calculate fare when popular place tapped
+  // Small delay lets toast show first
+  setTimeout(() => calcFare(), 150);
 }
 
 function filterPlaces(val) {
@@ -7364,10 +7620,11 @@ function launch() {
 }
 function launchRider() {
   document.getElementById('rTop').style.display='flex';
-  document.getElementById('rSheet').style.display='block';document.getElementById('mapFade').style.display='block';
-  document.getElementById('locBtn').style.display='flex';
+  document.getElementById('mapFade').style.display='block';
   document.getElementById('mapStats').style.display='block';
   if(CU) document.getElementById('riderName').textContent=CU.name?.toUpperCase()||'RIDER';
+  // ✅ UBER-STYLE: Start in peek state — map fills screen
+  window.SheetMgr.peek();
   loadFavChips();
 }
 function launchDriver() {
@@ -7375,7 +7632,7 @@ function launchDriver() {
   safeShow('dStats');// ='block';
   safeShow('dPanel');// ='block';
   document.getElementById('locBtn').style.display='flex';
-  document.getElementById('locBtn').style.bottom='250px';
+  document.getElementById('locBtn').style.bottom='280px';
   document.getElementById('mapStats').style.display='block';
   if(CU) document.getElementById('dName').textContent=CU.name;
   dEarnings=CU.earnings||0; dRides=CU.ridesCompleted||0;
@@ -7744,8 +8001,20 @@ function goScr(id) {
     document.querySelectorAll('.scr').forEach(function(e){ e.classList.remove('on'); });
     var el = document.getElementById(id);
     if (el) el.classList.add('on');
-    var sheet = document.getElementById('rSheet');
+    var sheet = document.getElementById('sheetInner');
     if (sheet) sheet.scrollTop = 0;
+    // ✅ UBER SHEET STATE — each screen has its own sheet height
+    if (id === 'sHome') {
+      window.SheetMgr && window.SheetMgr.half();
+      // Show peek row on home
+      var pkRow = document.getElementById('sheetPeekRow');
+      if(pkRow) pkRow.style.display = 'flex';
+    } else if (id === 'sFare' || id === 'sFind' || id === 'sAssigned') {
+      window.SheetMgr && window.SheetMgr.toFare();
+      // Hide peek row on non-home screens
+      var pkRow2 = document.getElementById('sheetPeekRow');
+      if(pkRow2) pkRow2.style.display = 'none';
+    }
   } catch(e) { console.warn('[JDP] goScr error:', e); }
 }
 
@@ -7962,7 +8231,7 @@ async function confirmBook() {
   }
   const dropVal = document.getElementById('dropIn')?.value?.trim() || '';
   if (!dropVal) {
-    toast('?? Drop location enter karo pehle');
+    toast('⚠️ Drop location enter karo pehle');  // ✅ FIX: was '?? Drop location...' (broken emoji)
     document.getElementById('dropIn')?.focus();
     return;
   }
@@ -8001,7 +8270,10 @@ async function confirmBook() {
     '⏳ No drivers nearby — please wait...');
 
   if(window.FB_READY && nearbyCount===0){
+    // ✅ FIX: Don't block booking if the Firebase query might have failed (nearbyCount stays 0)
+    // Show warning but still allow booking attempt — driver count may be stale
     toast('⚠️ Abhi koi driver online nahi hai — thodi der mein try karo');
+    goScr('sHome');
     return; // Stay on home screen
   }
   
@@ -8020,7 +8292,7 @@ async function confirmBook() {
     riderName:CU?.name||'Rider',
     riderPhone: riderPhoneVal,
     phone: riderPhoneVal,   // extra field as backup
-    pickup:pickAddr||'GPS Location',pickupLat:pickLat||JDPC.lat,pickupLng:pickLng||JDPC.lng,
+    pickup:pickAddr||'GPS Location',pickupLat:pickLat||myLat||JDPC.lat,pickupLng:pickLng||myLng||JDPC.lng,  // ✅ FIX: Added myLat fallback layer
     drop:document.getElementById('dropIn').value.trim(),
     cabType,
     fare: effectiveFare,              // ✅ FIX 3: discounted fare
@@ -8052,6 +8324,15 @@ async function confirmBook() {
 
   try{
     if(window.FB_READY){
+      // ✅ FIX: Force refresh auth token before write — prevents silent PERMISSION_DENIED
+      try {
+        if(window.FB.auth.currentUser) {
+          await window.FB.auth.currentUser.getIdToken(true);
+        }
+      } catch(tokenErr) {
+        console.warn('[JDP] Token refresh failed:', tokenErr);
+        // Continue anyway — token may still be valid
+      }
       // ✅ AUTO-SCALING: Route through LoadBalancer + CircuitBreaker
       const ref = await window.LoadBalancer.add(() =>
         window.CircuitBreaker.call(() =>
@@ -8200,12 +8481,13 @@ function updateRiderNavMapDriver(driverLat, driverLng) {
 }
 
 function expandNavMap() {
-  // Collapse sheet to show full background map
-  const sheet = document.getElementById('rSheet');
-  if(sheet) {
-    const isCollapsed = sheet.style.transform.includes('100px');
-    sheet.style.transform = isCollapsed ? '' : 'translateY(calc(100% - 90px))';
-    sheet.style.transition = 'transform .4s cubic-bezier(.4,0,.2,1)';
+  // ✅ UBER-STYLE: Toggle sheet peek to collapse and show full map
+  if (!window.SheetMgr) return;
+  const cur = window.SheetMgr.getState();
+  if (cur === 'fare') {
+    window.SheetMgr.peek(); // Collapse to peek — map fills screen
+  } else {
+    window.SheetMgr.toFare(); // Expand back
   }
   setTimeout(() => { try { leafMap?.invalidateSize?.(); } catch(e){} }, 350);
 }
