@@ -427,16 +427,23 @@ window.PerfMonitor = (function() {
   let _history = { fps:[], heap:[], ping:[] }; // last 20 readings
   const MAX_HISTORY = 20;
 
-  // FPS counter
+  // FPS counter — smoothed with rolling average to reduce false low readings
+  let _fpsSmooth = 60, _fpsSamples = [];
   function _trackFPS() {
     _frameCount++;
     const now = Date.now();
     if (now - _lastFpsTime >= 1000) {
-      _fps = _frameCount;
+      const raw = _frameCount;
       _frameCount = 0;
       _lastFpsTime = now;
+      // Smooth FPS with 3-sample average
+      _fpsSamples.push(raw);
+      if(_fpsSamples.length > 3) _fpsSamples.shift();
+      _fps = Math.round(_fpsSamples.reduce((a,b)=>a+b,0) / _fpsSamples.length);
       _addHistory('fps', _fps);
-      if(_fps < 20) window.ErrorLogger.warn('PERF', `Low FPS: ${_fps}fps`);
+      // Only warn if sustained low FPS (2 consecutive readings)
+      if(_fps < 20 && _fpsSamples.filter(f=>f<20).length >= 2)
+        window.ErrorLogger.warn('PERF', `Low FPS: ${_fps}fps (sustained)`);
     }
     requestAnimationFrame(_trackFPS);
   }
@@ -561,18 +568,25 @@ window.RecoveryManager = (function() {
 
   // ── GPS Recovery ──
   function recoverGPS() {
+    // Don't restart if GPS already active and getting positions
+    if(window._gpsActive && window._lastGpsUpdate && (Date.now() - window._lastGpsUpdate) < 30000) {
+      _record('GPS', 'Skipped restart — GPS already active');
+      return;
+    }
     _gpsRetries++;
+    window._gpsActive = false;
     _record('GPS', `Restarting watchPosition (attempt ${_gpsRetries})`);
     // Clear existing watch
     if(window.watchId) { try { navigator.geolocation.clearWatch(window.watchId); } catch(e){} }
-    // Restart GPS after delay
+    // Restart GPS after delay — exponential backoff
+    const delay = Math.min(10000, 2000 * _gpsRetries);
     setTimeout(() => {
       if(typeof startGPS === 'function') {
         startGPS();
-        _record('GPS', 'Restarted successfully');
-        if(typeof toast === 'function') toast('📡 GPS reconnected');
+        // Don't mark as "restarted successfully" immediately — wait for actual GPS fix
+        _record('GPS', `Restart initiated (attempt ${_gpsRetries}) — waiting for fix...`);
       }
-    }, 2000);
+    }, delay);
   }
 
   // ── Map Recovery ──
@@ -639,10 +653,15 @@ window.RecoveryManager = (function() {
       // Check Firebase health
       if(!window.FB_READY) recoverFirebase();
 
-      // Check GPS (if user is active and no position for 60s)
-      if(window.CU && !window.myLat) {
+      // Check GPS — only restart if no position for 3 minutes (was 60s — too aggressive)
+      // GPS needs time to get first fix (especially indoors)
+      if(window.CU && !window._gpsActive) {
         const lastGps = window._lastGpsUpdate || 0;
-        if(Date.now() - lastGps > 60000) recoverGPS();
+        const gpsAge = Date.now() - lastGps;
+        const appAge = Date.now() - window._appStartTime;
+        // Don't restart GPS in first 2 minutes (let it get initial fix)
+        // Also don't restart if GPS is currently active
+        if(appAge > 120000 && gpsAge > 180000 && _gpsRetries < 5) recoverGPS();
       }
 
       // Notify recovery manager tick
@@ -851,19 +870,27 @@ window.HealthPulse = (function() {
       critical: true
     };
 
-    // Check 3: Map
+    // Check 3: Map SDK — with grace period (loading takes 5-15s)
+    const _mapLoaded = !!window.leafMap && !window._mapFailed;
+    const _mapGrace = !window._appStartTime || (Date.now() - window._appStartTime) < 30000;
+    const _mapOk = _mapLoaded || _mapGrace;
     _checks.map = {
       name: 'Map SDK',
-      ok: !!window.leafMap && !window._mapFailed,
+      ok: _mapOk,
       ms: 0,
+      label: _mapLoaded ? 'Loaded' : (_mapFailed ? 'Failed' : (_mapGrace ? 'Loading...' : 'Failed')),
       critical: false
     };
 
-    // Check 4: GPS
+    // Check 4: GPS — with grace period (don't flag FAIL in first 2 min)
+    const _gpsHasPos = !!(window.myLat && window.myLng);
+    const _gpsGrace = !window._appStartTime || (Date.now() - window._appStartTime) < 120000;
+    const _gpsOk = _gpsHasPos || _gpsGrace; // OK if has position OR in grace period
     _checks.gps = {
       name: 'GPS',
-      ok: !!(window.myLat && window.myLng),
-      ms: 0,
+      ok: _gpsOk,
+      ms: _gpsHasPos ? 0 : (_gpsGrace ? -1 : 0), // -1 = getting fix
+      label: _gpsHasPos ? 'Fixed' : (_gpsGrace ? 'Getting fix...' : 'No signal'),
       critical: false
     };
 
@@ -1258,6 +1285,7 @@ window.CrashReporter = (function() {
 // ═══════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
   // Start all modules
+  window._appStartTime = Date.now(); // Track app start for GPS grace period
   window.PerfMonitor.start();
   window.ThreatDetector.start();
   window.RecoveryManager.start();
@@ -6130,36 +6158,50 @@ function startGPS() {
   watchId = navigator.geolocation.watchPosition(async (pos) => {
     myLat = pos.coords.latitude; myLng = pos.coords.longitude;
     pickLat = myLat; pickLng = myLng;
+    // ✅ FIX: Mark GPS as alive — prevents watchdog from restarting unnecessarily
+    window._lastGpsUpdate = Date.now();
+    window._gpsActive = true;
     // ✅ Use rAF for smooth marker update — no jank during pan/zoom
     if(myLat && myLng) requestAnimationFrame(() => updateMyMarker(myLat, myLng));
-    updateMyZone();
+    // ✅ FIX: Defer updateMyZone to next idle frame — reduce main thread blocking
+    if(window.requestIdleCallback) requestIdleCallback(() => updateMyZone(), {timeout:500});
+    else setTimeout(() => updateMyZone(), 50);
 
     if (CU?.role === 'driver' && isOnline && window.FB_READY) {
-      // ✅ REAL LIVE LOCATION — write every 3s for driver (was 6s)
-      if (!window._lastGPSWrite || Date.now() - window._lastGPSWrite > 3000) {
+      // ✅ FIX: Increased to 5s to reduce Firebase writes & main thread load
+      if (!window._lastGPSWrite || Date.now() - window._lastGPSWrite > 5000) {
         window._lastGPSWrite = Date.now();
-        try {
-          await window.FB.updateDoc(window.FB.doc(window.FB.db,'users',CU.uid),
-            { lat:myLat, lng:myLng, lastSeen:window.FB.serverTimestamp() });
-        } catch(e) {}
+        // ✅ FIX: Defer Firebase write to idle time — prevents 170ms long tasks
+        const _lat = myLat, _lng = myLng;
+        const _doWrite = () => {
+          window.FB.updateDoc(window.FB.doc(window.FB.db,'users',CU.uid),
+            { lat:_lat, lng:_lng, lastSeen:window.FB.serverTimestamp() }).catch(()=>{});
+        };
+        if(window.requestIdleCallback) requestIdleCallback(_doWrite, {timeout:2000});
+        else setTimeout(_doWrite, 100);
       }
-      // Reverse geocode with cache
+      // ✅ FIX: Reverse geocode only every 15s + defer to idle
       const geoKey = Math.round(myLat*1000)/1000 + ',' + Math.round(myLng*1000)/1000;
       const cached = window.Cache.get('geo_' + geoKey);
       if (cached) {
         const el = document.getElementById('dLocText');
         if(el) el.textContent = '📍 ' + cached;
-      } else {
-        revGeo(myLat, myLng).then(addr => {
-          window.Cache.set('geo_' + geoKey, addr, 60000); // cache 1 min only
-          const el = document.getElementById('dLocText');
-          if(el) el.textContent = '📍 ' + addr;
-        }).catch(function(){});
+      } else if(!window._lastRevGeo || Date.now() - window._lastRevGeo > 15000) {
+        window._lastRevGeo = Date.now();
+        const _rLat = myLat, _rLng = myLng, _rKey = geoKey;
+        setTimeout(() => {
+          revGeo(_rLat, _rLng).then(addr => {
+            window.Cache.set('geo_' + _rKey, addr, 120000); // 2 min cache
+            const el = document.getElementById('dLocText');
+            if(el) el.textContent = '📍 ' + addr;
+          }).catch(()=>{});
+        }, 200);
       }
-      // Throttle nearby riders count
-      if (!window._lastNearby || Date.now() - window._lastNearby > 10000) {
+      // ✅ FIX: Reduced nearby check to every 30s
+      if (!window._lastNearby || Date.now() - window._lastNearby > 30000) {
         window._lastNearby = Date.now();
-        updateNearbyRidersCount();
+        if(window.requestIdleCallback) requestIdleCallback(() => updateNearbyRidersCount(), {timeout:3000});
+        else setTimeout(() => updateNearbyRidersCount(), 500);
       }
     }
   }, err => {
@@ -6173,7 +6215,7 @@ function startGPS() {
       toast('⏱️ GPS timeout — phir se try karo');
     }
   },
-  { enableHighAccuracy:true, timeout:8000, maximumAge:1000 }); // ✅ 1s cache only = more live
+  { enableHighAccuracy:true, timeout:15000, maximumAge:3000 }); // ✅ 15s timeout, 3s cache — reduces timeout errors
 
   navigator.geolocation.getCurrentPosition(async (pos) => {
     myLat = pos.coords.latitude; myLng = pos.coords.longitude;
@@ -6894,7 +6936,8 @@ function launch() {
   if(CU?.role==='driver') launchDriver();
   else launchRider();
   startGPS();
-  startLiveDriverWatch();  // ✅ Watch all live drivers on map
+  // ✅ Defer live driver watch by 2s to let map fully initialize first
+  setTimeout(() => startLiveDriverWatch(), 2000);
 }
 function launchRider() {
   document.getElementById('rTop').style.display='flex';
