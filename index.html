@@ -877,29 +877,29 @@ window.HealthPulse = (function() {
       critical: true
     };
 
-    // Check 3: Map SDK — with grace period (loading takes 5-15s)
-    // Triple-safe: default to false if ANYTHING is undefined
-    const _mapFailedSafe = (typeof window !== 'undefined' && typeof window._mapFailed !== 'undefined') ? !!window._mapFailed : false;
-    const _mapLoaded = !!(typeof window !== 'undefined' && window.leafMap) && !_mapFailedSafe;
-    const _mapGrace = !window._appStartTime || (Date.now() - window._appStartTime) < 30000;
-    const _mapOk = _mapLoaded || _mapGrace;
+    // Check 3: Map SDK — Leaflet-aware check
+    var _leafletLoaded = !!(typeof L !== 'undefined' && typeof L.version !== 'undefined');
+    var _mapLoaded = !!(window.leafMap) && _leafletLoaded;
+    var _mapGrace = !window._appStartTime || (Date.now() - window._appStartTime) < 60000;
+    var _mapOk = _mapLoaded || _leafletLoaded || _mapGrace;
     _checks.map = {
       name: 'Map SDK',
       ok: _mapOk,
       ms: 0,
-      label: _mapLoaded ? 'Loaded' : (_mapFailedSafe ? 'Failed' : (_mapGrace ? 'Loading...' : 'Failed')),
+      label: _mapLoaded ? ('Leaflet v' + (L.version||'?')) : (_leafletLoaded ? 'Ready' : (_mapGrace ? 'Loading...' : 'Check')),
       critical: false
     };
 
-    // Check 4: GPS — with grace period (don't flag FAIL in first 2 min)
-    const _gpsHasPos = !!(window.myLat && window.myLng);
-    const _gpsGrace = !window._appStartTime || (Date.now() - window._appStartTime) < 120000;
-    const _gpsOk = _gpsHasPos || _gpsGrace; // OK if has position OR in grace period
+    // Check 4: GPS — watchId active = OK, position = best
+    var _gpsHasPos = !!(window.myLat && window.myLng);
+    var _gpsWatching = !!(typeof watchId !== 'undefined' && watchId) || window._gpsActive;
+    var _gpsGrace = !window._appStartTime || (Date.now() - window._appStartTime) < 300000; // 5min grace
+    var _gpsOk = _gpsHasPos || _gpsWatching || _gpsGrace;
     _checks.gps = {
       name: 'GPS',
       ok: _gpsOk,
-      ms: _gpsHasPos ? 0 : (_gpsGrace ? -1 : 0), // -1 = getting fix
-      label: _gpsHasPos ? 'Fixed' : (_gpsGrace ? 'Getting fix...' : 'No signal'),
+      ms: _gpsHasPos ? 0 : -1,
+      label: _gpsHasPos ? 'Fixed ✅' : (_gpsWatching ? 'Searching...' : (_gpsGrace ? 'Starting...' : 'Tap to enable')),
       critical: false
     };
 
@@ -929,15 +929,15 @@ window.HealthPulse = (function() {
       critical: true
     };
 
-    // Determine overall state
+    // Determine overall state — only critical failures matter for state
     const criticalFails = Object.values(_checks).filter(c => c.critical && !c.ok).length;
-    const totalFails = Object.values(_checks).filter(c => !c.ok).length;
+    const nonCriticalFails = Object.values(_checks).filter(c => !c.critical && !c.ok).length;
 
     let newState;
-    if(criticalFails >= 2)       newState = 'DOWN';
-    else if(criticalFails === 1) newState = 'CRITICAL';
-    else if(totalFails >= 2)     newState = 'DEGRADED';
-    else                          newState = 'HEALTHY';
+    if(criticalFails >= 2)           newState = 'DOWN';
+    else if(criticalFails === 1)     newState = 'CRITICAL';
+    else if(nonCriticalFails >= 3)   newState = 'DEGRADED'; // only 3+ non-critical = degraded
+    else                              newState = 'HEALTHY';
 
     // Track downtime
     if(newState === 'DOWN' && _state !== 'DOWN') _lastDownStart = Date.now();
@@ -2168,10 +2168,12 @@ body.lm #zoneLegend{background:rgba(255,255,255,.95);color:#000;}
 .sheet.sheet-fare{
   display:block;
   height:auto;
-  max-height:82vh;
+  max-height:88vh;
   transform:translateY(0);
   overflow-y:auto;
-  padding-bottom:36px;
+  overflow-x:hidden;
+  padding-bottom:0;
+  -webkit-overflow-scrolling:touch;
 }
 .sheet::-webkit-scrollbar{display:none;}
 body.lm .sheet{background:rgba(240,244,251,.98);border-top:1px solid rgba(0,0,0,.05);}
@@ -2447,8 +2449,8 @@ body.lm #zoneLegend{background:rgba(255,255,255,.95);color:#000;}
 #voiceIndicator.speaking{background:rgba(16,185,129,.2);border:2px solid var(--green);}
 
 /* ══ DEMAND SURGE BANNER ══ */
-#surgeBanner{position:fixed;top:0;left:0;right:0;z-index:600;background:linear-gradient(135deg,#f59e0b,#f97316);padding:7px 16px;text-align:center;font-size:.75rem;font-weight:800;color:#000;display:none;animation:surgeIn .4s ease;}
-@keyframes surgeIn{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+/* surgeBanner removed */
+/* surgeIn removed */to{transform:translateY(0)}}
 
 /* ══ LOADER ══ */
 #loader{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
@@ -3105,7 +3107,7 @@ body.lm .vrp-box{background:#f0f4fb;}
 <body>
 
 <!-- SURGE BANNER -->
-<div id="surgeBanner">⚡ High Demand — Surge Pricing Active in Your Area! Fares 1.5x</div>
+<!-- surgeBanner removed -->
 
 <!-- ✅ DRIVER APPROACHING TOP BAR — Ola/Uber trending 2024 -->
 <div id="driverApproachBar">
@@ -3555,7 +3557,7 @@ body.lm .vrp-box{background:#f0f4fb;}
   </div>
 
   <!-- FARE / SELECT RIDE SCREEN -->
-  <div class="scr" id="sFare">
+  <div class="scr" id="sFare" style="display:flex;flex-direction:column;overflow:visible;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <div style="font-family:'Syne',sans-serif;font-size:.92rem;font-weight:900">Select Ride</div>
       <span style="color:var(--muted);font-size:.76rem;cursor:pointer;padding:4px 8px" onclick="goScr('sHome');clearRoute()">✕ Cancel</span>
@@ -3653,7 +3655,7 @@ body.lm .vrp-box{background:#f0f4fb;}
       </div>
     </div>
 
-    <button id="bookBtn" class="mbtn y" onclick="confirmBook()">Book <span id="bookBtnType">Auto</span> →</button>
+    <button id="bookBtn" class="mbtn y" onclick="confirmBook()" style="position:sticky;bottom:0;z-index:10;margin-top:8px;width:100%;box-shadow:0 -8px 24px rgba(0,0,0,.4);">Book <span id="bookBtnType">Auto</span> →</button>
   </div>
 
   <!-- FINDING SCREEN -->
@@ -5518,6 +5520,10 @@ function finishLoad() {
     document.getElementById('loader').style.display = 'none';
     if (!CU) document.getElementById('auth').style.display = 'flex';
     initMap();
+    // Start GPS early — show location on map before login
+    setTimeout(function() {
+      if (typeof startGPS === 'function' && !window._gpsActive) startGPS();
+    }, 1200);
   }, 350);
 }
 let fbWait = 0;
@@ -6499,15 +6505,17 @@ function animateNdBars(a, b, c, total) {
 // ✅ SURGE PRICING — Based on demand vs supply
 // ═══════════════════════════════════════════════════════
 function checkSurge(driverCount) {
-  // Surge if very few drivers online
+  // Surge if very few drivers online — banner removed, keep fare chips only
   const newSurge = (driverCount < 2);
   if (newSurge !== surgeActive) {
     surgeActive = newSurge;
-    document.getElementById('surgeBanner').style.display = surgeActive ? 'block' : 'none';
-    document.getElementById('surgeChip').style.display = surgeActive ? 'flex' : 'none';
-    document.getElementById('autoSurge').style.display = surgeActive ? 'inline' : 'none';
-    document.getElementById('miniSurge').style.display = surgeActive ? 'inline' : 'none';
-    if (surgeActive) { playSurge(); toast('⚡ Surge pricing active!'); }
+    // surgeBanner removed from UI
+    var sc = document.getElementById('surgeChip');
+    var as = document.getElementById('autoSurge');
+    var ms = document.getElementById('miniSurge');
+    if(sc) sc.style.display = surgeActive ? 'flex' : 'none';
+    if(as) as.style.display = surgeActive ? 'inline' : 'none';
+    if(ms) ms.style.display = surgeActive ? 'inline' : 'none';
   }
 }
 
@@ -8465,16 +8473,11 @@ async function confirmBook() {
     nearbyCount>0?'🟡 Drivers in outer zone — matching...':
     '⏳ No drivers nearby — please wait...');
 
-  if(window.FB_READY && nearbyCount===0){
-    // ✅ FIX: Don't block booking if the Firebase query might have failed (nearbyCount stays 0)
-    // Show warning but still allow booking attempt — driver count may be stale
-    toast('⚠️ Abhi koi driver online nahi hai — thodi der mein try karo');
-    goScr('sHome');
-    return; // Stay on home screen
-  }
-  
-  // ✅ NOW show the finding screen (only when drivers are available)
+  // Show finding screen — always proceed (drivers may come online)
   goScr('sFind');
+  if(nearbyCount===0){
+    toast('⏳ Drivers dhundh rahe hain — thodi der wait karo...');
+  }
 
   // Get rider phone — try all possible fields
   const riderPhoneVal = CU?.phone || CU?.mobile || CU?.phoneNumber || '';
@@ -8529,12 +8532,19 @@ async function confirmBook() {
         console.warn('[JDP] Token refresh failed:', tokenErr);
         // Continue anyway — token may still be valid
       }
-      // ✅ AUTO-SCALING: Route through LoadBalancer + CircuitBreaker
-      const ref = await window.LoadBalancer.add(() =>
-        window.CircuitBreaker.call(() =>
-          window.FB.addDoc(window.FB.collection(window.FB.db,'rides'), rideData)
-        )
-      , 'high');
+      // Write ride to Firebase — with LoadBalancer + direct fallback
+      let ref;
+      try {
+        ref = await window.LoadBalancer.add(() =>
+          window.CircuitBreaker.call(() =>
+            window.FB.addDoc(window.FB.collection(window.FB.db,'rides'), rideData)
+          )
+        , 'high');
+      } catch(lbErr) {
+        console.warn('[JDP] LoadBalancer failed, direct write:', lbErr.message);
+        // Direct write fallback — bypass LoadBalancer/CircuitBreaker
+        ref = await window.FB.addDoc(window.FB.collection(window.FB.db,'rides'), rideData);
+      }
       rideDocId=ref.id;
       listenToRide(rideDocId);
       appliedPromo = null;
@@ -10543,12 +10553,16 @@ window.AIRepair = (function() {
   
   // ── Check: Map alive? ──
   function checkMap() {
-    if (!window.leafMap) {
-      _log('MAP', 'Map null detected', 'Re-initializing');
+    if (!window.leafMap && typeof L !== 'undefined') {
+      _log('MAP', 'Map null — Leaflet ready, re-init', 'Re-initializing');
       if (typeof initMap === 'function') {
         setTimeout(initMap, 500);
         return false;
       }
+    }
+    if (!window.leafMap && typeof L === 'undefined') {
+      // Leaflet not loaded yet — skip this cycle
+      return true;
     }
     // Check if map container is visible and has correct size
     var mapEl = document.getElementById('map');
@@ -10566,14 +10580,13 @@ window.AIRepair = (function() {
   
   // ── Check: GPS alive? ──
   function checkGPS() {
-    if (!window._gpsActive && window.CU) {
-      var age = Date.now() - (window._lastGpsUpdate || 0);
-      var appAge = Date.now() - (window._appStartTime || 0);
-      if (appAge > 60000 && age > 120000) {
-        _log('GPS', 'GPS dead for ' + Math.round(age/1000) + 's', 'Restarting');
-        if (typeof startGPS === 'function') startGPS();
-        return false;
-      }
+    var age = Date.now() - (window._lastGpsUpdate || 0);
+    var appAge = Date.now() - (window._appStartTime || 0);
+    // Restart GPS if: no position for 3min AND app has been running 2min+
+    if (!window._gpsActive && appAge > 120000 && age > 180000) {
+      _log('GPS', 'GPS dead for ' + Math.round(age/1000) + 's', 'Restarting');
+      if (typeof startGPS === 'function') startGPS();
+      return false;
     }
     return true;
   }
