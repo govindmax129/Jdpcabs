@@ -6245,7 +6245,7 @@ function addLandmarkMarkers() {
       className: '', iconSize: [0, 0]
     });
     var mk = L.marker([lm.lat, lm.lng], { icon: icon });
-    mk.bindPopup('<b>' + (lm.icon||'📍') + ' ' + lm.name + '</b><br><small style="color:#4d6a8a">' + (lm.info||'') + '</small><br><small style="cursor:pointer;color:#f59e0b" onclick="setDropFromMap(' + lm.lat + ',' + lm.lng + ','' + lm.name.replace(/'/g,'') + '')">📍 Set as Drop</small>');
+    mk.bindPopup('<b>' + (lm.icon||'📍') + ' ' + lm.name + '</b><br><small style="color:#4d6a8a">' + (lm.info||'') + '</small><br><small style="cursor:pointer;color:#f59e0b" onclick="setDropFromMap(' + lm.lat + ',' + lm.lng + ',"' + lm.name.replace(/['"]/g,'') + '")">📍 Set as Drop</small>');
     mk.addTo(leafMap);
     window._landmarkMarkers.push(mk);
   });
@@ -6282,27 +6282,16 @@ function renderVisibleLandmarks() {
     if (inView) {
       if (!existingMk) {
         // Create marker only when needed
-        const mk = window._LF ? window._LF.marker(
-          map: leafMap,
-          position: { lat: place.lat, lng: place.lng },
-          html: (() => {
-            const catColors = {
-              hospital:'#ef4444', education:'#3b82f6', temple:'#f59e0b',
-              transport:'#8b5cf6', market:'#10b981', govt:'#6366f1',
-              hotel:'#f97316', bank:'#0ea5e9', fuel:'#84cc16',
-              tourism:'#ec4899', area:'#64748b', road:'#94a3b8'
-            };
-            const c = catColors[place.cat] || '#f59e0b';
-            return `<div style="display:flex;flex-direction:column;align-items:center;transform:translate(-12px,-38px)">
-              <div style="background:white;border:2.5px solid ${c};border-radius:12px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.25);position:relative;">
-                ${place.icon}
-                <div style="position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid ${c}"></div>
-              </div>
-              <div style="background:white;color:#0c1929;font-size:9px;font-weight:800;padding:2px 5px;border-radius:5px;margin-top:3px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.15);max-width:70px;overflow:hidden;text-overflow:ellipsis">${place.name.split(' ')[0]}</div>
-            </div>`;
-          })(),
-          popupHtml: ('<b>'+place.icon+' '+place.name+'</b><br><small style="color:#aaa">'+place.info+'</small><br><button onclick="setDropFromMap('+place.lat+','+place.lng+',\''+place.name.replace(/'/g,'').replace(/"/g,'')+'\');" style="background:#f59e0b;border:none;color:#000;padding:4px 10px;border-radius:6px;font-size:.72rem;font-weight:800;margin-top:6px;cursor:pointer;width:100%">🚗 Drop Point Set</button>')
-        });
+        const catColors = { hospital:'#ef4444', education:'#3b82f6', temple:'#f59e0b', transport:'#8b5cf6', market:'#10b981', govt:'#6366f1', hotel:'#f97316', bank:'#0ea5e9', fuel:'#84cc16', tourism:'#ec4899', area:'#64748b', road:'#94a3b8' };
+        const c = catColors[place.cat] || '#f59e0b';
+        const _mkHtml = '<div style="display:flex;flex-direction:column;align-items:center;transform:translate(-12px,-38px)"><div style="background:white;border:2.5px solid '+c+';border-radius:12px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.25);position:relative;">'+place.icon+'<div style="position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid '+c+'"></div></div><div style="background:white;color:#0c1929;font-size:9px;font-weight:800;padding:2px 5px;border-radius:5px;margin-top:3px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.15);max-width:70px;overflow:hidden;text-overflow:ellipsis">'+place.name.split(' ')[0]+'</div></div>';
+        const _mkIcon = L.divIcon({ html: _mkHtml, className: '', iconSize: [0, 0] });
+        const mk = L.marker([place.lat, place.lng], { icon: _mkIcon });
+        const _safeName = place.name.replace(/[^a-zA-Z0-9 ]/g,'');
+        const _mkPopup = '<b>'+place.icon+' '+place.name+'</b><br><small style="color:#aaa">'+place.info+'</small><br><button onclick="setDropFromMap('+place.lat+','+place.lng+',\"'+_safeName+'\")" style="background:#f59e0b;border:none;color:#000;padding:4px 10px;border-radius:6px;font-size:.72rem;font-weight:800;margin-top:6px;cursor:pointer;width:100%">🚗 Drop Point Set</button>';
+        mk.bindPopup(_mkPopup);
+        if (leafMap) mk.addTo(leafMap);
+        mk.setMap = function(m) { if (!m) { try{leafMap.removeLayer(mk);}catch(e){} } else { try{mk.addTo(leafMap);}catch(e){} } };
         landmarkMarkers[i] = mk;
       } else {
         try { if (typeof existingMk.setMap === 'function') existingMk.setMap(leafMap); } catch(e){}
@@ -6376,12 +6365,11 @@ function startLiveDriverWatch() {
           try { liveDriverMarkers[id].setLatLng([d.lat, d.lng]); } catch(ex) { try { liveDriverMarkers[id].setPosition({lat:d.lat,lng:d.lng}); } catch(ex2) {} }
         } catch(e){}
       } else if (leafMap) {
-        const mk = window._LF ? window._LF.marker(
-          map: leafMap,
-          position: { lat: d.lat, lng: d.lng },
-          html: carHtml,
-          popupHtml: popupHtml
-        });
+        const _liveIcon = L.divIcon({ html: carHtml, className: '', iconSize: [0, 0] });
+        const mk = L.marker([d.lat, d.lng], { icon: _liveIcon, zIndexOffset: 800 });
+        mk.bindPopup(popupHtml);
+        if (leafMap) mk.addTo(leafMap);
+        mk.setMap = function(m) { if (!m) { try{leafMap.removeLayer(mk);}catch(e){} } else { try{mk.addTo(leafMap);}catch(e){} } };
         liveDriverMarkers[id] = mk;
       }
     });
@@ -9631,26 +9619,8 @@ async function revGeo(lat, lng) {
 
 // Forward geocode with multilingual hints
 async function geocodeAddressML(address) {
-  const lang = currentLang;
-  const langParam = lang !== 'en' ? `&language=${lang}` : '';
-
-  // Mappls geocode with language
-  try {
-    const q = encodeURIComponent(address + ' Jagdalpur Chhattisgarh India');
-    const r = await fetchWithTimeout(
-      `https://apis.mappls.com/advancedmaps/v1/${window.MAPPLS_KEY}/geo_code?addr=${q}&region=IND${langParam}`, {}, 5000
-    );
-    if (r.ok) {
-      const d = await r.json();
-      const res = d?.copResults;
-      if (res?.latitude) {
-        const lat = parseFloat(res.latitude), lng = parseFloat(res.longitude);
-        if (lat > 0 && lng > 0) return { lat, lng, name: res.formattedAddress || address };
-      }
-    }
-  } catch(e) {}
-
-  return geocodeAddress(address); // fallback to original
+  // Nominatim OSM with language hint (no Mappls dependency)
+  return geocodeAddress(address);
 }
 
 // ─────────────────────────────────────────────────
@@ -9861,7 +9831,7 @@ function refreshFleetPanel() {
           const dist = d.distFromMe != null ? (d.distFromMe < 1 ? Math.round(d.distFromMe * 1000) + 'm' : d.distFromMe.toFixed(1) + 'km') : '--';
           const veh = d.vehicleType === 'cab' ? '🚗' : '🛺';
           const zone = d.distFromMe < 3 ? '🟢 Core zone' : d.distFromMe < 8 ? '🔵 City zone' : '🟡 Outer zone';
-          return `<div class="fleet-driver-card" onclick="fleetFocusDriver(${d.lat||JDPC.lat},${d.lng||JDPC.lng},'${(d.name||'Driver').replace(/'/g,'')}')">
+          return `<div class="fleet-driver-card" onclick="fleetFocusDriver(${d.lat||JDPC.lat},${d.lng||JDPC.lng},'${(d.name||'Driver').replace(/[^a-zA-Z0-9 ]/g,'')}')">
             <div class="fleet-d-avatar">${veh}</div>
             <div class="fleet-d-info">
               <div class="fleet-d-name"><span class="fleet-online-dot"></span>${d.name || 'Driver'}</div>
