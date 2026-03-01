@@ -600,7 +600,7 @@ window.RecoveryManager = (function() {
   function recoverMap() {
     if(window._mapFailed) return; // Map permanently failed, skip
     _mapRetries++;
-    _record('MAP', `Re-initializing Mappls (attempt ${_mapRetries})`);
+    _record('MAP', `Re-initializing Leaflet OSM (attempt ${_mapRetries})`);
     if(_mapRetries > 3) {
       _record('MAP', 'Max retries — using offline mode');
       window._mapFailed = true;
@@ -1942,14 +1942,77 @@ const _origScaleCheck = setInterval(() => {
 
 
 <!-- ✅ Mappls Map SDK v3 — Full India Vector Maps (Leaflet bundled inside) -->
-<script>window.MAPPLS_KEY='4e97759ed6a3fb245e52f7e22d820954';</script>
-<!-- ✅ Mappls SDK v3 — Map + Direction + Navigation + Search plugins -->
-<link href="https://apis.mappls.com/advancedmaps/api/4e97759ed6a3fb245e52f7e22d820954/map_sdk?v=3.0&plugins=direction,search" rel="stylesheet">
-<script 
-  src="https://apis.mappls.com/advancedmaps/api/4e97759ed6a3fb245e52f7e22d820954/map_sdk?v=3.0&plugins=direction,search"
-  onerror="window._mapSdkLoadFailed=true;console.error('[JDP] Mappls SDK failed to load — check API key and network');document.getElementById('map')&&(document.getElementById('map').style.background='#0a0e16');">
+<!-- ✅ LEAFLET OSM — Free, No API Key, India Privacy First -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<!-- Leaflet Routing Machine for turn-by-turn nav -->
+<script>
+// ✅ OSM CONFIG — No API key needed, India data privacy first
+window.MAPPLS_KEY = null; // Removed — using free OSM
+window.mapReady = false;
+
+// ✅ Create Leaflet marker icon helper (replaces mappls.Marker)
+window._LF = {
+  // Create custom HTML icon
+  htmlIcon: function(html, size) {
+    return L.divIcon({
+      html: html,
+      className: '',
+      iconSize: size || [0, 0],
+      iconAnchor: size ? [size[0]/2, size[1]] : [0, 0]
+    });
+  },
+  // Create a regular marker with custom html
+  marker: function(lat, lng, html, popupHtml, size) {
+    if (!window.leafMap) return null;
+    try {
+      var icon = L.divIcon({ html: html, className: '', iconSize: size||[0,0] });
+      var mk = L.marker([lat, lng], { icon: icon });
+      if (popupHtml) mk.bindPopup(popupHtml);
+      mk.addTo(window.leafMap);
+      // Add Mappls-compatible API shim
+      mk.setPosition = function(pos) { mk.setLatLng([pos.lat, pos.lng]); };
+      mk.setMap = function(m) { if(!m) { try{mk.remove();}catch(e){} } };
+      return mk;
+    } catch(e) { return null; }
+  },
+  // Circle
+  circle: function(lat, lng, radius, strokeColor, strokeWeight, strokeOpacity, fillColor, fillOpacity) {
+    if (!window.leafMap) return null;
+    try {
+      var c = L.circle([lat, lng], {
+        radius: radius,
+        color: strokeColor || '#3b82f6',
+        weight: strokeWeight || 2,
+        opacity: strokeOpacity || 0.6,
+        fillColor: fillColor || strokeColor || '#3b82f6',
+        fillOpacity: fillOpacity || 0.06
+      });
+      c.addTo(window.leafMap);
+      c.setMap = function(m) { if(!m) { try{c.remove();}catch(e){} } };
+      return c;
+    } catch(e) { return null; }
+  },
+  // Polyline
+  polyline: function(coords, color, weight) {
+    if (!window.leafMap) return null;
+    try {
+      var pl = L.polyline(coords, {
+        color: color || '#f59e0b',
+        weight: weight || 5,
+        opacity: 0.88,
+        lineJoin: 'round',
+        lineCap: 'round'
+      });
+      pl.addTo(window.leafMap);
+      pl.setMap = function(m) { if(!m) { try{pl.remove();}catch(e){} } };
+      pl.remove = function() { try{L.polyline.prototype.remove.call(pl);}catch(e){window.leafMap&&window.leafMap.removeLayer(pl);} };
+      return pl;
+    } catch(e) { return null; }
+  }
+};
+console.log('[JDP] 🗺️ Leaflet OSM ready — No API key, India privacy first');
 </script>
-<!-- ✅ FIX: Detect Mappls SDK load failure and show user-friendly message -->
 
 <style>
 :root{
@@ -4149,6 +4212,14 @@ body.lm .ab { background: #f0f4fb; }
   margin: 6px auto 14px;
 }
 body.lm .hdl { background: rgba(0,0,0,.12); }
+/* ✅ Leaflet OSM fixes */
+.leaflet-container { background: #0a0e16 !important; }
+.leaflet-tile { filter: brightness(0.92) saturate(0.9); }
+body.lm .leaflet-tile { filter: none; }
+.leaflet-popup-content-wrapper { background: rgba(7,9,15,.97) !important; color: #eaf0fb !important; border: 1px solid rgba(255,255,255,.1) !important; border-radius: 14px !important; box-shadow: 0 8px 32px rgba(0,0,0,.6) !important; }
+.leaflet-popup-tip { background: rgba(7,9,15,.97) !important; }
+body.lm .leaflet-popup-content-wrapper { background: #fff !important; color: #222 !important; }
+body.lm .leaflet-tile { filter: none; }
 </style>
 
 <!-- Admin FAB -->
@@ -4948,17 +5019,25 @@ function haversine(la1, ln1, la2, ln2) { return distKmCalc(la1, ln1, la2, ln2); 
 function confirmPickup() { if(typeof driverNext === 'function') driverNext(); }
 function doDriverNext() { if(typeof driverNext === 'function') driverNext(); }
 // ✅ CRASH GUARD: Safe Mappls wrapper — never crashes if SDK offline
+// ✅ LEAFLET SHIM — replaces all Mappls SDK calls
 function safeMapplsMarker(opts) {
-  if (typeof mappls === 'undefined' || !leafMap) return null;
-  try { return new mappls.Marker(opts); } catch(e) { return null; }
+  if (!window._LF || !leafMap) return null;
+  var lat = opts.position?.lat || opts.lat || JDPC.lat;
+  var lng = opts.position?.lng || opts.lng || JDPC.lng;
+  return window._LF.marker(lat, lng, opts.html || opts.icon?.html || '📍', opts.popupHtml);
 }
 function safeMapplsCircle(opts) {
-  if (typeof mappls === 'undefined' || !leafMap) return null;
-  try { return new mappls.Circle(opts); } catch(e) { return null; }  // ✅ FIX: was calling itself (infinite recursion → stack overflow crash)
+  if (!window._LF || !leafMap) return null;
+  var lat = opts.center?.lat || JDPC.lat;
+  var lng = opts.center?.lng || JDPC.lng;
+  return window._LF.circle(lat, lng, opts.radius,
+    opts.strokeColor, opts.strokeWeight, opts.strokeOpacity,
+    opts.fillColor, opts.fillOpacity);
 }
 function safeMapplsPolyline(opts) {
-  if (typeof mappls === 'undefined' || !leafMap) return null;
-  try { return new mappls.Polyline(opts); } catch(e) { return null; }
+  if (!window._LF || !leafMap) return null;
+  var coords = (opts.path || []).map(function(p) { return [p.lat, p.lng]; });
+  return window._LF.polyline(coords, opts.strokeColor, opts.strokeWeight);
 }
 function safeText(id, val) {
   try { var el=document.getElementById(id); if(el) el.textContent=val; } catch(e) {}
@@ -5400,7 +5479,7 @@ function finishLoad() {
   if (isLoaded) return; isLoaded = true;
   clearInterval(lpInt);
   document.getElementById('ldBar').style.width = '100%';
-  safeText('ldStatus','Ready! 🚖 Jagdalpur');
+  safeText('ldStatus','🗺️ Loading OSM Map...');
   setTimeout(() => {
     document.getElementById('loader').style.display = 'none';
     if (!CU) document.getElementById('auth').style.display = 'flex';
@@ -5566,72 +5645,83 @@ async function startNavigation(destLat, destLng, destName) {
   }
 }
 
-// ✅ Fetch route with full step-by-step from Mappls/OSRM
+// ✅ OSRM Navigation Route (No API key, OSM data)
 async function fetchNavRoute(fLat, fLng, tLat, tLng) {
+  // METHOD 1: OSRM with full steps (primary — free, OSM)
   try {
-    // Try Mappls route_adv with steps
-    let r = await fetch(
-      `https://apis.mappls.com/advancedmaps/v1/${window.MAPPLS_KEY}/route_adv/driving/${fLng},${fLat};${tLng},${tLat}?steps=true&geometries=geojson&overview=full&annotations=true&region=IND`
+    const r = await fetchWithTimeout(
+      'https://router.project-osrm.org/route/v1/driving/' + fLng + ',' + fLat + ';' + tLng + ',' + tLat + '?steps=true&geometries=geojson&overview=full&annotations=true',
+      {}, 8000
     );
-    if (!r.ok) throw new Error('Mappls failed');
-    const d = await r.json();
-    if (d?.routes?.[0]) {
-      const route = d.routes[0];
-      NAV.totalDist = route.distance;
-      NAV.totalTime = route.duration;
-      // Extract steps from all legs
-      NAV.steps = [];
-      (route.legs || []).forEach(leg => {
-        (leg.steps || []).forEach(step => NAV.steps.push(step));
-      });
-      if (NAV.steps.length > 0) {
+    if (r.ok) {
+      const d = await r.json();
+      const route = d && d.routes && d.routes[0];
+      if (route) {
+        NAV.totalDist = route.distance;
+        NAV.totalTime = route.duration;
+        NAV.steps = [];
+        (route.legs || []).forEach(function(leg) {
+          (leg.steps || []).forEach(function(step) { NAV.steps.push(step); });
+        });
         drawNavRoute(route.geometry);
         updateNavUI();
         buildStepList();
         return;
       }
     }
-  } catch(e) {}
-
-  // Fallback: OSRM with steps
+  } catch(e) { console.log('[JDP Nav] OSRM failed:', e.message); }
+  
+  // METHOD 2: OpenRouteService (free, 2000/day)
   try {
-    const r = await fetch(
-      `https://router.project-osrm.org/route/v1/driving/${fLng},${fLat};${tLng},${tLat}?steps=true&geometries=geojson&overview=full`
+    const r2 = await fetchWithTimeout(
+      'https://api.openrouteservice.org/v2/directions/driving-car/geojson',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': '5b3ce3597851110001cf6248e18a1c13e3b74f3fa4a09a1d7e4c12fa' },
+        body: JSON.stringify({ coordinates: [[fLng, fLat], [tLng, tLat]] })
+      }, 8000
     );
-    const d = await r.json();
-    if (d?.routes?.[0]) {
-      const route = d.routes[0];
-      NAV.totalDist = route.distance;
-      NAV.totalTime = route.duration;
-      NAV.steps = [];
-      (route.legs || []).forEach(leg => {
-        (leg.steps || []).forEach(step => NAV.steps.push(step));
-      });
-      drawNavRoute(route.geometry);
-      updateNavUI();
-      buildStepList();
+    if (r2.ok) {
+      const d2 = await r2.json();
+      const feat = d2 && d2.features && d2.features[0];
+      if (feat) {
+        NAV.totalDist = feat.properties && feat.properties.summary && feat.properties.summary.distance || 0;
+        NAV.totalTime = feat.properties && feat.properties.summary && feat.properties.summary.duration || 0;
+        NAV.steps = (feat.properties && feat.properties.segments && feat.properties.segments[0] && feat.properties.segments[0].steps) || [];
+        drawNavRoute(feat.geometry);
+        updateNavUI();
+        buildStepList();
+        return;
+      }
     }
-  } catch(e) {
-    safeText('navInstruction','Route unavailable');
-  }
+  } catch(e) { console.log('[JDP Nav] ORS failed:', e.message); }
+
+  // METHOD 3: Straight line fallback
+  NAV.totalDist = distKmCalc(fLat, fLng, tLat, tLng) * 1350;
+  NAV.totalTime = (NAV.totalDist / 1000 / 25) * 3600;
+  NAV.steps = [{ maneuver: { type:'depart', modifier:'straight' }, name:'Head toward destination', distance: NAV.totalDist, duration: NAV.totalTime }];
+  drawNavRoute({ type:'LineString', coordinates:[[fLng,fLat],[tLng,tLat]] });
+  updateNavUI();
+  buildStepList();
+  safeText('navInstruction','Straight line nav — road data unavailable');
 }
 
 // ✅ Draw navigation route on map (green line like Mappls screenshot)
+// ✅ LEAFLET drawNavRoute
 function drawNavRoute(geometry) {
   if (NAV.navPolyline) {
-    try { if (NAV.navPolyline.setMap) NAV.navPolyline.setMap(null); } catch(e){}
+    try { leafMap && leafMap.removeLayer(NAV.navPolyline); } catch(e) {}
+    NAV.navPolyline = null;
   }
-  if (!geometry?.coordinates || !leafMap) return;
-  const path = geometry.coordinates.map(c => ({ lat: c[1], lng: c[0] }));
-  NAV.navPolyline = new mappls.Polyline({
-    map: leafMap,
-    path: path,
-    strokeColor: '#00C853',  // Mappls green route
-    strokeWeight: 7,
-    strokeOpacity: 0.92,
-    lineJoin: 'round',
-    lineCap: 'round'
-  });
+  if (!geometry || !geometry.coordinates || !leafMap) return;
+  var coords = geometry.coordinates.map(function(c) { return [c[1], c[0]]; });
+  try {
+    NAV.navPolyline = L.polyline(coords, {
+      color: '#00C853', weight: 7, opacity: 0.92,
+      lineJoin: 'round', lineCap: 'round'
+    });
+    NAV.navPolyline.addTo(leafMap);
+  } catch(e) { console.warn('[JDP] Nav route draw:', e); }
 }
 
 // ✅ Update the navigation bar UI with current step
@@ -5891,22 +5981,12 @@ function checkNetworkQuality() {
 }
 
 function initMap() {
-  if (typeof mappls === 'undefined') {
-    window._mapRetry = (window._mapRetry||0)+1;
-    if(window._mapRetry > 30) {
-      console.warn('[JDP] Map SDK failed to load');
-      // Show user-friendly fallback
+  // ✅ LEAFLET OSM — Free, No API key, India privacy first
+  if (typeof L === 'undefined') {
+    window._mapRetry = (window._mapRetry || 0) + 1;
+    if (window._mapRetry > 30) {
       const mapEl = document.getElementById('map');
-      if(mapEl) {
-        const _isLocal = location.protocol === 'file:';
-        const _mapHint = _isLocal
-          ? 'Local file mein map kaam nahi karta — Vercel pe deploy karo (jdpcabs.vercel.app)'
-          : 'Internet check karo ya page refresh karo.<br>Booking aur tracking baaki kaam karega.';
-        mapEl.innerHTML = `<div style='position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0a0e16;color:rgba(255,255,255,.5);font-size:.85rem;gap:10px;padding:20px;text-align:center'><div style='font-size:2.5rem'>🗺️</div><div style='font-weight:700;color:white'>Map load nahi hua</div><div style='font-size:.72rem;color:rgba(255,255,255,.4);margin-top:6px'>${_mapHint}</div>${_isLocal ? '' : `<button onclick='location.reload()' style='background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:#f59e0b;border-radius:99px;padding:8px 20px;font-size:.78rem;font-weight:800;cursor:pointer;margin-top:12px'>🔄 Reload</button>`}</div>`;
-      }
-      const _isLocalToast = location.protocol === 'file:';
-      toast(_isLocalToast ? '📁 Local file: deploy to Vercel for map' : '⚠️ Map load nahi hua — internet check karo');
-      // Still allow non-map features
+      if (mapEl) mapEl.innerHTML = `<div style='position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0a0e16;color:rgba(255,255,255,.5);gap:10px;text-align:center;padding:20px'><div style='font-size:2.5rem'>🗺️</div><div style='font-weight:700;color:white'>Map load nahi hua</div><div style='font-size:.72rem;color:rgba(255,255,255,.4);margin-top:6px'>Internet check karo ya refresh karo</div><button onclick='location.reload()' style='background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:#f59e0b;border-radius:99px;padding:8px 20px;font-size:.78rem;font-weight:800;cursor:pointer;margin-top:12px'>🔄 Reload</button></div>`;
       window._mapFailed = true;
       return;
     }
@@ -5914,63 +5994,100 @@ function initMap() {
     return;
   }
   try {
-    // ✅ Mappls v3 — India's most powerful vector map
-    leafMap = new mappls.Map('map', {
-      center: { lat: JDPC.lat, lng: JDPC.lng },
-      zoom: 13,          // Zoom 13 = shows full Jagdalpur 15km service zone
+    // ✅ Leaflet map centered on Jagdalpur
+    leafMap = L.map('map', {
+      center: [JDPC.lat, JDPC.lng],
+      zoom: 13,
       minZoom: 11,
       maxZoom: 19,
       zoomControl: false,
-      clickableIcons: true,
-      fullscreenControl: false,
-      search: false,
-      indoor: false,
-      traffic: true,     // Live traffic layer — Mappls India data
+      attributionControl: false
     });
 
-    // ✅ On full load — draw city markers & auto-detect GPS
-    leafMap.on('load', function() {
-      safeText('ldStatus','✅ Jagdalpur map loaded');
-      safeShow('mapStats');
+    // ✅ OSM Tile Layer — India map data, free, no API key
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19,
+      crossOrigin: true
+    }).addTo(leafMap);
 
-      // ✅ AUTO GPS on map load (even before login)
+    // ✅ Attribution (small, bottom right)
+    L.control.attribution({ position: 'bottomright', prefix: false })
+      .addAttribution('<span style="font-size:.55rem;opacity:.4">© OSM</span>')
+      .addTo(leafMap);
+
+    window.mapReady = true;
+    window._mapFailed = false;
+
+    // ✅ Leaflet compatibility shims for Mappls API calls
+    leafMap.flyTo = function(latLng, zoom) {
+      L.Map.prototype.flyTo.call(this, latLng, zoom || this.getZoom(), { animate: true, duration: 0.8 });
+    };
+    leafMap.fitBounds = function(bounds, opts) {
+      L.Map.prototype.fitBounds.call(this, bounds, opts);
+    };
+    leafMap.invalidateSize = function() {
+      L.Map.prototype.invalidateSize.call(this, true);
+    };
+
+    // ✅ Map load handler
+    leafMap.on('load', function() {
+      safeText('ldStatus', '✅ Jagdalpur map loaded');
+      safeShow('mapStats');
+      drawCityZones();
+      addLandmarkMarkers();
+    });
+
+    // Fire load immediately (Leaflet fires 'load' synchronously after tile layer)
+    setTimeout(function() {
+      safeText('ldStatus', '✅ Jagdalpur map loaded');
+      safeShow('mapStats');
+      drawCityZones();
+      addLandmarkMarkers();
+      window._mapFailed = false;
+
+      // ✅ AUTO GPS on map load
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(pos) {
-          myLat = pos.coords.latitude;
-          myLng = pos.coords.longitude;
+          myLat = pos.coords.latitude; myLng = pos.coords.longitude;
           pickLat = myLat; pickLng = myLng;
-          if(myLat && myLng) requestAnimationFrame(() => updateMyMarker(myLat, myLng));
+          window._lastGpsUpdate = Date.now();
+          window._gpsActive = true;
+          updateMyMarker(myLat, myLng);
           updateMyZone();
-          if(leafMap) leafMap.flyTo([myLat, myLng], 16);
+          leafMap.flyTo([myLat, myLng], 16);
           revGeo(myLat, myLng).then(function(addr) {
             pickAddr = addr;
             const pAddrEl = document.getElementById('pAddr');
             const pSubEl = document.getElementById('pSub');
             if (pAddrEl) pAddrEl.textContent = addr;
             if (pSubEl) pSubEl.innerHTML = '<span style="color:var(--green);font-size:.66rem">📍 GPS Live · Auto Detected</span>';
-          }).catch(function(){});  // ✅ FIX: was double .catch() chained (redundant, could mask errors)
+          }).catch(function(){});
         }, function() {}, { enableHighAccuracy: true, timeout: 10000, maximumAge: 3000 });
       }
+    }, 600);
 
-      // ✅ Lazy-load city zones and landmarks
-      setTimeout(() => {
-        drawCityZones();
-        addLandmarkMarkers();
-      }, 500);
+    // ✅ Map click — drop a pin for drop location
+    leafMap.on('click', function(e) {
+      // Only if user is on booking screen
+      const dropIn = document.getElementById('dropIn');
+      if (!dropIn || !dropIn.offsetParent) return;
+      const lat = e.latlng.lat, lng = e.latlng.lng;
+      // Reverse geocode and set as drop
+      revGeo(lat, lng).then(function(addr) {
+        dropIn.value = addr;
+        window._selectedDropLat = lat;
+        window._selectedDropLng = lng;
+        window._selectedDropName = addr;
+        window._preSelectedDrop = { lat, lng, name: addr };
+        toast('📍 Drop set: ' + addr);
+      }).catch(function(){});
     });
 
-    // Fallback for maps that don't fire 'load'
-    setTimeout(() => {
-      if (!document.getElementById('mapStats').style.display || 
-          document.getElementById('mapStats').style.display === 'none') {
-        safeText('ldStatus','✅ Jagdalpur map loaded');
-        safeShow('mapStats');
-        drawCityZones();
-        addLandmarkMarkers();
-      }
-    }, 3000);
-
-  } catch(e) { console.error('[JDP] Map init error:', e); setTimeout(initMap, 1000); }
+  } catch(e) {
+    console.error('[JDP] Map init error:', e);
+    setTimeout(initMap, 1000);
+  }
 }
 
 // ✅ Uber-style smooth zoom functions
@@ -5985,18 +6102,16 @@ function toggleMapStyle() {
   if (!leafMap) return;
   mapStyleMode = mapStyleMode === 'standard' ? 'satellite' : 'standard';
   try {
-    // Mappls v3 setMapStyle API
-    if (typeof leafMap.setMapStyle === 'function') {
-      leafMap.setMapStyle(mapStyleMode === 'satellite' ? 'mappls_grey' : 'standard');
-    }
-    // Mappls v3 alternate method
-    if (typeof mappls.MapType !== 'undefined') {
-      leafMap.setMapTypeId(mapStyleMode === 'satellite' ? mappls.MapType.HYBRID : mappls.MapType.ROADMAP);
-    }
-    // Mappls layer-based method
-    if (typeof leafMap.setHybridLayer === 'function') {
-      if (mapStyleMode === 'satellite') leafMap.setHybridLayer();
-      else leafMap.removeHybridLayer();
+    // Leaflet tile layer switch
+    leafMap.eachLayer(function(layer) {
+      if (layer instanceof L.TileLayer) { leafMap.removeLayer(layer); }
+    });
+    if (mapStyleMode === 'satellite') {
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution:'© Esri, Maxar, Earthstar Geographics', maxZoom:19
+      }).addTo(leafMap);
+    } else {
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19 }).addTo(leafMap);
     }
   } catch(e) {}
   const icon = document.getElementById('mapStyleIcon');
@@ -6061,57 +6176,38 @@ function drawCityZones() {
   if (!leafMap) return;
   clearZones();
   try {
-
-  // Outer service area — 15km (subtle dashed ring like Apple Maps)
-  const outerZone = new mappls.Circle({
-    map: leafMap,
-    center: { lat: JDPC.lat, lng: JDPC.lng },
-    radius: ZONE_OUTER * 1000,
-    strokeColor: '#f59e0b', strokeWeight: 2, strokeOpacity: 0.45,
-    fillColor: '#f59e0b', fillOpacity: 0.04
-  });
-
-  // City main zone — 8km (blue, main service)
-  try { const cityZone = safeMapplsCircle({
-    map: leafMap,
-    center: { lat: JDPC.lat, lng: JDPC.lng },
-    radius: ZONE_CITY * 1000,
-    strokeColor: '#3b82f6', strokeWeight: 2.5, strokeOpacity: 0.6,
-    fillColor: '#3b82f6', fillOpacity: 0.05
-  }); } catch(e) {}
-
-  // City core — 3km (green, fastest pickup zone)
-  try { const coreZone = safeMapplsCircle({
-    map: leafMap,
-    center: { lat: JDPC.lat, lng: JDPC.lng },
-    radius: ZONE_CORE * 1000,
-    strokeColor: '#10b981', strokeWeight: 3, strokeOpacity: 0.7,
-    fillColor: '#10b981', fillOpacity: 0.08
-  }); } catch(e) {}
-
-  // Center dot — Jagdalpur hub marker
-  try { const centerMark = safeMapplsMarker({
-    map: leafMap,
-    position: { lat: JDPC.lat, lng: JDPC.lng },
-    html: `<div style="background:rgba(245,158,11,.85);border:2.5px solid white;
-      width:12px;height:12px;border-radius:50%;
-      box-shadow:0 0 18px rgba(245,158,11,1);
-      transform:translate(-6px,-6px)"></div>`,
-    popupHtml: '<b>📍 Jagdalpur City Center</b><br><small>JDP Cabs Service Hub</small>'
-  }); } catch(e) {}
-
-  zoneCircles = [outerZone, cityZone, coreZone, centerMark];
-  // Zone legend removed
+    // Outer zone 15km — yellow
+    window._zoneOuter = L.circle([JDPC.lat, JDPC.lng], {
+      radius: ZONE_OUTER * 1000, color:'#f59e0b', weight:2, opacity:0.4,
+      fillColor:'#f59e0b', fillOpacity:0.03
+    }).addTo(leafMap);
+    // City zone 8km — blue
+    window._zoneCity = L.circle([JDPC.lat, JDPC.lng], {
+      radius: ZONE_CITY * 1000, color:'#3b82f6', weight:2.5, opacity:0.55,
+      fillColor:'#3b82f6', fillOpacity:0.04
+    }).addTo(leafMap);
+    // Core zone 3km — green
+    window._zoneCore = L.circle([JDPC.lat, JDPC.lng], {
+      radius: ZONE_CORE * 1000, color:'#10b981', weight:3, opacity:0.65,
+      fillColor:'#10b981', fillOpacity:0.07
+    }).addTo(leafMap);
+    // Center dot
+    var centerIcon = L.divIcon({
+      html: '<div style="background:rgba(245,158,11,.85);border:2.5px solid white;width:12px;height:12px;border-radius:50%;box-shadow:0 0 18px rgba(245,158,11,1);transform:translate(-6px,-6px)"></div>',
+      className: '', iconSize: [0, 0]
+    });
+    window._centerDot = L.marker([JDPC.lat, JDPC.lng], { icon: centerIcon })
+      .bindPopup('<b>📍 Jagdalpur City Center</b><br><small>JDP Cabs Service Hub</small>')
+      .addTo(leafMap);
   } catch(e) { console.warn('[JDP] Zone draw error:', e); }
 }
 function clearZones() {
-  zoneCircles.forEach(c => {
-    try {
-      if (c && typeof c.setMap === 'function') c.setMap(null);
-      else if (c && typeof c.remove === 'function') c.remove();
-    } catch(e){}
+  ['_zoneOuter','_zoneCity','_zoneCore','_centerDot'].forEach(function(k) {
+    if (window[k]) {
+      try { leafMap && leafMap.removeLayer(window[k]); } catch(e) {}
+      window[k] = null;
+    }
   });
-  zoneCircles = [];
 }
 
 let zonesVisible = true;
@@ -6134,14 +6230,25 @@ function toggleZone() {
 let landmarkRenderTimer = null;
 
 function addLandmarkMarkers() {
-  // ✅ Don't render all 160 at once — listen to zoom & moveend
-  if (!leafMap) return;
-  leafMap.on('zoomend moveend', function() {
-    clearTimeout(landmarkRenderTimer);
-    landmarkRenderTimer = setTimeout(renderVisibleLandmarks, 200); // 200ms debounce
+  if (!leafMap || !landmarksVisible) return;
+  // Clear old
+  if (window._landmarkMarkers) {
+    window._landmarkMarkers.forEach(function(mk) { try { leafMap.removeLayer(mk); } catch(e) {} });
+  }
+  window._landmarkMarkers = [];
+  
+  var bounds = leafMap.getBounds();
+  JAGDALPUR_LANDMARKS.forEach(function(lm) {
+    if (!bounds.contains([lm.lat, lm.lng])) return;
+    var icon = L.divIcon({
+      html: '<div style="background:rgba(7,9,15,.85);border:1.5px solid rgba(245,158,11,.4);border-radius:10px;padding:3px 6px;font-size:.6rem;color:#f59e0b;font-weight:700;white-space:nowrap;max-width:100px;overflow:hidden;text-overflow:ellipsis;transform:translate(-50%,-100%)">' + (lm.icon||'📍') + ' ' + lm.name.split(',')[0] + '</div>',
+      className: '', iconSize: [0, 0]
+    });
+    var mk = L.marker([lm.lat, lm.lng], { icon: icon });
+    mk.bindPopup('<b>' + (lm.icon||'📍') + ' ' + lm.name + '</b><br><small style="color:#4d6a8a">' + (lm.info||'') + '</small><br><small style="cursor:pointer;color:#f59e0b" onclick="setDropFromMap(' + lm.lat + ',' + lm.lng + ','' + lm.name.replace(/'/g,'') + '')">📍 Set as Drop</small>');
+    mk.addTo(leafMap);
+    window._landmarkMarkers.push(mk);
   });
-  // Initial render
-  setTimeout(renderVisibleLandmarks, 500);
 }
 
 function renderVisibleLandmarks() {
@@ -6175,7 +6282,7 @@ function renderVisibleLandmarks() {
     if (inView) {
       if (!existingMk) {
         // Create marker only when needed
-        const mk = safeMapplsMarker({
+        const mk = window._LF ? window._LF.marker(
           map: leafMap,
           position: { lat: place.lat, lng: place.lng },
           html: (() => {
@@ -6266,11 +6373,10 @@ function startLiveDriverWatch() {
 
       if (liveDriverMarkers[id]) {
         try {
-          if (typeof liveDriverMarkers[id].setPosition === 'function')
-            liveDriverMarkers[id].setPosition({ lat: d.lat, lng: d.lng });
+          try { liveDriverMarkers[id].setLatLng([d.lat, d.lng]); } catch(ex) { try { liveDriverMarkers[id].setPosition({lat:d.lat,lng:d.lng}); } catch(ex2) {} }
         } catch(e){}
       } else if (leafMap) {
-        const mk = safeMapplsMarker({
+        const mk = window._LF ? window._LF.marker(
           map: leafMap,
           position: { lat: d.lat, lng: d.lng },
           html: carHtml,
@@ -6285,8 +6391,9 @@ function startLiveDriverWatch() {
       if (!onlineIds.has(id)) {
         try {
           const mk = liveDriverMarkers[id];
-          if (typeof mk.setMap === 'function') mk.setMap(null);
-          else if (typeof mk.remove === 'function') mk.remove();
+          try { if (leafMap) leafMap.removeLayer(mk); } catch(ex) {}
+          try { if (typeof mk.setMap === 'function') mk.setMap(null); } catch(ex) {}
+          try { if (typeof mk.remove === 'function') mk.remove(); } catch(ex) {}
         } catch(e){}
         delete liveDriverMarkers[id];
       }
@@ -6398,65 +6505,40 @@ async function updateNearbyRidersCount() {
 // ═══════════════════════════════════════════════════════
 // ✅ FORWARD GEOCODE — Mappls Geocode API
 // ═══════════════════════════════════════════════════════
+// ✅ GEOCODE — OSM Nominatim only (No API key, India privacy first)
 async function geocodeAddress(address) {
   const lc = address.toLowerCase().trim();
-  const KEY = window.MAPPLS_KEY;
 
-  // STEP 1: Mappls Geocode API — highest accuracy for India
-  try {
-    const q = encodeURIComponent(address + ' Jagdalpur Chhattisgarh India');
-    const r = await fetchWithTimeout(
-      `https://apis.mappls.com/advancedmaps/v1/${KEY}/geo_code?addr=${q}&region=IND`, {}, 5000
-    );
-    if (r.ok) {
-      const d = await r.json();
-      const res = d?.copResults;
-      if (res?.latitude && res?.longitude) {
-        const lat = parseFloat(res.latitude), lng = parseFloat(res.longitude);
-        if (lat > 0 && lng > 0) return { lat, lng, name: res.formattedAddress || address, source: 'mappls-geo' };
-      }
-    }
-  } catch(e) {}
+  // STEP 1: Local landmark database — instant
+  const lm = JAGDALPUR_LANDMARKS.find(p => {
+    const pn = p.name.toLowerCase();
+    const parts = lc.split(/[,\s]+/).filter(function(w) { return w.length > 3; });
+    return parts.some(function(w) { return pn.includes(w); }) || pn.includes(lc.split(',')[0].trim());
+  });
+  if (lm) return { lat: lm.lat, lng: lm.lng, name: lm.name, source: 'local-db' };
 
-  // STEP 2: Mappls Text Search
+  // STEP 2: Nominatim OSM search
   try {
-    const q = encodeURIComponent(address + ' Jagdalpur');
+    const q = encodeURIComponent(address + ', Jagdalpur, Chhattisgarh, India');
     const r = await fetchWithTimeout(
-      `https://apis.mappls.com/advancedmaps/v1/${KEY}/textsearch?query=${q}&region=IND&tokenizeAddress=true`, {}, 5000
-    );
-    if (r.ok) {
-      const d = await r.json();
-      const res = d?.suggestedLocations?.[0];
-      if (res?.latitude && res?.longitude) {
-        const lat = parseFloat(res.latitude), lng = parseFloat(res.longitude);
-        if (lat > 0 && lng > 0) return { lat, lng, name: res.placeName || address, source: 'mappls-search' };
-      }
-    }
-  } catch(e) {}
-
-  // STEP 3: Nominatim (OpenStreetMap) — reliable free backup
-  try {
-    const q = encodeURIComponent(address + ', Jagdalpur, Chhattisgarh');
-    const r = await fetchWithTimeout(
-      `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=in`,
-      { headers: { 'User-Agent': 'JDPCabs/1.0 contact@jdpcabs.in' } }, 6000
+      'https://nominatim.openstreetmap.org/search?q=' + q + '&format=json&limit=3&countrycodes=in',
+      { headers: { 'User-Agent': 'JDPCabs/2.0 jdpcabs@bastar.in' } }, 7000
     );
     if (r.ok) {
       const results = await r.json();
-      if (results?.[0]) {
+      if (results && results[0]) {
         const lat = parseFloat(results[0].lat), lng = parseFloat(results[0].lon);
         if (lat > 0 && lng > 0) return { lat, lng, name: results[0].display_name || address, source: 'osm' };
       }
     }
-  } catch(e) {}
+  } catch(e) { console.log('[JDP Geo] Nominatim failed:', e.message); }
 
-  // STEP 4: Local database — last resort only (hardcoded coords)
-  const lm = JAGDALPUR_LANDMARKS.find(p => {
-    const pn = p.name.toLowerCase();
-    const parts = lc.split(/[,\s]+/).filter(w => w.length > 3);
-    return parts.some(w => pn.includes(w)) || pn.includes(lc.split(',')[0].trim());
-  });
-  if (lm) return { lat: lm.lat, lng: lm.lng, name: lm.name, source: 'local-db', isFallback: true };
+  // STEP 3: Coordinate-based Jagdalpur fuzzy match (nearest landmark)
+  const bestLm = JAGDALPUR_LANDMARKS.reduce(function(best, lm2) {
+    const score = lm2.name.toLowerCase().split(' ').filter(function(w) { return lc.includes(w) && w.length > 3; }).length;
+    return score > (best ? best.score : 0) ? { lm: lm2, score } : best;
+  }, null);
+  if (bestLm && bestLm.score > 0) return { lat: bestLm.lm.lat, lng: bestLm.lm.lng, name: bestLm.lm.name, source: 'local-fuzzy', isFallback: true };
 
   return null;
 }
@@ -6488,36 +6570,39 @@ async function showSuggest(query) {
     (lm.cat && lm.cat.includes(lc))
   ).slice(0, 6);
 
-  // ── B. Mappls Place Autocomplete API ──
-  let mapplsResults = [];
+  // ── B. Nominatim OSM Autocomplete (No API key) ──
+  let osmResults = [];
   try {
-    const q = encodeURIComponent(query + ' Jagdalpur');
-    const r = await fetch(
-      `https://apis.mappls.com/advancedmaps/v1/${window.MAPPLS_KEY}/textsearch?query=${q}&region=IND&tokenizeAddress=true`
+    const q = encodeURIComponent(query + ' Jagdalpur Chhattisgarh');
+    const r = await fetchWithTimeout(
+      'https://nominatim.openstreetmap.org/search?q=' + q + '&format=json&limit=5&countrycodes=in&addressdetails=1',
+      { headers: { 'User-Agent': 'JDPCabs/2.0' } }, 5000
     );
     if (r.ok) {
       const d = await r.json();
-      mapplsResults = (d?.suggestedLocations || []).slice(0, 5).map(s => ({
-        name: s.placeName || s.placeAddress,
-        info: s.placeAddress || s.placeDetails || 'Jagdalpur',
-        lat: parseFloat(s.latitude),
-        lng: parseFloat(s.longitude),
-        fromMappls: true,
-        dist: s.distance ? (parseFloat(s.distance)/1000).toFixed(1)+'km' : ''
-      }));
+      osmResults = (d || []).slice(0, 5).map(function(s) {
+        var lat = parseFloat(s.lat), lng = parseFloat(s.lon);
+        return {
+          name: (s.display_name || query).split(',').slice(0, 2).join(', '),
+          info: s.display_name || 'Jagdalpur',
+          lat: lat, lng: lng,
+          fromOSM: true,
+          dist: myLat ? distKmCalc(myLat, myLng, lat, lng).toFixed(1) + 'km' : ''
+        };
+      }).filter(function(s) { return s.lat > 0; });
     }
   } catch(e) {}
 
-  // ── Merge results — local first, then Mappls ──
+  // ── Merge results — local first, then OSM ──
   const combined = [
-    ...localMatches.map(lm => ({
+    ...localMatches.map(function(lm) { return {
       name: lm.name, info: lm.info, lat: lm.lat, lng: lm.lng,
       icon: lm.icon, cat: lm.cat,
-      dist: myLat ? distKmCalc(myLat, myLng, lm.lat, lm.lng).toFixed(1)+'km' : ''
-    })),
-    ...mapplsResults.filter(m => !localMatches.some(lm =>
-      lm.name.toLowerCase() === m.name?.toLowerCase()
-    ))
+      dist: myLat ? distKmCalc(myLat, myLng, lm.lat, lm.lng).toFixed(1) + 'km' : ''
+    }; }),
+    ...osmResults.filter(function(m) { return !localMatches.some(function(lm) {
+      return lm.name.toLowerCase() === (m.name || '').toLowerCase();
+    }); })
   ].slice(0, 8);
 
   if (combined.length === 0) { hideSuggest(); return; }
@@ -6648,54 +6733,35 @@ async function getOSRMRoute(fLat, fLng, tLat, tLng) {
     }
   } catch(e) { console.log('[JDP Route] OSRM failed:', e.message); }
 
-  // ╔═══════════════════════════════════════════╗
-  // ║  METHOD 2 — Mappls Route Adv v1           ║
-  // ║  India-specific road data (very accurate)  ║
-  // ╚═══════════════════════════════════════════╝
+  // ╔══════════════════════════════════════════════╗
+  // ║  METHOD 2 — OpenRouteService (OSM, 2000/day) ║
+  // ║  India road data, no API key setup needed     ║
+  // ╚══════════════════════════════════════════════╝
   try {
-    const url = `https://apis.mappls.com/advancedmaps/v1/${KEY}/route_adv/driving/${fLng},${fLat};${tLng},${tLat}?geometries=geojson&overview=full&steps=true&region=IND`;
-    const r = await fetchWithTimeout(url, {}, 7000);
+    const r = await fetchWithTimeout(
+      'https://api.openrouteservice.org/v2/directions/driving-car/geojson',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': '5b3ce3597851110001cf6248e18a1c13e3b74f3fa4a09a1d7e4c12fa' },
+        body: JSON.stringify({ coordinates: [[fLng, fLat], [tLng, tLat]] })
+      }, 7000
+    );
     if (r.ok) {
       const d = await r.json();
-      const rt = d?.routes?.[0];
+      const feat = d && d.features && d.features[0];
+      const rt = feat && feat.properties && feat.properties.summary;
       if (rt && rt.distance > 50) {
-        showRouteAccuracy('mappls');
+        showRouteAccuracy('ors');
         return {
-          distKM: parseFloat((rt.distance/1000).toFixed(2)),
-          durationMin: Math.ceil(rt.duration/60),
-          geometry: rt.geometry,
-          steps: rt.legs?.[0]?.steps || [],
-          source: 'mappls'
+          distKM: parseFloat((rt.distance / 1000).toFixed(2)),
+          durationMin: Math.ceil(rt.duration / 60),
+          geometry: feat.geometry,
+          steps: (feat.properties.segments && feat.properties.segments[0] && feat.properties.segments[0].steps) || [],
+          source: 'ors'
         };
       }
     }
-  } catch(e) { console.log('[JDP Route] Mappls v1 failed:', e.message); }
-
-  // ╔══════════════════════════════════════════════════╗
-  // ║  METHOD 3 — Mappls Distance Matrix               ║
-  // ║  Returns real road distance even without geometry ║
-  // ╚══════════════════════════════════════════════════╝
-  try {
-    const url = `https://apis.mappls.com/advancedmaps/v1/${KEY}/distance_matrix/driving/${fLng},${fLat};${tLng},${tLat}?region=IND&rtype=0`;
-    const r = await fetchWithTimeout(url, {}, 6000);
-    if (r.ok) {
-      const d = await r.json();
-      const dist = d?.results?.distances?.[0]?.[1];
-      const dur  = d?.results?.durations?.[0]?.[1];
-      if (dist > 50) {
-        // Real road distance from matrix, draw straight line on map
-        showRouteAccuracy('matrix');
-        const geo = { type:'LineString', coordinates:[[fLng,fLat],[tLng,tLat]] };
-        return {
-          distKM: parseFloat((dist/1000).toFixed(2)),
-          durationMin: Math.ceil((dur||0)/60) || Math.ceil((dist/1000)/0.4),
-          geometry: geo,
-          steps: [],
-          source: 'matrix'
-        };
-      }
-    }
-  } catch(e) { console.log('[JDP Route] Mappls matrix failed:', e.message); }
+  } catch(e) { console.log('[JDP Route] ORS failed:', e.message); }
 
   // ╔═════════════════════════════════════════════════╗
   // ║  METHOD 4 — OpenRouteService (Free, 2000/day)   ║
@@ -6750,37 +6816,28 @@ async function getOSRMRoute(fLat, fLng, tLat, tLng) {
   };
 }
 
-function drawRoute(geometry, color='#f59e0b') {
+// ✅ LEAFLET ROUTE DRAWING
+function drawRoute(geometry, color) {
+  color = color || '#f59e0b';
   clearRoute();
-  if (!leafMap || !geometry?.coordinates) return;
-  const path = geometry.coordinates.map(c => ({ lat: c[1], lng: c[0] }));
-
-  // Mappls Polyline — smooth Uber-style route
-  try { routePolyline = new mappls.Polyline({
-    map: leafMap,
-    path: path,
-    strokeColor: color,
-    strokeWeight: 5,
-    strokeOpacity: 0.88,
-    lineJoin: 'round',
-    lineCap: 'round'
-  }) } catch(e) { console.warn("[JDP] Route polyline error:", e); };
-
-  // ✅ Fit map to show full route with padding
-  if (path.length > 1) {
-    const lats = path.map(p => p.lat), lngs = path.map(p => p.lng);
-    const bounds = [[Math.min(...lats)-0.01, Math.min(...lngs)-0.01],
-                    [Math.max(...lats)+0.01, Math.max(...lngs)+0.01]];
-    try { leafMap.fitBounds(bounds, { padding: [65, 65] }); } catch(e) {}
-  }
+  if (!leafMap || !geometry || !geometry.coordinates) return;
+  var coords = geometry.coordinates.map(function(c) { return [c[1], c[0]]; });
+  try {
+    routePolyline = L.polyline(coords, {
+      color: color, weight: 5, opacity: 0.88,
+      lineJoin: 'round', lineCap: 'round'
+    });
+    routePolyline.addTo(leafMap);
+    // Fit map to route
+    if (coords.length > 1) {
+      try { leafMap.fitBounds(routePolyline.getBounds(), { padding: [65, 65] }); } catch(e) {}
+    }
+  } catch(e) { console.warn('[JDP] Route draw error:', e); }
 }
 
 function clearRoute() {
   if (routePolyline) {
-    try {
-      if (typeof routePolyline.setMap === 'function') routePolyline.setMap(null);
-      else if (typeof routePolyline.remove === 'function') routePolyline.remove();
-    } catch(e){}
+    try { leafMap && leafMap.removeLayer(routePolyline); } catch(e) {}
     routePolyline = null;
   }
 }
@@ -6788,106 +6845,205 @@ function clearRoute() {
 // ═══════════════════════════════════════════════════════
 // ✅ GPS
 // ═══════════════════════════════════════════════════════
-function startGPS() {
-  if (!navigator.geolocation) { toast('GPS not available'); return; }
-  // Accuracy samples — average 3 readings for precision
-  let accuracySamples = [], bestAccuracy = 999;
-  if (watchId) navigator.geolocation.clearWatch(watchId);
+// ═══════════════════════════════════════════════════════
+// ✅ ULTRA-STRONG GPS ENGINE v3.0
+// Multi-strategy: High accuracy → Network → IP fallback
+// Auto-retry on fail, accuracy filter, cache, battery smart
+// India optimized — works in Jagdalpur rural/urban areas
+// ═══════════════════════════════════════════════════════
+let _gpsRetryCount = 0;
+let _gpsStrategy = 'high'; // 'high' | 'network' | 'any'
+let _gpsAccSamples = [];
+const GPS_MIN_ACCURACY = 150; // Accept positions within 150m accuracy
+const GPS_MAX_RETRIES = 8;
 
-  // ✅ Mappls style: immediately show detecting status
+function startGPS() {
+  if (!navigator.geolocation) {
+    toast('❌ GPS not supported — use a modern browser');
+    return;
+  }
+
+  // Clear existing watch
+  if (watchId) {
+    try { navigator.geolocation.clearWatch(watchId); } catch(e) {}
+    watchId = null;
+  }
+  window._gpsActive = false;
+
+  // UI feedback
   const pAddrEl = document.getElementById('pAddr');
   const pSubEl = document.getElementById('pSub');
   if (pAddrEl && !myLat) pAddrEl.textContent = 'Detecting location...';
   if (pSubEl && !myLat) pSubEl.innerHTML = '<div class="lspin"></div><span>Getting GPS...</span>';
 
-  watchId = navigator.geolocation.watchPosition(async (pos) => {
-    myLat = pos.coords.latitude; myLng = pos.coords.longitude;
+  // ─── Strategy parameters ───
+  const strategyOpts = {
+    high:    { enableHighAccuracy: true,  timeout: 12000, maximumAge: 2000  },
+    network: { enableHighAccuracy: false, timeout: 8000,  maximumAge: 5000  },
+    any:     { enableHighAccuracy: false, timeout: 20000, maximumAge: 30000 }
+  };
+  const opts = strategyOpts[_gpsStrategy] || strategyOpts.high;
+
+  // ─── Main position handler ───
+  async function _onPos(pos) {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    const acc = pos.coords.accuracy || 9999;
+
+    // Accuracy filter — reject wildly inaccurate readings (except initial)
+    if (!myLat && acc > 2000) {
+      console.log('[GPS] First fix low accuracy:', acc + 'm — accepting anyway');
+    } else if (myLat && acc > 800) {
+      console.log('[GPS] Skipped low accuracy reading:', acc + 'm');
+      return;
+    }
+
+    // Sanity check — must be near India
+    if (lat < 6 || lat > 38 || lng < 68 || lng > 98) {
+      console.warn('[GPS] Position outside India — ignored:', lat, lng);
+      return;
+    }
+
+    // Accept position
+    myLat = lat; myLng = lng;
     pickLat = myLat; pickLng = myLng;
-    // ✅ FIX: Mark GPS as alive — prevents watchdog from restarting unnecessarily
     window._lastGpsUpdate = Date.now();
     window._gpsActive = true;
-    // ✅ Use rAF for smooth marker update — no jank during pan/zoom
-    if(myLat && myLng) requestAnimationFrame(() => updateMyMarker(myLat, myLng));
-    // ✅ FIX: Defer updateMyZone to next idle frame — reduce main thread blocking
-    if(window.requestIdleCallback) requestIdleCallback(() => updateMyZone(), {timeout:500});
-    else setTimeout(() => updateMyZone(), 50);
+    _gpsRetryCount = 0;
 
-    if (CU?.role === 'driver' && isOnline && window.FB_READY) {
-      // ✅ FIX: Increased to 5s to reduce Firebase writes & main thread load
+    // Smooth marker update
+    if (myLat && myLng) requestAnimationFrame(function() { updateMyMarker(myLat, myLng); });
+    if (window.requestIdleCallback) requestIdleCallback(function() { updateMyZone(); }, { timeout: 500 });
+    else setTimeout(function() { updateMyZone(); }, 50);
+
+    // Driver location update (Firebase, debounced to 5s)
+    if (CU && CU.role === 'driver' && isOnline && window.FB_READY) {
       if (!window._lastGPSWrite || Date.now() - window._lastGPSWrite > 5000) {
         window._lastGPSWrite = Date.now();
-        // ✅ FIX: Defer Firebase write to idle time — prevents 170ms long tasks
-        const _lat = myLat, _lng = myLng;
-        const _doWrite = () => {
-          window.FB.updateDoc(window.FB.doc(window.FB.db,'users',CU.uid),
-            { lat:_lat, lng:_lng, lastSeen:window.FB.serverTimestamp() }).catch(()=>{});
+        var _lat = myLat, _lng = myLng;
+        var _doWrite = function() {
+          window.FB.updateDoc(window.FB.doc(window.FB.db, 'users', CU.uid),
+            { lat: _lat, lng: _lng, lastSeen: window.FB.serverTimestamp() }).catch(function(){});
         };
-        if(window.requestIdleCallback) requestIdleCallback(_doWrite, {timeout:2000});
+        if (window.requestIdleCallback) requestIdleCallback(_doWrite, { timeout: 2000 });
         else setTimeout(_doWrite, 100);
       }
-      // ✅ FIX: Reverse geocode only every 15s + defer to idle
-      const geoKey = Math.round(myLat*1000)/1000 + ',' + Math.round(myLng*1000)/1000;
-      const cached = window.Cache.get('geo_' + geoKey);
+      // Reverse geocode — once per 15s
+      var geoKey = Math.round(myLat * 1000) / 1000 + ',' + Math.round(myLng * 1000) / 1000;
+      var cached = window.Cache.get('geo_' + geoKey);
       if (cached) {
-        const el = document.getElementById('dLocText');
-        if(el) el.textContent = '📍 ' + cached;
-      } else if(!window._lastRevGeo || Date.now() - window._lastRevGeo > 15000) {
+        var el = document.getElementById('dLocText');
+        if (el) el.textContent = '📍 ' + cached;
+      } else if (!window._lastRevGeo || Date.now() - window._lastRevGeo > 15000) {
         window._lastRevGeo = Date.now();
-        const _rLat = myLat, _rLng = myLng, _rKey = geoKey;
-        setTimeout(() => {
-          revGeo(_rLat, _rLng).then(addr => {
-            window.Cache.set('geo_' + _rKey, addr, 120000); // 2 min cache
-            const el = document.getElementById('dLocText');
-            if(el) el.textContent = '📍 ' + addr;
-          }).catch(()=>{});
+        var _rLat = myLat, _rLng = myLng, _rKey = geoKey;
+        setTimeout(function() {
+          revGeo(_rLat, _rLng).then(function(addr) {
+            window.Cache.set('geo_' + _rKey, addr, 120000);
+            var el2 = document.getElementById('dLocText');
+            if (el2) el2.textContent = '📍 ' + addr;
+          }).catch(function(){});
         }, 200);
       }
-      // ✅ FIX: Reduced nearby check to every 30s
+      // Nearby riders check — once per 30s
       if (!window._lastNearby || Date.now() - window._lastNearby > 30000) {
         window._lastNearby = Date.now();
-        if(window.requestIdleCallback) requestIdleCallback(() => updateNearbyRidersCount(), {timeout:3000});
-        else setTimeout(() => updateNearbyRidersCount(), 500);
+        if (window.requestIdleCallback) requestIdleCallback(function() { updateNearbyRidersCount(); }, { timeout: 3000 });
+        else setTimeout(function() { updateNearbyRidersCount(); }, 500);
       }
     }
-  }, err => {
-    if(err.code===1) { // PERMISSION_DENIED
-      toast('📍 GPS permission denied — Settings mein Location Allow karo');
-      const pAddrEl = document.getElementById('pAddr');
-      if(pAddrEl) pAddrEl.textContent = '📍 GPS permission denied';
-    } else if(err.code===2) { // POSITION_UNAVAILABLE
-      toast('📡 GPS signal nahi mila — outdoor mein jaao ya WiFi on karo');
-    } else if(err.code===3) { // TIMEOUT
-      toast('⏱️ GPS timeout — phir se try karo');
-    }
-  },
-  { enableHighAccuracy:true, timeout:15000, maximumAge:3000 }); // ✅ 15s timeout, 3s cache — reduces timeout errors
+  }
 
-  navigator.geolocation.getCurrentPosition(async (pos) => {
-    myLat = pos.coords.latitude; myLng = pos.coords.longitude;
-    pickLat = myLat; pickLng = myLng;
-    const pAddrEl = document.getElementById('pAddr');
-    const pSubEl = document.getElementById('pSub');
-    if(pAddrEl) pAddrEl.textContent = 'Getting address...';
-    if(pSubEl) pSubEl.innerHTML = '<div class="lspin"></div><span>Detecting location...</span>';
-    const geoKey2 = Math.round(myLat*1000)/1000+','+Math.round(myLng*1000)/1000;
-    const cachedAddr = window.Cache.get('geo_'+geoKey2);
-    const addr = cachedAddr || await revGeo(myLat, myLng);
-    if (!cachedAddr) window.Cache.set('geo_'+geoKey2, addr, 120000);
-    pickAddr = addr;
-    if(pAddrEl) pAddrEl.textContent = addr;
-    // Show accuracy info
-    const acc = pos.coords.accuracy ? Math.round(pos.coords.accuracy) : '?';
-    if(pSubEl) pSubEl.innerHTML = `<span style="color:var(--green);font-size:.66rem">📍 Accuracy: ±${acc}m · GPS Live</span>`;
-    if (leafMap) leafMap.flyTo([myLat, myLng], 16);
-    updateMyMarker(myLat, myLng);
-    updateMyZone();
-    toast('📍 Location detected!');
-  }, err => {
-    const pAddrEl = document.getElementById('pAddr');
-    const pSubEl = document.getElementById('pSub');
-    if(pAddrEl) pAddrEl.textContent = 'Location unavailable — enable GPS';
-    if(pSubEl) pSubEl.innerHTML = '<span style="color:var(--red)">Tap 🔄 to retry</span>';
-  }, { enableHighAccuracy:true, timeout:15000 });
+  // ─── Error handler with smart retry ───
+  function _onErr(err) {
+    console.warn('[GPS] Error code=' + err.code + ' strategy=' + _gpsStrategy + ' retries=' + _gpsRetryCount);
+
+    if (err.code === 1) { // PERMISSION_DENIED — no retry possible
+      toast('📍 GPS permission denied — Settings → Location → Allow karo');
+      if (pAddrEl) pAddrEl.textContent = '❌ GPS permission denied';
+      if (pSubEl) pSubEl.innerHTML = '<span style="color:var(--red);font-size:.72rem">Settings mein GPS Allow karo</span>';
+      window._gpsActive = false;
+      return;
+    }
+
+    _gpsRetryCount++;
+
+    if (_gpsRetryCount <= 2) {
+      // First try: switch to network (less accurate but faster)
+      if (_gpsStrategy === 'high') {
+        _gpsStrategy = 'network';
+        console.log('[GPS] Switching to network strategy');
+        setTimeout(startGPS, 1500);
+        return;
+      }
+    } else if (_gpsRetryCount <= 4) {
+      // Second retry: use any accuracy
+      _gpsStrategy = 'any';
+      setTimeout(startGPS, 2000);
+      return;
+    } else if (_gpsRetryCount <= GPS_MAX_RETRIES) {
+      // Later retries: exponential backoff
+      var delay = Math.min(30000, 3000 * (_gpsRetryCount - 3));
+      console.log('[GPS] Retry in ' + delay + 'ms');
+      setTimeout(function() {
+        _gpsStrategy = 'high'; // Reset to high for fresh try
+        startGPS();
+      }, delay);
+      return;
+    }
+
+    // All retries failed — use Jagdalpur center as fallback
+    if (!myLat) {
+      myLat = JDPC.lat; myLng = JDPC.lng;
+      pickLat = myLat; pickLng = myLng;
+      if (pAddrEl) pAddrEl.textContent = '📍 Jagdalpur (GPS unavailable)';
+      if (pSubEl) pSubEl.innerHTML = '<span style="color:var(--yellow);font-size:.66rem">⚠️ Using area location — GPS retry karo</span>';
+      if (leafMap) leafMap.flyTo([myLat, myLng], 14);
+      updateMyMarker(myLat, myLng);
+      toast('⚠️ GPS fail — Jagdalpur center use ho raha hai');
+    }
+  }
+
+  // ─── Start watch ───
+  watchId = navigator.geolocation.watchPosition(_onPos, _onErr, opts);
+
+  // ─── Initial fast fix ───
+  navigator.geolocation.getCurrentPosition(
+    async function(pos) {
+      await _onPos(pos);
+      // Update UI with address
+      var geoKey2 = Math.round(myLat * 1000) / 1000 + ',' + Math.round(myLng * 1000) / 1000;
+      var cachedAddr = window.Cache.get('geo_' + geoKey2);
+      var addr;
+      try { addr = cachedAddr || await revGeo(myLat, myLng); } catch(e) { addr = 'Jagdalpur'; }
+      if (!cachedAddr) window.Cache.set('geo_' + geoKey2, addr, 120000);
+      pickAddr = addr;
+      if (pAddrEl) pAddrEl.textContent = addr;
+      var acc2 = pos.coords.accuracy ? Math.round(pos.coords.accuracy) : '?';
+      if (pSubEl) pSubEl.innerHTML = '<span style="color:var(--green);font-size:.66rem">📍 ±' + acc2 + 'm · GPS Live</span>';
+      if (leafMap) leafMap.flyTo([myLat, myLng], 16);
+      updateMyMarker(myLat, myLng);
+      updateMyZone();
+      toast('📍 Location detected!');
+    },
+    function(err) {
+      if (pAddrEl && !myLat) pAddrEl.textContent = 'Location unavailable — enable GPS';
+      if (pSubEl && !myLat) pSubEl.innerHTML = '<span style="color:var(--red)">Tap 🔄 to retry</span>';
+    },
+    strategyOpts.high
+  );
+
+  // ─── GPS watchdog — if no update for 3min, restart ───
+  clearInterval(window._gpsWatchdog);
+  window._gpsWatchdog = setInterval(function() {
+    var age = Date.now() - (window._lastGpsUpdate || 0);
+    if (age > 180000 && CU) { // 3 minutes no update
+      console.warn('[GPS] Watchdog: no update for ' + Math.round(age/1000) + 's, restarting');
+      _gpsRetryCount = 0;
+      _gpsStrategy = 'high';
+      startGPS();
+    }
+  }, 30000);
 }
 
 function refreshGPS() {
@@ -6896,22 +7052,21 @@ function refreshGPS() {
   startGPS();
 }
 
+// ✅ LEAFLET updateMyMarker
 function updateMyMarker(lat, lng) {
   if (!leafMap) return;
-  const html = '<div class="my-loc-wrap" style="transform:translate(-12px,-12px)"><div class="my-loc-wave"></div><div class="my-loc-dot"></div></div>';
+  var iconHtml = '<div class="my-loc-wrap" style="transform:translate(-12px,-12px)"><div class="my-loc-wave"></div><div class="my-loc-dot"></div></div>';
   if (!myMarker) {
-    // ✅ Mappls Marker for user location
-    myMarker = safeMapplsMarker({
-      map: leafMap,
-      position: { lat, lng },
-      html: html,
-      popupHtml: '<b>📍 Your Location</b>'
-    });
-  } else {
     try {
-      if (typeof myMarker.setPosition === 'function')
-        myMarker.setPosition({ lat, lng });
-    } catch(e){}
+      var icon = L.divIcon({ html: iconHtml, className: '', iconSize: [0, 0] });
+      myMarker = L.marker([lat, lng], { icon: icon, zIndexOffset: 1000 });
+      myMarker.addTo(leafMap);
+      myMarker.bindPopup('<b>📍 Your Location</b>');
+      myMarker.setPosition = function(pos) { myMarker.setLatLng([pos.lat || lat, pos.lng || lng]); };
+      myMarker.setMap = function(m) { if (!m) { try{leafMap.removeLayer(myMarker);}catch(e){} } };
+    } catch(e) {}
+  } else {
+    try { myMarker.setLatLng([lat, lng]); } catch(e) {}
   }
 }
 
@@ -6977,33 +7132,25 @@ function startDriverTracking(driverId) {
 
 function moveAssignedDriverMarker(lat, lng, name, vehType) {
   if (!leafMap) return;
-  const carHtml = `<div class="assigned-car" style="transform:translate(-18px,-36px)">${vehType==='cab'?'🚗':'🛺'}</div>`;
-  if (!driverMk) {
-    // ✅ Create Mappls marker for assigned driver
-    driverMk = safeMapplsMarker({
-      map: leafMap,
-      position: { lat, lng },
-      html: carHtml,
-      popupHtml: `<b>${vehType==='cab'?'🚗':'🛺'} ${name}</b><br><small style="color:#aaa">Coming to you!</small>`
-    });
-  } else {
-    // ✅ Smooth animated movement — cubic ease-out (Uber-style)
-    const fromLat = prevDriverLat || lat, fromLng = prevDriverLng || lng;
-    let step = 0;
-    if (driverMarkerInterval) clearInterval(driverMarkerInterval);
-    driverMarkerInterval = setInterval(() => {
-      step++;
-      const t = 1 - Math.pow(1 - (step / 30), 3); // cubic ease-out
-      const curLat = fromLat + (lat - fromLat) * t;
-      const curLng = fromLng + (lng - fromLng) * t;
-      try {
-        if (typeof driverMk.setPosition === 'function')
-          driverMk.setPosition({ lat: curLat, lng: curLng });
-      } catch(e){}
-      if (step >= 30) clearInterval(driverMarkerInterval);
-    }, 16); // 60fps
-  }
-  prevDriverLat = lat; prevDriverLng = lng;
+  var carEmoji = vehType === 'cab' ? '🚗' : '🛺';
+  var iconHtml = '<div style="font-size:1.8rem;filter:drop-shadow(0 2px 6px rgba(59,130,246,.8));transform:translate(-14px,-14px)">' + carEmoji + '</div>';
+  try {
+    if (!driverMk) {
+      var icon = L.divIcon({ html: iconHtml, className: '', iconSize: [0, 0] });
+      driverMk = L.marker([lat, lng], { icon: icon, zIndexOffset: 900 });
+      driverMk.addTo(leafMap);
+      driverMk.bindPopup('<b>' + carEmoji + ' ' + (name || 'Driver') + '</b><br><small>Your driver</small>');
+      driverMk.setPosition = function(pos) { driverMk.setLatLng([pos.lat, pos.lng]); };
+      driverMk.setMap = function(m) { if (!m) { try{leafMap.removeLayer(driverMk);}catch(e){} } };
+    } else {
+      driverMk.setLatLng([lat, lng]);
+    }
+    // Smooth pan toward driver
+    if (myLat && myLng) {
+      var midLat = (lat + myLat) / 2, midLng = (lng + myLng) / 2;
+      leafMap.panTo([midLat, midLng], { animate: true, duration: 0.5 });
+    }
+  } catch(e) {}
 }
 
 // ═══════════════════════════════════════════════════════
@@ -7887,7 +8034,7 @@ async function acceptReq() {
 
       // Pickup marker on map
       if(pickupMk){ try{if(typeof pickupMk.setMap==='function')pickupMk.setMap(null);}catch(e){} pickupMk=null; }
-      pickupMk = new mappls.Marker({
+      pickupMk = safeMapplsMarker({
         map: leafMap,
         position: {lat: data.pickupLat, lng: data.pickupLng},
         html: '<div class="pickup-wrap" style="transform:translate(-16px,-36px)"><div class="pickup-icon">📍</div></div>',
@@ -7952,7 +8099,7 @@ async function driverNext() {
         try { leafMap.flyTo([dc.lat, dc.lng], 14); } catch(e){}
 
         if(dropMk){ try{if(typeof dropMk.setMap==='function')dropMk.setMap(null);}catch(e){} dropMk=null; }
-        dropMk = new mappls.Marker({ map:leafMap, position:{lat:dc.lat,lng:dc.lng},
+        dropMk = safeMapplsMarker({ map:leafMap, position:{lat:dc.lat,lng:dc.lng},
           html:'<div class="drop-icon" style="transform:translate(-15px,-30px)">🏁</div>',
           popupHtml:`<b style="color:#ef4444">🏁 ${curReqData.drop}</b>` });
       }
@@ -8147,13 +8294,13 @@ function applyRoute({route,dropCoords},drop) {
   if(leafMap){
     if(pickLat){
       if(pickupMk){ try{if(typeof pickupMk.setMap==='function')pickupMk.setMap(null);}catch(e){} pickupMk=null; }
-      if(pickLat && pickLng && leafMap) pickupMk = new mappls.Marker({ map:leafMap, position:{lat:pickLat,lng:pickLng},
+      if(pickLat && pickLng && leafMap) pickupMk = safeMapplsMarker({ map:leafMap, position:{lat:pickLat,lng:pickLng},
         html:'<div class="pickup-wrap" style="transform:translate(-16px,-36px)"><div class="pickup-icon">📍</div></div>',
         popupHtml:`<b style="color:#10b981">📍 ${pickAddr || 'Your Pickup'}</b>` });
     }
     if(dropCoords){
       if(dropMk){ try{if(typeof dropMk.setMap==='function')dropMk.setMap(null);}catch(e){} dropMk=null; }
-      dropMk = new mappls.Marker({ map:leafMap, position:{lat:dropCoords.lat,lng:dropCoords.lng},
+      dropMk = safeMapplsMarker({ map:leafMap, position:{lat:dropCoords.lat,lng:dropCoords.lng},
         html:'<div class="drop-icon" style="transform:translate(-15px,-30px)">🏁</div>',
         popupHtml:`<b style="color:#ef4444">🏁 ${drop}</b>` });
     }
@@ -8410,72 +8557,66 @@ async function fetchAndShowDriverPhoto(driverId) {
 let rNavMap = null, dNavMap = null;
 
 function initRiderNavMap(driverLat, driverLng, riderLat, riderLng) {
-  if(!window.mappls) return;
   const el = document.getElementById('rNavMap');
-  if(!el) return;
+  if (!el) return;
   try {
-    if(!rNavMap) {
-      rNavMap = new mappls.Map('rNavMap', {
-        center: { lat: riderLat || JDPC.lat, lng: riderLng || JDPC.lng },
-        zoom: 14, zoomControl: false, scrollWheelZoom: false,
-        gestureHandling: 'none'
+    if (!rNavMap) {
+      rNavMap = L.map('rNavMap', {
+        center: [riderLat || JDPC.lat, riderLng || JDPC.lng],
+        zoom: 14, zoomControl: false, attributionControl: false
       });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(rNavMap);
     }
-    // Show driver marker + rider marker + line
-    if(driverLat && riderLat) {
-      if(typeof mappls.Marker !== 'undefined') {
-        try {
-          new mappls.Marker({ position: {lat:riderLat,lng:riderLng}, map: rNavMap, icon: {html:'<div style="font-size:1.4rem">🧍</div>'} });
-          new mappls.Marker({ position: {lat:driverLat,lng:driverLng}, map: rNavMap, icon: {html:'<div style="font-size:1.4rem">🚖</div>'} });
-        } catch(e) {}
-      }
-      // Fit bounds
-      try {
-        const bounds = [[Math.min(riderLat,driverLat)-0.005, Math.min(riderLng,driverLng)-0.005],
-                       [Math.max(riderLat,driverLat)+0.005, Math.max(riderLng,driverLng)+0.005]];
-        rNavMap.fitBounds(bounds);
-      } catch(e) {}
+    if (driverLat && riderLat) {
+      // Rider marker
+      var rIcon = L.divIcon({ html: '<div style="font-size:1.4rem">🧍</div>', className: '', iconSize: [0,0] });
+      L.marker([riderLat, riderLng], { icon: rIcon }).addTo(rNavMap).bindPopup('You');
+      // Driver marker
+      var dIcon = L.divIcon({ html: '<div style="font-size:1.4rem">🚖</div>', className: '', iconSize: [0,0] });
+      L.marker([driverLat, driverLng], { icon: dIcon }).addTo(rNavMap).bindPopup('Driver');
+      // Line between them
+      L.polyline([[riderLat, riderLng], [driverLat, driverLng]], { color:'#10b981', weight:3, dashArray:'6,6' }).addTo(rNavMap);
+      // Fit
+      rNavMap.fitBounds([[Math.min(riderLat,driverLat), Math.min(riderLng,driverLng)],
+                         [Math.max(riderLat,driverLat), Math.max(riderLng,driverLng)]], { padding: [20,20] });
     }
   } catch(e) { console.warn('rNavMap init:', e); }
 }
 
-function initDriverNavMap(pickLat, pickLng, dropLat, dropLng) {
-  if(!window.mappls) return;
+function initDriverNavMap(pickupLat, pickupLng, dropLat, dropLng) {
   const el = document.getElementById('dNavMap');
-  if(!el) return;
+  if (!el) return;
   try {
-    if(!dNavMap) {
-      dNavMap = new mappls.Map('dNavMap', {
-        center: { lat: pickLat || JDPC.lat, lng: pickLng || JDPC.lng },
-        zoom: 14, zoomControl: false, scrollWheelZoom: false,
-        gestureHandling: 'none'
+    if (!dNavMap) {
+      dNavMap = L.map('dNavMap', {
+        center: [pickupLat || JDPC.lat, pickupLng || JDPC.lng],
+        zoom: 14, zoomControl: false, attributionControl: false
       });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(dNavMap);
     }
-    if(pickLat) {
-      try {
-        new mappls.Marker({ position: {lat:pickLat,lng:pickLng}, map: dNavMap, icon: {html:'<div style="font-size:1.3rem">📍</div>'} });
-        if(dropLat) new mappls.Marker({ position: {lat:dropLat,lng:dropLng}, map: dNavMap, icon: {html:'<div style="font-size:1.3rem">🏁</div>'} });
-      } catch(e) {}
-      // Fit
-      try {
-        if(dropLat) {
-          const bounds = [[Math.min(pickLat,dropLat)-0.005, Math.min(pickLng,dropLng)-0.005],
-                         [Math.max(pickLat,dropLat)+0.005, Math.max(pickLng,dropLng)+0.005]];
-          dNavMap.fitBounds(bounds);
-        }
-      } catch(e) {}
+    if (pickupLat) {
+      var pIcon = L.divIcon({ html: '<div style="font-size:1.3rem">📍</div>', className: '', iconSize: [0,0] });
+      L.marker([pickupLat, pickupLng], { icon: pIcon }).addTo(dNavMap).bindPopup('Pickup');
+      if (dropLat) {
+        var dIcon = L.divIcon({ html: '<div style="font-size:1.3rem">🏁</div>', className: '', iconSize: [0,0] });
+        L.marker([dropLat, dropLng], { icon: dIcon }).addTo(dNavMap).bindPopup('Drop');
+        // Route line
+        L.polyline([[pickupLat, pickupLng], [dropLat, dropLng]], { color:'#f59e0b', weight:3 }).addTo(dNavMap);
+        dNavMap.fitBounds([[Math.min(pickupLat,dropLat), Math.min(pickupLng,dropLng)],
+                           [Math.max(pickupLat,dropLat), Math.max(pickupLng,dropLng)]], { padding: [20,20] });
+      }
     }
   } catch(e) { console.warn('dNavMap init:', e); }
 }
 
 function updateRiderNavMapDriver(driverLat, driverLng) {
-  if(!rNavMap || !driverLat) return;
+  if (!rNavMap || !driverLat) return;
   try {
-    rNavMap.setCenter({lat: driverLat, lng: driverLng});
+    rNavMap.panTo([driverLat, driverLng]);
     const statusEl = document.getElementById('rNavMapStatus');
-    if(statusEl) {
-      const dist = myLat ? Math.round(distKmCalc(myLat,myLng,driverLat,driverLng)*10)/10 : null;
-      if(dist !== null) statusEl.textContent = `Driver ${dist}km away · Live`;
+    if (statusEl) {
+      const dist = myLat ? Math.round(distKmCalc(myLat, myLng, driverLat, driverLng) * 10) / 10 : null;
+      if (dist !== null) statusEl.textContent = 'Driver ' + dist + 'km away · Live';
     }
   } catch(e) {}
 }
@@ -8609,9 +8750,22 @@ function toggleTheme() {
   if(btn) btn.textContent = isLight ? '☀️' : '🌙';
   // Show toast
   toast(isLight ? '☀️ Day Mode' : '🌙 Night Mode');
-  // Mappls map style
-  if (leafMap && typeof leafMap.setStyle === 'function') {
-    try { leafMap.setStyle(isLight ? 'standard-day' : 'standard-night'); } catch(e) {}
+  // Leaflet tile layer switch
+  if (leafMap) {
+    try {
+      leafMap.eachLayer(function(layer) {
+        if (layer instanceof L.TileLayer) { leafMap.removeLayer(layer); }
+      });
+      if (isLight) {
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19 }).addTo(leafMap);
+      } else {
+        // Dark OSM tile
+        L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.png', {
+          maxZoom:19,
+          attribution:'© Stadia Maps © OpenMapTiles © OSM'
+        }).addTo(leafMap);
+      }
+    } catch(e) {}
   }
   setTimeout(() => { try { leafMap && leafMap.invalidateSize && leafMap.invalidateSize(); } catch(e){} }, 300);
 }
@@ -9213,21 +9367,11 @@ function addELocMarker(lat, lng, name, code, icon) {
   if (!leafMap) return;
   const displayIcon = icon || '📌';
   try {
-    if (elocMk && typeof elocMk.setMap === 'function') elocMk.setMap(null);
-    elocMk = new mappls.Marker({
-      map: leafMap,
-      position: { lat, lng },
-      html: `<div style="display:flex;flex-direction:column;align-items:center;transform:translate(-16px,-46px)">
-        <div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:3px solid #fff;
-          border-radius:14px;padding:6px 10px;font-size:.7rem;font-weight:900;
-          color:#fff;white-space:nowrap;box-shadow:0 4px 20px rgba(99,102,241,.6);
-          display:flex;align-items:center;gap:5px;">
-          <span style="font-size:1rem">${displayIcon}</span> ${code}
-        </div>
-        <div style="width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:10px solid #8b5cf6;margin-top:-1px"></div>
-      </div>`,
-      popupHtml: `<b>${displayIcon} ${name}</b><br><small style="color:#6366f1">eLoc: ${code}</small><br><small>${lat.toFixed(5)}, ${lng.toFixed(5)}</small>`
-    });
+    if (elocMk) { try { leafMap && leafMap.removeLayer(elocMk); } catch(e) {} try { if (typeof elocMk.setMap === 'function') elocMk.setMap(null); } catch(e) {} elocMk = null; }
+    if (window._LF) {
+      var elocHtml = '<div style="display:flex;flex-direction:column;align-items:center;transform:translate(-16px,-46px)"><div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:3px solid #fff;border-radius:14px;padding:6px 10px;font-size:.7rem;font-weight:900;color:#fff;white-space:nowrap;box-shadow:0 4px 20px rgba(99,102,241,.6);display:flex;align-items:center;gap:5px;"><span style="font-size:1rem">' + displayIcon + '</span> ' + code + '</div><div style="width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:10px solid #8b5cf6;margin-top:-1px"></div></div>';
+      elocMk = window._LF.marker(lat, lng, elocHtml, '<b>' + displayIcon + ' ' + name + '</b><br><small style="color:#6366f1">eLoc: ' + code + '</small><br><small>' + lat.toFixed(5) + ', ' + lng.toFixed(5) + '</small>');
+    }
   } catch(e) {}
 }
 
@@ -9441,19 +9585,18 @@ async function revGeo(lat, lng) {
     return baseName + ', Jagdalpur';
   }
 
-  // Try Mappls reverse geocode with language param
+  // Nominatim reverse geocode (OSM — free, no API key)
   try {
-    const langParam = currentLang !== 'en' ? `&language=${currentLang}` : '';
+    const acceptLang = currentLang === 'hi' ? 'hi,en' : (currentLang || 'en') + ',en';
     const r = await fetchWithTimeout(
-      `https://apis.mappls.com/advancedmaps/v1/${window.MAPPLS_KEY}/rev_geocode?lat=${lat}&lng=${lng}&region=IND${langParam}`, {}, 5000
+      'https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lng + '&format=json&zoom=18&accept-language=' + acceptLang,
+      { headers: { 'User-Agent': 'JDPCabs/2.0 jdpcabs@bastar.in', 'Accept-Language': acceptLang } }, 6000
     );
     if (r.ok) {
       const d = await r.json();
-      const res = d?.results;
-      if (res?.items?.[0]) {
-        const item = res.items[0];
-        const addr = item.placeAddress || item.addressLine || item.formattedAddress;
-        if (addr) return addr;
+      if (d && d.display_name) {
+        const parts = d.display_name.split(', ').slice(0, 4).join(', ');
+        if (parts) return parts;
       }
     }
   } catch(e) {}
@@ -9592,7 +9735,7 @@ function setVehicleProfile(type) {
   // Recolor any existing route
   if (routePolyline) {
     const colors = { cab: '#3b82f6', auto: '#f59e0b', bike: '#10b981' };
-    try { routePolyline.setStyle?.({ color: colors[type] }); } catch(e) {}
+    try { if (routePolyline && routePolyline.setStyle) { routePolyline.setStyle({ color: colors[type] }); } } catch(e) {}
   }
   // Update fare cards if visible
   updateFareWithProfile();
@@ -10382,5 +10525,187 @@ self.addEventListener('fetch', e => {
 <span id="fareDisp"    style="display:none"></span>
 <span id="dOnlineBtn"  style="display:none"></span>
 <span id="dOfflineBtn" style="display:none"></span>
+
+<!-- ✅ AI AUTO-REPAIR SYSTEM — Self-healing app -->
+<script>
+window.AIRepair = (function() {
+  'use strict';
+  
+  var _checks = [];
+  var _repairLog = [];
+  var _repairCount = 0;
+  var MAX_LOG = 50;
+  
+  function _log(module, action, result) {
+    var entry = { ts: Date.now(), time: new Date().toLocaleTimeString('en-IN'), module: module, action: action, result: result };
+    _repairLog.unshift(entry);
+    if (_repairLog.length > MAX_LOG) _repairLog.pop();
+    _repairCount++;
+    console.log('[AIRepair] ' + module + ': ' + action + ' → ' + result);
+  }
+  
+  // ── Check: Map alive? ──
+  function checkMap() {
+    if (!window.leafMap) {
+      _log('MAP', 'Map null detected', 'Re-initializing');
+      if (typeof initMap === 'function') {
+        setTimeout(initMap, 500);
+        return false;
+      }
+    }
+    // Check if map container is visible and has correct size
+    var mapEl = document.getElementById('map');
+    if (mapEl && window.leafMap) {
+      try {
+        var size = window.leafMap.getSize();
+        if (size.x < 10 || size.y < 10) {
+          _log('MAP', 'Map size tiny (' + size.x + 'x' + size.y + ')', 'invalidateSize');
+          window.leafMap.invalidateSize();
+        }
+      } catch(e) {}
+    }
+    return true;
+  }
+  
+  // ── Check: GPS alive? ──
+  function checkGPS() {
+    if (!window._gpsActive && window.CU) {
+      var age = Date.now() - (window._lastGpsUpdate || 0);
+      var appAge = Date.now() - (window._appStartTime || 0);
+      if (appAge > 60000 && age > 120000) {
+        _log('GPS', 'GPS dead for ' + Math.round(age/1000) + 's', 'Restarting');
+        if (typeof startGPS === 'function') startGPS();
+        return false;
+      }
+    }
+    return true;
+  }
+  
+  // ── Check: Firebase connected? ──
+  function checkFirebase() {
+    if (!window.FB_READY && navigator.onLine) {
+      var appAge = Date.now() - (window._appStartTime || 0);
+      if (appAge > 15000) {
+        _log('FIREBASE', 'FB_READY=false but online', 'Attempting recovery');
+        window.AutoRecovery && window.AutoRecovery.recoverFirebase && window.AutoRecovery.recoverFirebase();
+        return false;
+      }
+    }
+    return true;
+  }
+  
+  // ── Check: Ride listener alive (if ride active)? ──
+  function checkRideListener() {
+    if (window.rideDocId && !window.rideListener && window.FB_READY) {
+      _log('RIDE', 'rideDocId set but no listener', 'Re-attaching listener');
+      if (typeof listenToRide === 'function') listenToRide(window.rideDocId);
+      return false;
+    }
+    return true;
+  }
+  
+  // ── Check: Driver listener alive (if assigned)? ──
+  function checkDriverListener() {
+    if (window.rideDocId && !window.driverLocListener && window.CU && window.CU.role === 'rider') {
+      _log('DRIVER_TRACK', 'No driver location listener during ride', 'Will re-attach on next ride update');
+    }
+    return true;
+  }
+  
+  // ── Check: Memory pressure ──
+  function checkMemory() {
+    try {
+      var perf = performance.memory;
+      if (perf && perf.usedJSHeapSize > 200 * 1024 * 1024) { // >200MB
+        _log('MEMORY', 'High memory: ' + Math.round(perf.usedJSHeapSize/1e6) + 'MB', 'Clearing caches');
+        window.Cache && window.Cache.clear();
+        window.SmartCache && window.SmartCache.clear && window.SmartCache.clear();
+        return false;
+      }
+    } catch(e) {}
+    return true;
+  }
+  
+  // ── Check: Network offline recovery ──
+  function checkNetwork() {
+    if (!navigator.onLine) return true; // Offline — nothing to repair
+    // If online but app seems stuck, drain offline queue
+    if (window.OfflineQueue && window.OfflineQueue.count() > 0) {
+      _log('NETWORK', 'Draining ' + window.OfflineQueue.count() + ' queued requests', 'Draining');
+      window.OfflineQueue.drain();
+    }
+    return true;
+  }
+  
+  // ── Main repair cycle (runs every 20s) ──
+  function _runRepair() {
+    try {
+      checkMap();
+      checkGPS();
+      checkFirebase();
+      checkRideListener();
+      checkDriverListener();
+      checkMemory();
+      checkNetwork();
+    } catch(e) {
+      console.warn('[AIRepair] Repair cycle error:', e);
+    }
+  }
+  
+  // ── Self-healing DOM check ──
+  function checkDOM() {
+    // Make sure critical elements exist
+    var criticalIds = ['map', 'auth', 'loader'];
+    criticalIds.forEach(function(id) {
+      if (!document.getElementById(id)) {
+        _log('DOM', 'Missing element: #' + id, 'Cannot auto-repair — check HTML');
+      }
+    });
+  }
+  
+  return {
+    start: function() {
+      checkDOM();
+      setInterval(_runRepair, 20000); // Every 20 seconds
+      // Also run on visibility change (user comes back to app)
+      document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+          setTimeout(_runRepair, 1000);
+          // Refresh map size when app comes back to foreground
+          if (window.leafMap) {
+            setTimeout(function() {
+              try { window.leafMap.invalidateSize(); } catch(e) {}
+            }, 500);
+          }
+        }
+      });
+      console.log('[AIRepair] 🤖 AI Auto-Repair System started — 20s interval');
+    },
+    getLog: function() { return _repairLog.slice(0, 20); },
+    getCount: function() { return _repairCount; },
+    runNow: function() { _runRepair(); return 'Repair cycle ran'; },
+    forceMapFix: function() {
+      if (window.leafMap) {
+        window.leafMap.invalidateSize();
+        _log('MAP', 'Force invalidateSize', 'Done');
+      } else {
+        if (typeof initMap === 'function') initMap();
+        _log('MAP', 'Force initMap', 'Called');
+      }
+    },
+    forceGPSFix: function() {
+      window._lastGpsUpdate = 0;
+      window._gpsActive = false;
+      if (typeof startGPS === 'function') startGPS();
+      _log('GPS', 'Force restart', 'Called');
+    }
+  };
+})();
+
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(function() { window.AIRepair.start(); }, 5000);
+});
+</script>
+
 </body>
 </html>
