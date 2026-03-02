@@ -1,183 +1,1265 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thunderforest Uber-Style Navigation</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>JDP CABS 2026 — Complete</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:#04040C;font-family:'Space Grotesk',sans-serif;color:#F0F0FF;overflow:hidden;}
+body::-webkit-scrollbar{display:none;}
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
-    
-    <style>
-        :root { --primary-black: #000; --uber-green: #2ecc71; --soft-gray: #f6f6f6; }
-        body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; background: var(--soft-gray); }
-        #map { height: 100vh; width: 100%; z-index: 1; }
+:root{
+  --gold:#F5A623;--gold2:#FFD166;--gold3:#E8961A;
+  --cyan:#06FFF5;--cyan2:#00C8C0;
+  --bg:#04040C;--bg2:#07071A;--bg3:#0C0C22;--bg4:#101028;
+  --glass:rgba(255,255,255,.04);--glass2:rgba(255,255,255,.07);
+  --border:rgba(255,255,255,.08);--border2:rgba(245,166,35,.2);
+  --text:#F0F0FF;--muted:rgba(240,240,255,.45);
+  --green:#00FF94;--red:#FF4466;
+  --display:'Orbitron',monospace;
+}
 
-        /* Floating Panel UI */
-        .main-panel {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 1000;
-            background: white;
-            padding: 24px;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-            width: 350px;
-        }
+/* ── GRAIN ── */
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
+  opacity:.5;}
 
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .badge { background: var(--uber-green); color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+/* ════ SCREEN SYSTEM ════ */
+.screen{
+  position:fixed;inset:0;
+  display:flex;flex-direction:column;
+  opacity:0;pointer-events:none;
+  transition:opacity .35s ease, transform .35s cubic-bezier(.16,1,.3,1);
+  transform:translateY(20px);
+  overflow-y:auto;
+  overflow-x:hidden;
+}
+.screen::-webkit-scrollbar{display:none;}
+.screen.active{opacity:1;pointer-events:all;transform:translateY(0);}
+.screen.slide-left{transform:translateX(-100%);}
+.screen.slide-right{transform:translateX(100%);}
 
-        /* Custom Search Styling */
-        #search-box { margin-bottom: 20px; }
-        .leaflet-control-geocoder { 
-            width: 100% !important; 
-            box-shadow: none !important; 
-            border: 1px solid #ddd !important; 
-            border-radius: 8px !important; 
-        }
-        .leaflet-control-geocoder-form input { width: 100% !important; padding: 10px !important; font-size: 14px; }
+/* ════ SCREEN 1 — LOGIN ════ */
+#sLogin{background:var(--bg);}
 
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px; }
-        .stat-box { text-align: left; }
-        .stat-label { font-size: 12px; color: #888; display: block; }
-        .stat-value { font-size: 18px; font-weight: bold; color: var(--primary-black); }
+.hero{position:relative;height:46vh;min-height:280px;overflow:hidden;flex-shrink:0;}
+#rc{position:absolute;inset:0;width:100%;height:100%;display:block;}
+.hero-ui{position:absolute;inset:0;z-index:5;padding:18px 18px 0;pointer-events:none;}
+.top-bar{display:flex;justify-content:space-between;align-items:center;}
+.loc-pill{display:flex;align-items:center;gap:7px;background:rgba(6,255,245,.07);border:1px solid rgba(6,255,245,.22);border-radius:100px;padding:6px 13px;font-size:10px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--cyan);backdrop-filter:blur(16px);}
+.ldot{width:8px;height:8px;background:var(--green);border-radius:50%;box-shadow:0 0 8px var(--green);animation:ping 1.8s infinite;}
+@keyframes ping{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.7);opacity:.5;}}
+.brand-center{position:absolute;top:48%;left:50%;transform:translate(-50%,-55%);text-align:center;animation:bdIn .9s cubic-bezier(.16,1,.3,1) both;}
+@keyframes bdIn{from{transform:translate(-50%,-65%);opacity:0;}to{transform:translate(-50%,-55%);opacity:1;}}
+.brand-eye{font-size:9px;font-weight:500;letter-spacing:3.5px;text-transform:uppercase;color:rgba(245,166,35,.7);margin-bottom:5px;}
+.brand-name{font-family:var(--display);font-size:clamp(42px,13vw,72px);font-weight:900;line-height:.88;letter-spacing:2px;
+  background:linear-gradient(135deg,var(--gold2) 0%,var(--gold) 40%,#FF8C00 70%,var(--gold3) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 28px rgba(245,166,35,.5));animation:gp 3s ease-in-out infinite;}
+@keyframes gp{0%,100%{filter:drop-shadow(0 0 18px rgba(245,166,35,.35));}50%{filter:drop-shadow(0 0 38px rgba(245,166,35,.65));}}
+.brand-sub{font-size:11px;font-weight:400;color:rgba(240,240,255,.45);margin-top:4px;}
 
-        .btn-primary {
-            width: 100%;
-            background: var(--primary-black);
-            color: white;
-            border: none;
-            padding: 15px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 20px;
-            transition: transform 0.2s;
-        }
-        .btn-primary:active { transform: scale(0.98); }
+.sheet{flex:1;background:linear-gradient(165deg,var(--bg2) 0%,var(--bg) 100%);border-radius:26px 26px 0 0;margin-top:-22px;
+  padding:0;position:relative;overflow:hidden;
+  animation:su .65s cubic-bezier(.16,1,.3,1) both;
+  box-shadow:0 -1px 0 rgba(245,166,35,.12),0 -18px 55px rgba(0,0,0,.7);}
+@keyframes su{from{transform:translateY(65px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.sheet::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--cyan2),var(--gold),var(--cyan2),transparent);
+  animation:bs 3s linear infinite;background-size:200%;}
+@keyframes bs{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+.sheet::after{content:'';position:absolute;top:9px;left:50%;transform:translateX(-50%);width:35px;height:3.5px;background:rgba(255,255,255,.09);border-radius:100px;}
+.inner{padding:20px 18px 0;}
 
-        /* Hide Default Routing List */
-        .leaflet-routing-container { display: none !important; }
-    </style>
+.rl{text-align:center;font-size:9.5px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.rc{position:relative;overflow:hidden;border-radius:16px;padding:16px 12px;cursor:pointer;border:1.5px solid var(--border);background:var(--glass);backdrop-filter:blur(20px);transition:all .35s cubic-bezier(.34,1.56,.64,1);user-select:none;}
+.rc.active{border-color:var(--gold);background:rgba(245,166,35,.06);transform:scale(1.03);}
+.rc.active::after{content:'';position:absolute;bottom:-18px;right:-14px;width:65px;height:65px;background:radial-gradient(circle,rgba(245,166,35,.15),transparent 70%);border-radius:50%;pointer-events:none;}
+.rc .ico{font-size:26px;margin-bottom:9px;display:block;transition:transform .38s cubic-bezier(.34,1.56,.64,1);}
+.rc.active .ico{transform:scale(1.18) rotate(-8deg);}
+.rct{font-size:14.5px;font-weight:700;}.rcs{font-size:10.5px;color:var(--muted);margin-top:2px;}
+
+.tog{display:flex;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:13px;padding:4px;margin-bottom:16px;position:relative;}
+.tog-track{position:absolute;top:4px;bottom:4px;width:calc(50% - 4px);border-radius:10px;background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.22);transition:left .3s cubic-bezier(.4,0,.2,1);left:4px;}
+.tog.r .tog-track{left:calc(50%);}
+.tb{flex:1;padding:10px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12.5px;font-weight:600;cursor:pointer;border-radius:10px;color:var(--muted);transition:color .22s;position:relative;z-index:1;user-select:none;}
+.tb.active{color:var(--gold2);}
+
+.ig{margin-bottom:12px;}
+.il{font-size:9.5px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:7px;display:block;}
+.iw{display:flex;align-items:center;background:var(--glass);border:1px solid var(--border);border-radius:13px;overflow:hidden;transition:all .22s;position:relative;}
+.iw::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);transform:scaleX(0);transition:transform .3s;}
+.iw:focus-within{border-color:rgba(245,166,35,.35);background:rgba(245,166,35,.04);box-shadow:0 0 0 3px rgba(245,166,35,.08);}
+.iw:focus-within::after{transform:scaleX(1);}
+.ipfx{padding:0 12px 0 15px;font-size:13px;font-weight:600;color:var(--muted);border-right:1px solid var(--border);height:50px;display:flex;align-items:center;flex-shrink:0;}
+input{flex:1;height:50px;background:none;border:none;outline:none;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:500;padding:0 15px;}
+input::placeholder{color:rgba(240,240,255,.18);}
+.ebtn{padding:0 14px;cursor:pointer;color:var(--muted);font-size:16px;height:50px;display:flex;align-items:center;transition:color .2s;}
+.ebtn:hover{color:var(--gold);}
+
+.otp-row{display:flex;gap:8px;justify-content:center;margin-bottom:6px;}
+.ob{width:48px;height:52px;background:var(--glass);border:1px solid var(--border);border-radius:11px;text-align:center;font-size:20px;font-weight:700;font-family:var(--display);color:var(--text);transition:all .2s;caret-color:var(--gold);}
+.ob:focus{outline:none;border-color:var(--gold);background:rgba(245,166,35,.07);box-shadow:0 0 0 3px rgba(245,166,35,.11);transform:scale(1.06);}
+.ob.fl{border-color:var(--gold2);color:var(--gold2);}
+
+.cta{width:100%;height:52px;border:none;border-radius:14px;font-family:var(--display);font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;position:relative;overflow:hidden;margin-top:3px;transition:all .3s cubic-bezier(.34,1.56,.64,1);color:#04040C;
+  background:linear-gradient(135deg,var(--gold2),var(--gold),var(--gold3));}
+.cta::before{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.3) 50%,transparent 60%);transform:translateX(-100%);animation:shim 2.5s ease infinite;}
+@keyframes shim{0%{transform:translateX(-100%);}100%{transform:translateX(200%);}}
+.cta:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(245,166,35,.4);}
+.cta:active{transform:scale(.97);}
+.bt{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:7px;}
+.spin{width:17px;height:17px;border:2px solid rgba(4,4,12,.2);border-top-color:#04040C;border-radius:50%;animation:spinA .7s linear infinite;}
+@keyframes spinA{to{transform:rotate(360deg);}}
+
+.stat-row{display:flex;gap:7px;justify-content:center;margin-bottom:16px;}
+.sp{display:inline-flex;align-items:center;gap:5px;background:var(--glass);border:1px solid var(--border);border-radius:100px;padding:5px 10px;font-size:9.5px;font-weight:600;letter-spacing:.5px;}
+.sdg{width:5px;height:5px;background:var(--green);border-radius:50%;box-shadow:0 0 6px var(--green);animation:ping 1.8s infinite;}
+.sdc{width:5px;height:5px;background:var(--cyan);border-radius:50%;box-shadow:0 0 6px var(--cyan);}
+.tiny{text-align:center;font-size:11px;color:var(--muted);margin-top:8px;}
+.tiny span{color:var(--gold2);cursor:pointer;font-weight:600;}
+.reg{text-align:center;font-size:12px;color:var(--muted);margin-top:12px;}
+.reg span{color:var(--gold2);font-weight:600;cursor:pointer;}
+.scr-in{display:none;}.scr-in.active{display:block;animation:sci .3s ease both;}
+@keyframes sci{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+
+/* ════ SCREEN 2 — HOME / BOOKING ════ */
+#sHome{background:var(--bg);flex-direction:column;}
+
+.top-nav{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;flex-shrink:0;}
+.nav-logo{font-family:var(--display);font-size:16px;font-weight:900;
+  background:linear-gradient(135deg,var(--gold2),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.nav-user{display:flex;align-items:center;gap:8px;}
+.avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold3));display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;}
+.notif-btn{width:36px;height:36px;background:var(--glass2);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;font-size:15px;}
+.notif-dot{position:absolute;top:6px;right:7px;width:7px;height:7px;background:var(--red);border-radius:50%;border:1.5px solid var(--bg);}
+
+.map-area{flex:1;position:relative;min-height:220px;background:var(--bg3);overflow:hidden;}
+#mapCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
+.map-overlay{position:absolute;inset:0;pointer-events:none;z-index:2;}
+
+.booking-card{
+  background:linear-gradient(165deg,var(--bg2),var(--bg));
+  border-radius:22px 22px 0 0;
+  padding:16px 18px 20px;
+  flex-shrink:0;
+  border-top:1px solid var(--border2);
+  box-shadow:0 -12px 40px rgba(0,0,0,.6);
+  max-height:50vh;overflow-y:auto;
+}
+.booking-card::-webkit-scrollbar{display:none;}
+.bc-handle{width:34px;height:3px;background:rgba(255,255,255,.09);border-radius:100px;margin:0 auto 14px;}
+.bc-title{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.bc-title span{font-size:18px;}
+
+.loc-inputs{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+.loc-box{display:flex;align-items:center;gap:10px;background:var(--glass);border:1px solid var(--border);border-radius:13px;padding:12px 14px;cursor:pointer;transition:all .2s;}
+.loc-box:focus-within,.loc-box:hover{border-color:var(--border2);background:rgba(245,166,35,.04);}
+.loc-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.loc-dot.pickup{background:var(--green);box-shadow:0 0 8px var(--green);}
+.loc-dot.drop{background:var(--gold);box-shadow:0 0 8px var(--gold);}
+.loc-input{background:none;border:none;outline:none;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13.5px;font-weight:500;flex:1;}
+.loc-input::placeholder{color:var(--muted);}
+.loc-line{width:1px;height:16px;background:rgba(255,255,255,.1);margin-left:5px;}
+.swap-btn{width:32px;height:32px;background:var(--glass2);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;margin-left:auto;margin-bottom:-10px;margin-right:0;position:relative;z-index:1;transition:transform .3s;}
+.swap-btn:hover{transform:rotate(180deg);}
+
+.quick-places{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;}
+.quick-places::-webkit-scrollbar{display:none;}
+.qp{display:flex;align-items:center;gap:6px;background:var(--glass);border:1px solid var(--border);border-radius:100px;padding:7px 12px;cursor:pointer;font-size:12px;font-weight:500;white-space:nowrap;transition:all .2s;flex-shrink:0;}
+.qp:hover{border-color:var(--border2);background:rgba(245,166,35,.06);}
+
+.book-btn{width:100%;height:52px;border:none;border-radius:14px;font-family:var(--display);font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;position:relative;overflow:hidden;color:#04040C;background:linear-gradient(135deg,var(--gold2),var(--gold),var(--gold3));transition:all .3s cubic-bezier(.34,1.56,.64,1);}
+.book-btn:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(245,166,35,.4);}
+.book-btn:active{transform:scale(.97);}
+
+/* ════ SCREEN 3 — RIDE SELECTION ════ */
+#sRide{background:var(--bg);}
+
+.page-header{display:flex;align-items:center;gap:12px;padding:16px 18px;flex-shrink:0;}
+.back-btn{width:38px;height:38px;background:var(--glass2);border:1px solid var(--border);border-radius:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;transition:all .2s;}
+.back-btn:hover{background:var(--glass);border-color:var(--border2);}
+.ph-title{font-family:var(--display);font-size:14px;font-weight:700;}
+.ph-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+
+.route-summary{margin:0 18px 16px;background:var(--glass);border:1px solid var(--border);border-radius:14px;padding:14px;}
+.rs-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.rs-row:last-child{margin-bottom:0;}
+.rs-icon{font-size:14px;width:22px;text-align:center;flex-shrink:0;}
+.rs-text{font-size:13px;font-weight:500;}
+.rs-meta{font-size:11px;color:var(--muted);}
+.rs-sep{width:1px;height:20px;background:var(--border);margin-left:11px;}
+
+.ride-options{padding:0 18px;flex:1;overflow-y:auto;}
+.ride-options::-webkit-scrollbar{display:none;}
+
+.ro-title{font-size:9.5px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
+
+.ride-card{background:var(--glass);border:1.5px solid var(--border);border-radius:16px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all .3s cubic-bezier(.34,1.56,.64,1);position:relative;overflow:hidden;}
+.ride-card:hover{border-color:var(--border2);transform:translateY(-1px);}
+.ride-card.selected{border-color:var(--gold);background:rgba(245,166,35,.06);}
+.ride-card.selected::before{content:'';position:absolute;top:0;right:0;bottom:0;left:0;background:linear-gradient(135deg,rgba(245,166,35,.05),transparent);pointer-events:none;}
+.rc-row{display:flex;align-items:center;gap:12px;}
+.rc-img{font-size:32px;flex-shrink:0;}
+.rc-info{flex:1;}
+.rc-name{font-size:14px;font-weight:700;display:flex;align-items:center;gap:7px;}
+.rc-tag{font-size:10px;padding:2px 7px;border-radius:100px;font-weight:600;}
+.tag-ev{background:rgba(6,255,245,.1);color:var(--cyan);border:1px solid rgba(6,255,245,.2);}
+.tag-pop{background:rgba(245,166,35,.12);color:var(--gold2);border:1px solid rgba(245,166,35,.2);}
+.rc-desc{font-size:11.5px;color:var(--muted);margin-top:2px;}
+.rc-fare{text-align:right;flex-shrink:0;}
+.rc-price{font-family:var(--display);font-size:17px;font-weight:700;color:var(--gold2);}
+.rc-eta{font-size:11px;color:var(--muted);margin-top:1px;}
+.rc-check{position:absolute;top:12px;right:12px;width:22px;height:22px;border-radius:50%;border:2px solid var(--border);background:none;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .2s;}
+.ride-card.selected .rc-check{background:var(--gold);border-color:var(--gold);color:#04040C;}
+
+.fare-note{margin:0 18px 14px;padding:10px 14px;background:rgba(6,255,245,.04);border:1px solid rgba(6,255,245,.12);border-radius:11px;font-size:11.5px;color:rgba(240,240,255,.65);display:flex;align-items:center;gap:8px;}
+
+.confirm-bar{padding:14px 18px;flex-shrink:0;}
+
+/* ════ SCREEN 4 — SEARCHING DRIVER ════ */
+#sSearch{background:var(--bg);align-items:center;justify-content:center;}
+
+.search-wrap{width:100%;max-width:360px;padding:24px;text-align:center;}
+.search-anim{position:relative;width:140px;height:140px;margin:0 auto 28px;}
+.pulse-ring{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(245,166,35,.3);animation:pRing 2s ease-in-out infinite;}
+.pulse-ring:nth-child(2){animation-delay:.6s;inset:-15px;border-color:rgba(245,166,35,.2);}
+.pulse-ring:nth-child(3){animation-delay:1.2s;inset:-30px;border-color:rgba(245,166,35,.1);}
+@keyframes pRing{0%{transform:scale(.85);opacity:0;}50%{opacity:1;}100%{transform:scale(1.15);opacity:0;}}
+.search-icon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:52px;animation:icBob 1.5s ease-in-out infinite;}
+@keyframes icBob{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+.search-title{font-family:var(--display);font-size:18px;font-weight:700;margin-bottom:8px;}
+.search-sub{font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6;}
+.search-progress{background:var(--glass);border:1px solid var(--border);border-radius:100px;height:4px;overflow:hidden;margin-bottom:16px;}
+.sp-bar{height:100%;background:linear-gradient(90deg,var(--gold3),var(--gold2));border-radius:100px;animation:spFill 6s linear forwards;}
+@keyframes spFill{from{width:0;}to{width:100%;}}
+.cancel-link{font-size:12px;color:var(--muted);cursor:pointer;text-decoration:underline;}
+.cancel-link:hover{color:var(--red);}
+
+/* ════ SCREEN 5 — DRIVER FOUND ════ */
+#sDriver{background:var(--bg);}
+
+.driver-hero{background:linear-gradient(135deg,var(--bg2),var(--bg3));padding:22px 18px;flex-shrink:0;border-bottom:1px solid var(--border);}
+.df-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(0,255,148,.1);border:1px solid rgba(0,255,148,.25);border-radius:100px;padding:5px 12px;font-size:10.5px;font-weight:600;color:var(--green);margin-bottom:14px;}
+.df-row{display:flex;align-items:center;gap:16px;}
+.driver-avatar{width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg,#1a1a2e,#2a2a4e);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0;}
+.driver-info{flex:1;}
+.driver-name{font-size:17px;font-weight:700;margin-bottom:3px;}
+.driver-rating{display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--gold2);margin-bottom:4px;}
+.driver-car{font-size:12px;color:var(--muted);}
+.driver-contact{display:flex;gap:8px;}
+.contact-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;border:none;}
+.btn-call{background:rgba(0,255,148,.1);color:var(--green);border:1px solid rgba(0,255,148,.2);}
+.btn-msg{background:var(--glass2);color:var(--text);border:1px solid var(--border);}
+.btn-call:hover,.btn-msg:hover{transform:scale(1.04);}
+
+.otp-verify{margin:16px 18px;background:var(--glass);border:1px solid var(--border2);border-radius:14px;padding:14px;}
+.ov-title{font-size:11px;color:var(--muted);margin-bottom:4px;}
+.ov-code{font-family:var(--display);font-size:26px;font-weight:700;color:var(--gold2);letter-spacing:6px;}
+
+.trip-details-card{margin:0 18px 14px;background:var(--glass);border:1px solid var(--border);border-radius:14px;padding:14px;}
+.td-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);}
+.td-row:last-child{border-bottom:none;}
+.td-label{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:7px;}
+.td-val{font-size:13px;font-weight:600;}
+
+.eta-bar{margin:0 18px 14px;background:var(--glass);border:1px solid var(--border);border-radius:14px;padding:14px 16px;}
+.eta-progress{background:rgba(255,255,255,.06);border-radius:100px;height:5px;overflow:hidden;margin-top:8px;}
+.eta-fill{height:100%;background:linear-gradient(90deg,var(--gold3),var(--gold2));border-radius:100px;animation:etaFill 18s linear forwards;}
+@keyframes etaFill{from{width:5%;}to{width:100%;}}
+.eta-label{display:flex;justify-content:space-between;align-items:center;}
+.eta-time{font-family:var(--display);font-size:18px;font-weight:700;color:var(--gold2);}
+
+.action-row{display:flex;gap:10px;padding:0 18px 20px;}
+.act-btn{flex:1;height:48px;border:none;border-radius:13px;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .25s;}
+.act-primary{background:linear-gradient(135deg,var(--gold2),var(--gold));color:#04040C;}
+.act-danger{background:rgba(255,68,102,.1);color:var(--red);border:1px solid rgba(255,68,102,.2);}
+.act-primary:hover{box-shadow:0 8px 24px rgba(245,166,35,.35);}
+.act-danger:hover{background:rgba(255,68,102,.18);}
+
+/* ════ SCREEN 6 — LIVE TRIP ════ */
+#sTrip{background:var(--bg);}
+
+.trip-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;flex-shrink:0;}
+.trip-status{display:flex;align-items:center;gap:8px;}
+.trip-dot{width:10px;height:10px;background:var(--green);border-radius:50%;box-shadow:0 0 10px var(--green);animation:ping 1.5s infinite;}
+.trip-label{font-size:13px;font-weight:600;color:var(--green);}
+.sos-btn{padding:7px 14px;background:rgba(255,68,102,.1);border:1px solid rgba(255,68,102,.25);border-radius:100px;font-size:12px;font-weight:700;color:var(--red);cursor:pointer;}
+
+.live-map{flex:1;position:relative;min-height:220px;background:var(--bg3);overflow:hidden;}
+#tripMap{width:100%;height:100%;display:block;}
+
+.trip-card{background:linear-gradient(165deg,var(--bg2),var(--bg));border-radius:22px 22px 0 0;padding:16px 18px 20px;flex-shrink:0;border-top:1px solid var(--border2);}
+.live-driver{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.ld-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#1a1a2e,#2a2a4e);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:20px;}
+.ld-info{flex:1;}
+.ld-name{font-size:14px;font-weight:700;}
+.ld-status{font-size:11.5px;color:var(--green);display:flex;align-items:center;gap:5px;}
+.ld-fare{font-family:var(--display);font-size:16px;font-weight:700;color:var(--gold2);text-align:right;}
+.ld-fare-label{font-size:10px;color:var(--muted);text-align:right;}
+
+.trip-progress-wrap{margin-bottom:14px;}
+.tp-stops{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:5px;}
+.tp-bar{background:rgba(255,255,255,.06);border-radius:100px;height:6px;overflow:hidden;}
+.tp-fill{height:100%;background:linear-gradient(90deg,var(--gold3),var(--gold2));border-radius:100px;animation:tpFill 30s linear forwards;}
+@keyframes tpFill{from{width:8%;}to{width:92%;}}
+
+.trip-actions{display:flex;gap:8px;}
+.ta-btn{flex:1;height:46px;border:none;border-radius:12px;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .22s;}
+.ta-call{background:rgba(0,255,148,.1);color:var(--green);border:1px solid rgba(0,255,148,.2);}
+.ta-share{background:var(--glass2);color:var(--text);border:1px solid var(--border);}
+.ta-arrive{background:linear-gradient(135deg,var(--gold2),var(--gold));color:#04040C;}
+
+/* ════ SCREEN 7 — PAYMENT / COMPLETE ════ */
+#sComplete{background:var(--bg);align-items:center;justify-content:center;}
+
+.complete-wrap{width:100%;max-width:380px;padding:28px 22px;text-align:center;}
+.complete-anim{width:100px;height:100px;margin:0 auto 22px;position:relative;}
+.check-circle{width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg,rgba(0,255,148,.15),rgba(0,255,148,.05));border:2px solid rgba(0,255,148,.3);display:flex;align-items:center;justify-content:center;font-size:44px;animation:checkIn .6s cubic-bezier(.34,1.56,.64,1) both;}
+@keyframes checkIn{from{transform:scale(0) rotate(-30deg);opacity:0;}to{transform:scale(1) rotate(0);opacity:1;}}
+.confetti{position:absolute;pointer-events:none;}
+.complete-title{font-family:var(--display);font-size:22px;font-weight:900;margin-bottom:6px;
+  background:linear-gradient(135deg,var(--gold2),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.complete-sub{font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6;}
+
+.fare-breakdown{background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:18px;text-align:left;}
+.fb-title{font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
+.fb-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);}
+.fb-row:last-of-type{border-bottom:none;padding-top:10px;margin-top:4px;}
+.fb-row:last-of-type .fb-label,.fb-row:last-of-type .fb-val{font-weight:700;font-size:15px;color:var(--gold2);}
+.fb-label{font-size:12.5px;color:var(--muted);}
+.fb-val{font-size:13px;font-weight:600;}
+
+.payment-methods{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px;}
+.pm{background:var(--glass);border:1.5px solid var(--border);border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer;transition:all .25s;}
+.pm.selected{border-color:var(--gold);background:rgba(245,166,35,.06);}
+.pm-icon{font-size:22px;margin-bottom:5px;}
+.pm-label{font-size:10.5px;font-weight:600;}
+
+.rating-stars{display:flex;gap:8px;justify-content:center;margin-bottom:20px;}
+.star{font-size:30px;cursor:pointer;transition:transform .2s;filter:grayscale(1);}
+.star.lit{filter:none;transform:scale(1.15);}
+
+/* ════ TOAST ════ */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-110px);background:rgba(7,7,26,.94);border:1px solid rgba(245,166,35,.3);border-radius:12px;padding:11px 20px;font-size:13px;font-weight:500;color:var(--text);z-index:99999;transition:transform .38s cubic-bezier(.34,1.56,.64,1);text-align:center;max-width:300px;box-shadow:0 8px 32px rgba(0,0,0,.6);backdrop-filter:blur(20px);}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.ok{border-color:rgba(0,255,148,.4);}
+.toast.er{border-color:rgba(255,68,102,.4);}
+
+/* ════ BOTTOM NAV ════ */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(7,7,26,.92);border-top:1px solid var(--border);backdrop-filter:blur(20px);display:none;z-index:100;padding-bottom:env(safe-area-inset-bottom,0);}
+.bottom-nav.show{display:flex;}
+.bn-items{display:flex;width:100%;}
+.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px;cursor:pointer;transition:all .2s;}
+.bn-icon{font-size:20px;opacity:.4;transition:all .22s;}
+.bn-label{font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);transition:all .22s;}
+.bn-item.active .bn-icon{opacity:1;transform:scale(1.1);}
+.bn-item.active .bn-label{color:var(--gold2);}
+</style>
 </head>
 <body>
 
-<div class="main-panel">
-    <div class="header">
-        <h2 style="margin:0; font-size: 20px;">Nagivaton Panel</h2>
-        <span class="badge">LIVE</span>
+<!-- ══════════════════════════════════════════
+     SCREEN 1 — LOGIN
+══════════════════════════════════════════ -->
+<div class="screen active" id="sLogin">
+  <div class="hero">
+    <canvas id="rc"></canvas>
+    <div class="hero-ui">
+      <div class="top-bar">
+        <div class="loc-pill"><div class="ldot"></div>Jagdalpur · CG</div>
+        <div style="font-size:10px;color:var(--muted);background:var(--glass);border:1px solid var(--border);padding:5px 10px;border-radius:8px;backdrop-filter:blur(10px);">v2.6.0</div>
+      </div>
+      <div class="brand-center">
+        <div class="brand-eye">Electric · Smart · 2026</div>
+        <div class="brand-name">JDP</div>
+        <div class="brand-name" style="font-size:clamp(24px,7vw,44px);letter-spacing:7px;opacity:.9;margin-top:-3px;">CABS</div>
+        <div class="brand-sub">Jagdalpur ka #1 Smart Cab</div>
+      </div>
     </div>
+  </div>
 
-    <div id="search-box">
-        <label style="font-size: 12px; font-weight: bold; color: #555;">WHERE TO?</label>
-        <div id="geocoder-input"></div>
-    </div>
+  <div class="sheet">
+    <div class="inner">
+      <div class="stat-row">
+        <div class="sp"><div class="sdg"></div>Live Tracking</div>
+        <div class="sp"><div class="sdc"></div>EV Fleet</div>
+        <div class="sp"><span style="font-size:10px">⚡</span>Fast Pickup</div>
+      </div>
 
-    <div class="stats-grid">
-        <div class="stat-box">
-            <span class="stat-label">DISTANCE</span>
-            <span class="stat-value" id="dist-txt">0.0 km</span>
+      <div class="rl">Aap kaun hain?</div>
+      <div class="role-grid">
+        <div class="rc active" onclick="selRole('rider',this)">
+          <span class="ico">🧍</span>
+          <div class="rct">Rider</div><div class="rcs">Book a ride</div>
         </div>
-        <div class="stat-box">
-            <span class="stat-label">TIME (ETA)</span>
-            <span class="stat-value" id="time-txt">0 mins</span>
+        <div class="rc" onclick="selRole('driver',this)">
+          <span class="ico">🚗</span>
+          <div class="rct">Driver</div><div class="rcs">Earn money</div>
         </div>
-    </div>
+      </div>
 
-    <button class="btn-primary" onclick="startRide()">Book Ride Now</button>
+      <div class="tog" id="togEl">
+        <div class="tog-track"></div>
+        <div class="tb active" onclick="swL('otp',this)">📱 OTP Login</div>
+        <div class="tb" onclick="swL('pwd',this)">🔑 Password</div>
+      </div>
+
+      <div class="scr-in active" id="sOTP">
+        <div class="ig">
+          <label class="il">Mobile Number</label>
+          <div class="iw"><div class="ipfx">🇮🇳 +91</div>
+            <input type="tel" id="phIn" placeholder="9876543210" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)"></div>
+        </div>
+        <div id="otpBox" style="display:none;margin-bottom:12px">
+          <label class="il">6-Digit OTP</label>
+          <div class="otp-row">
+            <input type="text" class="ob" maxlength="1" inputmode="numeric" id="o1" oninput="oM(this,'o2')" onkeydown="oB(event,this,'')">
+            <input type="text" class="ob" maxlength="1" inputmode="numeric" id="o2" oninput="oM(this,'o3')" onkeydown="oB(event,this,'o1')">
+            <input type="text" class="ob" maxlength="1" inputmode="numeric" id="o3" oninput="oM(this,'o4')" onkeydown="oB(event,this,'o2')">
+            <input type="text" class="ob" maxlength="1" inputmode="numeric" id="o4" oninput="oM(this,'o5')" onkeydown="oB(event,this,'o3')">
+            <input type="text" class="ob" maxlength="1" inputmode="numeric" id="o5" oninput="oM(this,'o6')" onkeydown="oB(event,this,'o4')">
+            <input type="text" class="ob" maxlength="1" inputmode="numeric" id="o6" oninput="oM(this,null)" onkeydown="oB(event,this,'o5')">
+          </div>
+          <div class="tiny" id="rsInfo">Resend in <span id="rsT">30s</span></div>
+        </div>
+        <button class="cta" id="otpBtn" onclick="doOTP()"><span class="bt">⚡ OTP Bhejo</span></button>
+        <div class="tiny" style="margin-top:8px">Free SMS · Firebase Verified · 🔒 AES Encrypted</div>
+      </div>
+
+      <div class="scr-in" id="sPWD">
+        <div class="ig">
+          <label class="il">Mobile Number</label>
+          <div class="iw"><div class="ipfx">🇮🇳 +91</div>
+            <input type="tel" id="ph2" placeholder="9876543210" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)"></div>
+        </div>
+        <div class="ig">
+          <label class="il">Password</label>
+          <div class="iw">
+            <div style="padding:0 12px;font-size:16px;height:50px;display:flex;align-items:center;">🔒</div>
+            <input type="password" id="pwIn" placeholder="Password enter karo">
+            <div class="ebtn" onclick="togE(this)">👁️</div>
+          </div>
+        </div>
+        <button class="cta" onclick="doPwdLogin()"><span class="bt">🚀 Login Karo</span></button>
+      </div>
+      <div class="reg">Naya account? <span onclick="showT('📝 Register jald aa rha hai!')">Register karo →</span></div>
+    </div>
+  </div>
 </div>
 
-<div id="map"></div>
+<!-- ══════════════════════════════════════════
+     SCREEN 2 — HOME / BOOKING
+══════════════════════════════════════════ -->
+<div class="screen" id="sHome">
+  <div class="top-nav">
+    <div class="nav-logo">JDP</div>
+    <div class="nav-user">
+      <div class="notif-btn" onclick="showT('🔔 Koi naya notification nahi hai')">🔔<div class="notif-dot"></div></div>
+      <div class="avatar" onclick="showT('👤 Profile page coming soon!')">👤</div>
+    </div>
+  </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
-<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+  <div class="map-area">
+    <canvas id="mapCanvas"></canvas>
+    <div class="map-overlay">
+      <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(7,7,26,.85);border:1px solid var(--border2);border-radius:100px;padding:6px 14px;font-size:11px;font-weight:600;color:var(--gold2);backdrop-filter:blur(12px);white-space:nowrap;">📍 Jagdalpur, Chhattisgarh</div>
+    </div>
+  </div>
+
+  <div class="booking-card">
+    <div class="bc-handle"></div>
+    <div class="bc-title"><span>🗺️</span>Kahan jaana hai?</div>
+
+    <div class="loc-inputs">
+      <div class="loc-box">
+        <div class="loc-dot pickup"></div>
+        <input class="loc-input" id="pickupInp" placeholder="Pickup location..." value="Jagdalpur Railway Station">
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="loc-line" style="margin-left:5px;height:12px;"></div>
+        <div class="swap-btn" onclick="swapLoc()" title="Swap">⇅</div>
+      </div>
+      <div class="loc-box">
+        <div class="loc-dot drop"></div>
+        <input class="loc-input" id="dropInp" placeholder="Drop location...">
+      </div>
+    </div>
+
+    <div style="font-size:9.5px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Quick Places</div>
+    <div class="quick-places">
+      <div class="qp" onclick="setDrop('Bastar Palace')">🏰 Bastar Palace</div>
+      <div class="qp" onclick="setDrop('Jagdalpur Bus Stand')">🚌 Bus Stand</div>
+      <div class="qp" onclick="setDrop('Maharani Hospital')">🏥 Hospital</div>
+      <div class="qp" onclick="setDrop('Chitrakoot Falls')">💧 Chitrakoot</div>
+      <div class="qp" onclick="setDrop('Jagdalpur Airport')">✈️ Airport</div>
+    </div>
+
+    <button class="book-btn" onclick="goToRideSelect()" style="font-family:var(--display);letter-spacing:1.5px;">
+      ⚡ RIDE DHUNDO
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 3 — RIDE SELECTION
+══════════════════════════════════════════ -->
+<div class="screen" id="sRide">
+  <div class="page-header">
+    <div class="back-btn" onclick="goTo('sHome')">←</div>
+    <div><div class="ph-title">Ride Chuno</div><div class="ph-sub">Best options aapke liye</div></div>
+  </div>
+
+  <div class="route-summary">
+    <div class="rs-row">
+      <div class="rs-icon">🟢</div>
+      <div><div class="rs-text" id="pickupShow">Jagdalpur Railway Station</div><div class="rs-meta">Pickup</div></div>
+    </div>
+    <div class="rs-sep"></div>
+    <div class="rs-row" style="margin-top:8px">
+      <div class="rs-icon">🟡</div>
+      <div><div class="rs-text" id="dropShow">Destination</div><div class="rs-meta">Drop • ~4.2 km • ~12 min</div></div>
+    </div>
+  </div>
+
+  <div class="ride-options">
+    <div class="ro-title">Available Rides</div>
+
+    <div class="ride-card selected" data-price="89" onclick="selectRide(this,89,'JDP Mini EV')">
+      <div class="rc-check">✓</div>
+      <div class="rc-row">
+        <div class="rc-img">🚗</div>
+        <div class="rc-info">
+          <div class="rc-name">Mini EV <span class="rc-tag tag-ev">⚡ EV</span></div>
+          <div class="rc-desc">2 seats · AC · Economy</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px;">⭐ 4.8 · 3 min away</div>
+        </div>
+        <div class="rc-fare"><div class="rc-price">₹89</div><div class="rc-eta">3 min</div></div>
+      </div>
+    </div>
+
+    <div class="ride-card" data-price="129" onclick="selectRide(this,129,'JDP Sedan')">
+      <div class="rc-check"></div>
+      <div class="rc-row">
+        <div class="rc-img">🚕</div>
+        <div class="rc-info">
+          <div class="rc-name">Sedan <span class="rc-tag tag-pop">🔥 Popular</span></div>
+          <div class="rc-desc">4 seats · AC · Comfortable</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px;">⭐ 4.9 · 5 min away</div>
+        </div>
+        <div class="rc-fare"><div class="rc-price">₹129</div><div class="rc-eta">5 min</div></div>
+      </div>
+    </div>
+
+    <div class="ride-card" data-price="179" onclick="selectRide(this,179,'JDP Premium')">
+      <div class="rc-check"></div>
+      <div class="rc-row">
+        <div class="rc-img">🏎️</div>
+        <div class="rc-info">
+          <div class="rc-name">Premium</div>
+          <div class="rc-desc">4 seats · AC · Luxury</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px;">⭐ 5.0 · 8 min away</div>
+        </div>
+        <div class="rc-fare"><div class="rc-price">₹179</div><div class="rc-eta">8 min</div></div>
+      </div>
+    </div>
+
+    <div class="ride-card" data-price="69" onclick="selectRide(this,69,'JDP Auto')">
+      <div class="rc-check"></div>
+      <div class="rc-row">
+        <div class="rc-img">🛺</div>
+        <div class="rc-info">
+          <div class="rc-name">Auto</div>
+          <div class="rc-desc">3 seats · Budget · Fast</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px;">⭐ 4.6 · 2 min away</div>
+        </div>
+        <div class="rc-fare"><div class="rc-price">₹69</div><div class="rc-eta">2 min</div></div>
+      </div>
+    </div>
+
+    <div style="padding-bottom:14px"></div>
+  </div>
+
+  <div class="fare-note">💡 Fare includes toll + surge. Cash/UPI/Wallet accepted.</div>
+  <div class="confirm-bar">
+    <button class="cta" onclick="confirmRide()" style="font-family:var(--display);letter-spacing:1.5px;">
+      <span class="bt" id="confirmBtnTxt">⚡ CONFIRM RIDE — ₹89</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 4 — SEARCHING DRIVER
+══════════════════════════════════════════ -->
+<div class="screen" id="sSearch">
+  <div class="search-wrap">
+    <div class="search-anim">
+      <div class="pulse-ring"></div>
+      <div class="pulse-ring"></div>
+      <div class="pulse-ring"></div>
+      <div class="search-icon">🔍</div>
+    </div>
+    <div class="search-title">Driver Dhundh Rahe Hain...</div>
+    <div class="search-sub">Aapke aas-paas ke best drivers se connect ho rahe hain. Thoda wait karo! ⚡</div>
+    <div class="search-progress"><div class="sp-bar" id="searchBar"></div></div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px;" id="searchStatus">4 drivers nearby...</div>
+    <div class="cancel-link" onclick="clearInterval(STATE.searchIv);goTo('sRide')">✕ Cancel Request</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 5 — DRIVER FOUND
+══════════════════════════════════════════ -->
+<div class="screen" id="sDriver">
+  <div class="driver-hero">
+    <div class="df-badge">✅ Driver Mil Gaya!</div>
+    <div class="df-row">
+      <div class="driver-avatar">👨‍✈️</div>
+      <div class="driver-info">
+        <div class="driver-name">Ramesh Kumar</div>
+        <div class="driver-rating">⭐ 4.9 <span style="color:var(--muted);font-size:11px">(284 trips)</span></div>
+        <div class="driver-car">🚕 CG 07 AB 1234 · White Sedan</div>
+        <div class="driver-contact" style="margin-top:10px;">
+          <button class="contact-btn btn-call" onclick="showT('📞 Calling Ramesh Kumar...')">📞 Call</button>
+          <button class="contact-btn btn-msg" onclick="showT('💬 Chat feature coming soon!')">💬 Message</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="overflow-y:auto;flex:1;">
+    <div class="otp-verify" style="margin:14px 18px 0;">
+      <div class="ov-title">Share this OTP with driver to start trip</div>
+      <div class="ov-code" id="tripOTP">4829</div>
+    </div>
+
+    <div class="eta-bar" style="margin:12px 18px 0;">
+      <div class="eta-label">
+        <div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:2px;">Driver aa rha hai</div>
+          <div class="eta-time" id="etaCountdown">4 min</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:2px;">Distance</div>
+          <div style="font-size:14px;font-weight:700;">1.2 km</div>
+        </div>
+      </div>
+      <div class="eta-progress" style="margin-top:10px;"><div class="eta-fill"></div></div>
+    </div>
+
+    <div class="trip-details-card" style="margin:12px 18px 0;">
+      <div class="td-row"><span class="td-label">🟢 Pickup</span><span class="td-val" style="font-size:12px;" id="dPickup">Railway Station</span></div>
+      <div class="td-row"><span class="td-label">🟡 Drop</span><span class="td-val" style="font-size:12px;" id="dDrop">Destination</span></div>
+      <div class="td-row"><span class="td-label">💰 Estimated Fare</span><span class="td-val" style="color:var(--gold2)" id="dFare">₹89</span></div>
+      <div class="td-row"><span class="td-label">🚗 Ride Type</span><span class="td-val" id="dRideType">Mini EV</span></div>
+      <div class="td-row"><span class="td-label">💳 Payment</span><span class="td-val">Cash / UPI</span></div>
+    </div>
+  </div>
+
+  <div class="action-row" style="margin-top:12px;">
+    <button class="act-btn act-primary" onclick="startTrip()">🚀 Trip Shuru Karo</button>
+    <button class="act-btn act-danger" onclick="cancelRide()">✕ Cancel</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 6 — LIVE TRIP
+══════════════════════════════════════════ -->
+<div class="screen" id="sTrip">
+  <div class="trip-header">
+    <div class="trip-status"><div class="trip-dot"></div><div class="trip-label">Trip Chal Rha Hai</div></div>
+    <div class="sos-btn" onclick="showT('🚨 SOS! Emergency services alert kiya ja raha hai!')">🚨 SOS</div>
+  </div>
+
+  <div class="live-map">
+    <canvas id="tripMap"></canvas>
+    <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(7,7,26,.85);border:1px solid var(--border);border-radius:100px;padding:5px 14px;font-size:11px;color:var(--green);backdrop-filter:blur(12px);font-weight:600;white-space:nowrap;display:flex;align-items:center;gap:6px;">
+      <div style="width:7px;height:7px;background:var(--green);border-radius:50%;box-shadow:0 0 7px var(--green);animation:ping 1.5s infinite;"></div>
+      Live GPS Tracking Active
+    </div>
+  </div>
+
+  <div class="trip-card">
+    <div class="live-driver">
+      <div class="ld-avatar">👨‍✈️</div>
+      <div class="ld-info">
+        <div class="ld-name">Ramesh Kumar</div>
+        <div class="ld-status"><div style="width:6px;height:6px;background:var(--green);border-radius:50%;"></div>Trip chal rha hai</div>
+      </div>
+      <div>
+        <div class="ld-fare-label">Est. Fare</div>
+        <div class="ld-fare" id="liveFare">₹89</div>
+      </div>
+    </div>
+
+    <div class="trip-progress-wrap">
+      <div class="tp-stops"><span>🟢 Railway Station</span><span id="tripDrop">🟡 Destination</span></div>
+      <div class="tp-bar"><div class="tp-fill"></div></div>
+    </div>
+
+    <div class="trip-actions">
+      <div class="ta-btn ta-call" onclick="showT('📞 Calling Ramesh Kumar...')">📞 Call</div>
+      <div class="ta-btn ta-share" onclick="showT('📤 Trip link copied to clipboard!')">📤 Share</div>
+      <div class="ta-btn ta-arrive" onclick="arrivedAtDest()">✅ Destination Pe Pahunche</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 7 — PAYMENT & RATING
+══════════════════════════════════════════ -->
+<div class="screen" id="sComplete">
+  <div class="complete-wrap">
+    <div class="complete-anim">
+      <div class="check-circle">🎉</div>
+    </div>
+    <div class="complete-title">Trip Complete!</div>
+    <div class="complete-sub">Aap apni manzil pe pahunch gaye. Ramesh Kumar ko rate karo! 🌟</div>
+
+    <div class="fare-breakdown">
+      <div class="fb-title">Fare Breakdown</div>
+      <div class="fb-row"><span class="fb-label">Base Fare</span><span class="fb-val" id="fbBase">₹45</span></div>
+      <div class="fb-row"><span class="fb-label">Distance (4.2 km)</span><span class="fb-val" id="fbDist">₹33</span></div>
+      <div class="fb-row"><span class="fb-label">Platform Fee</span><span class="fb-val" id="fbPlat">₹11</span></div>
+      <div class="fb-row" style="border-top:1px solid var(--border2);"><span class="fb-label">Total</span><span class="fb-val" id="totalFare">₹89</span></div>
+    </div>
+
+    <div style="font-size:9.5px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Payment Method Chuno</div>
+    <div class="payment-methods">
+      <div class="pm selected" onclick="selPay(this)"><div class="pm-icon">💵</div><div class="pm-label">Cash</div></div>
+      <div class="pm" onclick="selPay(this)"><div class="pm-icon">📱</div><div class="pm-label">UPI</div></div>
+      <div class="pm" onclick="selPay(this)"><div class="pm-icon">👛</div><div class="pm-label">Wallet</div></div>
+    </div>
+
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Ramesh Kumar ko rate karo:</div>
+    <div class="rating-stars" id="stars">
+      <span class="star lit" onclick="rateStar(1)">⭐</span>
+      <span class="star lit" onclick="rateStar(2)">⭐</span>
+      <span class="star lit" onclick="rateStar(3)">⭐</span>
+      <span class="star lit" onclick="rateStar(4)">⭐</span>
+      <span class="star lit" onclick="rateStar(5)">⭐</span>
+    </div>
+
+    <button class="cta" onclick="payAndFinish()" style="font-family:var(--display);letter-spacing:1.5px;margin-top:4px;">
+      <span class="bt">💳 PAY & FINISH</span>
+    </button>
+    <div style="text-align:center;font-size:11px;color:var(--muted);margin-top:12px;cursor:pointer;" onclick="showT('🧾 Receipt email kiya jayega!')">📧 Receipt Email Karo</div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav" id="botNav">
+  <div class="bn-items">
+    <div class="bn-item active" onclick="bnClick(this,'sHome')"><div class="bn-icon">🏠</div><div class="bn-label">Home</div></div>
+    <div class="bn-item" onclick="bnClick(this,'trips')"><div class="bn-icon">📋</div><div class="bn-label">Trips</div></div>
+    <div class="bn-item" onclick="bnClick(this,'wallet')"><div class="bn-icon">👛</div><div class="bn-label">Wallet</div></div>
+    <div class="bn-item" onclick="bnClick(this,'profile')"><div class="bn-icon">👤</div><div class="bn-label">Profile</div></div>
+  </div>
+</div>
+
+<div class="toast" id="toastEl"></div>
 
 <script>
-    // 1. Initialize Map with Thunderforest Atlas Layer
-    const apiKey = '2ae56235ac8a49c08f776200c64186cb';
-    const map = L.map('map', { zoomControl: false }).setView([28.6139, 77.2090], 14);
+// ════════════════════════════════════════════════
+//   APP STATE
+// ════════════════════════════════════════════════
+const STATE = {
+  role: 'rider',
+  phone: '',
+  pickup: 'Jagdalpur Railway Station',
+  drop: '',
+  rideType: 'Mini EV',
+  fare: 89,
+  otpSent: false,
+  rsIv: null,
+  etaIv: null,
+  searchIv: null,   // stores si interval from confirmRide
+  starRating: 5,
+  payMethod: 'Cash',
+};
 
-    L.tileLayer(`https://api.thunderforest.com/atlas/{z}/{x}/{y}.png?apikey=${apiKey}`, {
-        attribution: '© Thunderforest'
-    }).addTo(map);
+// ════ SCREEN NAVIGATION ════
+function goTo(id) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+  });
+  const sc = document.getElementById(id);
+  if (sc) sc.classList.add('active');
+  // Show/hide bottom nav
+  const showNav = ['sHome'].includes(id);
+  document.getElementById('botNav').classList.toggle('show', showNav);
+}
 
-    // 2. Custom Icons (Uber Style)
-    const carIcon = L.icon({
-        iconUrl: 'https://cdn-icons-png.flaticon.com/512/744/744465.png',
-        iconSize: [40, 40], iconAnchor: [20, 20]
-    });
-    const pinIcon = L.icon({
-        iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
-        iconSize: [35, 35], iconAnchor: [17, 35]
-    });
+// ════ LOGIN CANVAS ════
+(function initLoginCanvas() {
+  const CV = document.getElementById('rc');
+  const ctx = CV.getContext('2d');
+  let W, H, VPX, VPY, T = 0;
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio||1,2);
+    const rect = CV.parentElement.getBoundingClientRect();
+    W=rect.width;H=rect.height;
+    CV.width=W*dpr;CV.height=H*dpr;CV.style.width=W+'px';CV.style.height=H+'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    VPX=W/2;VPY=H*.38;
+  }
+  resize();
+  window.addEventListener('resize',resize);
+  function P(nx,z){const nW=W*.54,fW=20,h=fW+(nW-fW)*z;return{x:VPX+nx*h,y:VPY+(H-VPY)*z,s:.08+.92*z};}
+  const STRIPES=Array.from({length:28},(_,i)=>i/28);
+  const TREES_L=Array.from({length:12},(_,i)=>({z:i/12,ph:i*.68}));
+  const TREES_R=Array.from({length:12},(_,i)=>({z:i/12+.08,ph:i*.68+1.8}));
+  const POSTS_L=Array.from({length:8},(_,i)=>({z:i/8,lit:i%2===0}));
+  const POSTS_R=Array.from({length:8},(_,i)=>({z:i/8+.05,lit:i%2!==0}));
+  const SMOKE=[];
+  const CAR={z:.01,nx:0,targetNx:0,ph:0,lT:0};
+  function resetCar(){CAR.z=.005;const L=[-.24,0,.24];CAR.targetNx=L[Math.floor(Math.random()*3)];CAR.nx=CAR.targetNx;}
+  function drawSky(){
+    const g=ctx.createLinearGradient(0,0,0,VPY+30);
+    g.addColorStop(0,'#020208');g.addColorStop(.3,'#04030f');g.addColorStop(.6,'#0a0620');g.addColorStop(.82,'#4a1a02');g.addColorStop(1,'#8a3b04');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,VPY+30);
+    const sg=ctx.createRadialGradient(VPX,VPY+8,0,VPX,VPY+8,100);
+    sg.addColorStop(0,'rgba(255,200,60,.4)');sg.addColorStop(.5,'rgba(255,120,20,.12)');sg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=sg;ctx.fillRect(VPX-110,VPY-60,220,110);
+    for(let i=0;i<55;i++){const sx=(i*139+11)%W,sy=(i*97+23)%(VPY*.88),tw=.15+.85*Math.abs(Math.sin(T*.014+i*.8));ctx.globalAlpha=tw*.5;ctx.fillStyle='#fff';ctx.fillRect(sx,sy,1.3,1.3);}
+    ctx.globalAlpha=1;
+  }
+  function drawBldgs(){
+    [{nx:-.40,w:.065,hf:.20,c:'#0c0820'},{nx:-.29,w:.048,hf:.13,c:'#08121e'},{nx:-.17,w:.058,hf:.26,c:'#0f0630'},{nx:.15,w:.062,hf:.22,c:'#0c0820'},{nx:.27,w:.05,hf:.14,c:'#08121e'},{nx:.38,w:.055,hf:.18,c:'#0f0630'}].forEach(b=>{
+      const bx=VPX+b.nx*W*.74,bw=b.w*W,bh=b.hf*H,by=VPY-bh+4;
+      ctx.fillStyle=b.c;ctx.fillRect(bx,by,bw,bh);
+      const cols=Math.max(1,Math.floor(bw/5.5)),rows=Math.max(1,Math.floor(bh/9));
+      for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){if(Math.sin(r*6.8+c*11.2+b.nx*44)>.0){ctx.globalAlpha=(.18+.55*Math.abs(Math.sin(T*.007+r*1.8+c*2.4)))*.55;ctx.fillStyle='#ffe070';ctx.fillRect(bx+c*5.5+1,by+r*9+2,3,5);}}
+      ctx.globalAlpha=1;});
+  }
+  function drawRoad(){
+    const rg=ctx.createLinearGradient(0,VPY,0,H);rg.addColorStop(0,'#0f0f14');rg.addColorStop(.6,'#141418');rg.addColorStop(1,'#1a1a20');
+    ctx.beginPath();ctx.moveTo(VPX-20,VPY);ctx.lineTo(VPX+20,VPY);ctx.lineTo(W+20,H+10);ctx.lineTo(-20,H+10);ctx.closePath();ctx.fillStyle=rg;ctx.fill();
+    ctx.shadowBlur=8;ctx.shadowColor='rgba(6,255,245,.4)';
+    ctx.beginPath();ctx.moveTo(VPX-20,VPY);ctx.lineTo(-20,H+10);ctx.strokeStyle='rgba(6,255,245,.28)';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(VPX+20,VPY);ctx.lineTo(W+20,H+10);ctx.strokeStyle='rgba(6,255,245,.28)';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.shadowBlur=0;
+    const hl=ctx.createLinearGradient(0,VPY,0,H);hl.addColorStop(0,'rgba(245,166,35,0)');hl.addColorStop(.6,'rgba(255,210,80,.05)');hl.addColorStop(1,'rgba(255,190,40,.2)');
+    ctx.beginPath();ctx.moveTo(VPX-20,VPY);ctx.lineTo(VPX+20,VPY);ctx.lineTo(W+20,H+10);ctx.lineTo(-20,H+10);ctx.closePath();ctx.fillStyle=hl;ctx.fill();
+  }
+  function drawStripes(){const spd=.024;[-1/3,1/3].forEach(lx=>{STRIPES.forEach(s=>{const z=((s+T*spd)%1),z2=Math.min(z+.05,1),p1=P(lx,z),p2=P(lx,z2);ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.strokeStyle=`rgba(255,255,255,${.05+.4*z})`;ctx.lineWidth=Math.max(.3,1.5*z);ctx.stroke();});});}
+  function drawTrees(){const spd=.013;function tree(nx,zB,ph){const z=((zB+T*spd)%1);if(z<.04)return;const p=P(nx,z),h=p.s*55,tw=p.s*12,wb=Math.sin(T*.032+ph)*p.s*1.8;ctx.fillStyle='#1e1208';ctx.fillRect(p.x-p.s*1.3,p.y-h*.42,p.s*2.6,h*.42);['#071509','#0b2010','#0e2a15'].forEach((c,li)=>{ctx.beginPath();ctx.arc(p.x+wb,p.y-h*(.8-li*.2),tw*(1-li*.18),0,Math.PI*2);ctx.fillStyle=c;ctx.globalAlpha=.5+.5*z;ctx.fill();});ctx.globalAlpha=1;}
+    TREES_L.forEach(t=>tree(-1.05-.1*(1-((t.z+T*.013)%1)),t.z,t.ph));TREES_R.forEach(t=>tree(1.05+.1*(1-((t.z+T*.013)%1)),t.z,t.ph));}
+  function drawPosts(){const spd=.013;function post(nx,zB,lit){const z=((zB+T*spd)%1);if(z<.04)return;const p=P(nx,z),ph=p.s*52,arm=nx<0?p.x+p.s*7:p.x-p.s*7;ctx.strokeStyle=`rgba(60,60,75,${.4+.5*z})`;ctx.lineWidth=Math.max(.4,1.4*p.s);ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x,p.y-ph);ctx.lineTo(arm,p.y-ph-p.s*7);ctx.stroke();if(lit){const gl=ctx.createRadialGradient(arm,p.y-ph-p.s*7,0,arm,p.y-ph-p.s*7,p.s*16);gl.addColorStop(0,'rgba(6,255,245,.85)');gl.addColorStop(.4,'rgba(6,200,220,.25)');gl.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=gl;ctx.fillRect(arm-p.s*16,p.y-ph-p.s*23,p.s*32,p.s*28);ctx.beginPath();ctx.arc(arm,p.y-ph-p.s*7,p.s*2,0,Math.PI*2);ctx.fillStyle='#06fff5';ctx.fill();}}
+    POSTS_L.forEach(t=>post(-.6-.05*(1-((t.z+T*.013)%1)),t.z,t.lit));POSTS_R.forEach(t=>post(.6+.05*(1-((t.z+T*.013)%1)),t.z,t.lit));}
+  function addSmoke(x,y,s){if(T%6!==0)return;SMOKE.push({x,y,vx:(Math.random()-.5)*.3*s,vy:-.4*s,r:2.5*s,life:1});}
+  function drawSmoke(){for(let i=SMOKE.length-1;i>=0;i--){const p=SMOKE[i];p.x+=p.vx;p.y+=p.vy;p.r*=1.04;p.life-=.04;if(p.life<=0){SMOKE.splice(i,1);continue;}ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(100,100,120,${p.life*.15})`;ctx.fill();}}
+  function drawEVTaxi(){
+    const z=CAR.z;if(z>1.06){resetCar();return;}
+    const p=P(CAR.nx,z),S=p.s*1.15,CW=82*S,CH=50*S;
+    CAR.ph+=.07;const cx=p.x,cy=p.y-CH*.46,x0=cx-CW/2,y0=cy-CH/2;
+    function rr(x,y,w,h,r,fill){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill();}}
+    if(z>.08){const ba=Math.min(.22,z*.25);ctx.save();ctx.globalAlpha=.5;[-.23,.23].forEach(off=>{const hcx=cx+CW*off,hcy=cy+CH*.3,cone=ctx.createRadialGradient(hcx,hcy,0,hcx,hcy,CW*2.2);cone.addColorStop(0,`rgba(255,240,150,${ba*2})`);cone.addColorStop(.3,`rgba(255,200,80,${ba*.7})`);cone.addColorStop(1,'rgba(0,0,0,0)');ctx.beginPath();ctx.moveTo(hcx,hcy);ctx.lineTo(cx+CW*(off<0?-1.8:-.4),cy+CH*2.2);ctx.lineTo(cx+CW*(off<0?.4:1.8),cy+CH*2.2);ctx.closePath();ctx.fillStyle=cone;ctx.fill();});ctx.restore();}
+    if(z>.25){const ug=ctx.createLinearGradient(x0,cy+CH*.55,x0+CW,cy+CH*.55);ug.addColorStop(0,'rgba(6,255,245,0)');ug.addColorStop(.2,`rgba(6,255,245,${z*.12})`);ug.addColorStop(.5,`rgba(6,255,245,${z*.18})`);ug.addColorStop(.8,`rgba(6,255,245,${z*.12})`);ug.addColorStop(1,'rgba(6,255,245,0)');ctx.fillStyle=ug;ctx.fillRect(x0-CW*.1,cy+CH*.53,CW*1.2,CH*.15);}
+    const WR=9.5*S;[[cx-CW*.3,cy+CH*.43+Math.sin(CAR.ph*.7)*1.4*S],[cx+CW*.3,cy+CH*.43+Math.sin(CAR.ph*.7)*1.4*S]].forEach(([wx,wy])=>{ctx.save();ctx.translate(wx,wy);ctx.beginPath();ctx.arc(0,0,WR,0,Math.PI*2);ctx.fillStyle='#080810';ctx.fill();ctx.strokeStyle='#1e1e2a';ctx.lineWidth=1.8*S;ctx.stroke();const rg2=ctx.createRadialGradient(0,0,0,0,0,WR*.62);rg2.addColorStop(0,'#2a2a3a');rg2.addColorStop(1,'#111120');ctx.beginPath();ctx.arc(0,0,WR*.62,0,Math.PI*2);ctx.fillStyle=rg2;ctx.fill();ctx.strokeStyle='rgba(6,255,245,.3)';ctx.lineWidth=.7*S;ctx.stroke();ctx.save();ctx.rotate(T*.1);for(let s=0;s<5;s++){const a=(s/5)*Math.PI*2;ctx.beginPath();ctx.moveTo(Math.cos(a)*WR*.12,Math.sin(a)*WR*.12);ctx.lineTo(Math.cos(a)*WR*.58,Math.sin(a)*WR*.58);ctx.strokeStyle='rgba(6,255,245,.55)';ctx.lineWidth=1.5*S;ctx.stroke();}ctx.restore();ctx.beginPath();ctx.arc(0,0,WR*.18,0,Math.PI*2);ctx.fillStyle='#F5A623';ctx.fill();ctx.restore();});
+    const bodyG=ctx.createLinearGradient(x0,y0+CH*.18,x0,y0+CH*.75);bodyG.addColorStop(0,'#1e1e2e');bodyG.addColorStop(.5,'#141420');bodyG.addColorStop(1,'#0a0a14');rr(x0,y0+CH*.18,CW,CH*.54,7*S,null);ctx.fillStyle=bodyG;ctx.fill();
+    rr(x0,y0+CH*.265,CW,CH*.09,2*S,'#F5A623');
+    ctx.beginPath();ctx.moveTo(x0+CW*.06,y0+CH*.18);ctx.bezierCurveTo(x0+CW*.08,y0+CH*.01,x0+CW*.14,y0-CH*.1,x0+CW*.18,y0-CH*.16);ctx.lineTo(x0+CW*.82,y0-CH*.16);ctx.bezierCurveTo(x0+CW*.86,y0-CH*.1,x0+CW*.92,y0+CH*.01,x0+CW*.94,y0+CH*.18);ctx.closePath();ctx.fillStyle='rgba(20,30,60,0.65)';ctx.fill();ctx.strokeStyle='rgba(6,255,245,.15)';ctx.lineWidth=.7*S;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x0+CW*.07,y0+CH*.18);ctx.bezierCurveTo(x0+CW*.1,y0,x0+CW*.18,y0-CH*.24,x0+CW*.24,y0-CH*.32);ctx.lineTo(x0+CW*.76,y0-CH*.32);ctx.bezierCurveTo(x0+CW*.82,y0-CH*.24,x0+CW*.9,y0,x0+CW*.93,y0+CH*.18);ctx.closePath();const cabG=ctx.createLinearGradient(0,y0-CH*.34,0,y0+CH*.2);cabG.addColorStop(0,'#161624');cabG.addColorStop(1,'#0c0c18');ctx.fillStyle=cabG;ctx.fill();
+    const ts={x:cx-CW*.18,y:y0-CH*.52,w:CW*.36,h:CH*.2},gP=.7+.3*Math.sin(CAR.ph*.8);
+    rr(ts.x,ts.y,ts.w,ts.h,4*S,'#0a0a18');ctx.strokeStyle=`rgba(245,166,35,${gP})`;ctx.lineWidth=S;ctx.beginPath();ctx.moveTo(ts.x+4*S,ts.y);ctx.lineTo(ts.x+ts.w-4*S,ts.y);ctx.quadraticCurveTo(ts.x+ts.w,ts.y,ts.x+ts.w,ts.y+4*S);ctx.lineTo(ts.x+ts.w,ts.y+ts.h-4*S);ctx.quadraticCurveTo(ts.x+ts.w,ts.y+ts.h,ts.x+ts.w-4*S,ts.y+ts.h);ctx.lineTo(ts.x+4*S,ts.y+ts.h);ctx.quadraticCurveTo(ts.x,ts.y+ts.h,ts.x,ts.y+ts.h-4*S);ctx.lineTo(ts.x,ts.y+4*S);ctx.quadraticCurveTo(ts.x,ts.y,ts.x+4*S,ts.y);ctx.closePath();ctx.stroke();
+    ctx.fillStyle=`rgba(245,166,35,${gP*.9})`;ctx.font=`bold ${Math.max(1,Math.floor(5*S))}px Orbitron,monospace`;ctx.textAlign='center';ctx.fillText('JDP CABS',cx,ts.y+ts.h*.58);ctx.font=`${Math.max(1,Math.floor(3.5*S))}px Orbitron,monospace`;ctx.fillStyle=`rgba(6,255,245,${gP*.8})`;ctx.fillText('SMART EV',cx,ts.y+ts.h*.88);
+    const drlP=.7+.3*Math.sin(CAR.ph*1.2);ctx.shadowBlur=6*S;ctx.shadowColor='rgba(255,240,150,.8)';ctx.fillStyle=`rgba(255,240,180,${drlP*.8})`;rr(x0+CW*.07,y0+CH*.36,CW*.22,CH*.025,S,`rgba(255,240,180,${drlP*.8})`);rr(x0+CW*.71,y0+CH*.36,CW*.22,CH*.025,S,`rgba(255,240,180,${drlP*.8})`);ctx.shadowBlur=0;
+    [[x0+CW*.06,CW*.26],[x0+CW*.68,CW*.26]].forEach(([hlx,hlw])=>{rr(hlx,y0+CH*.38,hlw,CH*.17,3*S,'#080814');for(let d=0;d<5;d++){const dx=hlx+hlw*(d+1)/6.5;ctx.beginPath();ctx.arc(dx,y0+CH*.47,CH*.025,0,Math.PI*2);ctx.fillStyle='rgba(255,245,200,.85)';ctx.fill();}});
+    const fa=z<.1?z/.1:z>.9?1-(z-.9)/.16:1;if(fa<.98){ctx.fillStyle=`rgba(4,4,12,${1-fa})`;ctx.fillRect(cx-CW,cy-CH*1.2,CW*2,CH*2.8);}
+    if(z>.35){addSmoke(cx-CW*.52,cy+CH*.42,S*.4);addSmoke(cx+CW*.52,cy+CH*.42,S*.4);}
+  }
+  function updateCar(){CAR.z+=.006+CAR.z*.022;CAR.lT++;if(CAR.lT>150){CAR.lT=0;const L=[-.24,0,.24];CAR.targetNx=L[Math.floor(Math.random()*3)];}CAR.nx+=(CAR.targetNx-CAR.nx)*.018;if(CAR.z>1.07)resetCar();}
+  function frame(){T++;ctx.clearRect(0,0,W,H);drawSky();drawBldgs();drawTrees();drawPosts();drawRoad();drawStripes();drawSmoke();drawEVTaxi();updateCar();requestAnimationFrame(frame);}
+  resetCar();frame();
+})();
 
-    // 3. Markers
-    let driverMarker = L.marker([28.6139, 77.2090], { icon: carIcon }).addTo(map);
-    let destMarker = L.marker([0, 0], { icon: pinIcon });
-
-    // 4. Routing Controller (Perfect Road Calculations)
-    const routingControl = L.Routing.control({
-        waypoints: [],
-        lineOptions: {
-            styles: [{ color: '#000', opacity: 0.8, weight: 6 }]
-        },
-        createMarker: function() { return null; }, // Hide default blue markers
-        addWaypoints: false,
-        routeWhileDragging: false
-    }).addTo(map);
-
-    // 5. Search/Autocomplete Functionality
-    const geocoder = L.Control.geocoder({
-        defaultMarkGeocode: false,
-        placeholder: "Enter destination..."
-    }).on('markgeocode', function(e) {
-        const destCoords = e.geocode.center;
-        
-        // Update Marker & Map
-        destMarker.setLatLng(destCoords).addTo(map);
-        map.flyTo(destCoords, 15);
-
-        // Update Road Route
-        routingControl.setWaypoints([
-            driverMarker.getLatLng(),
-            destCoords
-        ]);
-    }).addTo(map);
-
-    // Move search bar into our custom panel
-    document.getElementById('geocoder-input').appendChild(geocoder.getContainer());
-
-    // 6. Update Stats (KM & Mins)
-    routingControl.on('routesfound', function(e) {
-        const summary = e.routes[0].summary;
-        const km = (summary.totalDistance / 1000).toFixed(1);
-        const mins = Math.round(summary.totalTime / 60);
-        
-        document.getElementById('dist-txt').innerText = km + ' km';
-        document.getElementById('time-txt').innerText = mins + ' mins';
-    });
-
-    // 7. Simulation / Action
-    function startRide() {
-        if(destMarker.getLatLng().lat === 0) {
-            alert("Pehle destination search karein!");
-        } else {
-            alert("Booking Confirmed! Road distance calculate ho gaya hai.");
-            // Yahan aap live tracking ka animation shuru kar sakte hain
-        }
+// ════ MAP CANVAS ════
+(function initMapCanvas() {
+  const CV = document.getElementById('mapCanvas');
+  if (!CV) return;
+  const ctx = CV.getContext('2d');
+  let W, H, T = 0;
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio||1,2);
+    const rect = CV.parentElement.getBoundingClientRect();
+    W=rect.width||360;H=rect.height||220;
+    CV.width=W*dpr;CV.height=H*dpr;CV.style.width=W+'px';CV.style.height=H+'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  resize();
+  window.addEventListener('resize',resize);
+  // Fake map grid
+  const roads=[
+    {x1:.1,y1:.3,x2:.9,y2:.3},{x1:.1,y1:.6,x2:.9,y2:.6},
+    {x1:.3,y1:.05,x2:.3,y2:.95},{x1:.65,y1:.05,x2:.65,y2:.95},
+    {x1:.15,y1:.5,x2:.55,y2:.1},{x1:.5,y1:.5,x2:.85,y2:.85},
+  ];
+  const buildings=[
+    {x:.12,y:.12,w:.12,h:.12},{x:.38,y:.08,w:.2,h:.15},
+    {x:.68,y:.12,w:.18,h:.1},{x:.1,y:.38,w:.15,h:.18},
+    {x:.38,y:.38,w:.22,h:.18},{x:.68,y:.38,w:.16,h:.16},
+    {x:.1,y:.68,w:.14,h:.22},{x:.38,y:.68,w:.18,h:.2},
+    {x:.68,y:.68,w:.2,h:.18},
+  ];
+  // Moving car on map
+  let carX=0.15, carY=0.3, carTarget={x:.85,y:.3};
+  function frame(){
+    T++;
+    ctx.clearRect(0,0,W,H);
+    // Background
+    ctx.fillStyle='#0c0c1e';ctx.fillRect(0,0,W,H);
+    // Grid lines
+    for(let i=0;i<20;i++){
+      ctx.strokeStyle='rgba(255,255,255,0.03)';ctx.lineWidth=.5;
+      ctx.beginPath();ctx.moveTo(i*W/20,0);ctx.lineTo(i*W/20,H);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(0,i*H/20);ctx.lineTo(W,i*H/20);ctx.stroke();
     }
+    // Roads
+    roads.forEach(r=>{
+      ctx.beginPath();ctx.moveTo(r.x1*W,r.y1*H);ctx.lineTo(r.x2*W,r.y2*H);
+      ctx.strokeStyle='#1e1e30';ctx.lineWidth=Math.max(4,W*.03);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(r.x1*W,r.y1*H);ctx.lineTo(r.x2*W,r.y2*H);
+      ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=Math.max(4,W*.03)-2;ctx.stroke();
+    });
+    // Buildings
+    buildings.forEach((b,i)=>{
+      const bx=b.x*W,by=b.y*H,bw=b.w*W,bh=b.h*H;
+      const bg=ctx.createLinearGradient(bx,by,bx,by+bh);
+      bg.addColorStop(0,i%3===0?'#12082a':i%3===1?'#081222':'#0f0630');
+      bg.addColorStop(1,'#060610');
+      ctx.fillStyle=bg;ctx.fillRect(bx,by,bw,bh);
+      ctx.strokeStyle='rgba(6,255,245,.06)';ctx.lineWidth=.5;ctx.strokeRect(bx,by,bw,bh);
+      // Windows
+      for(let r=0;r<3;r++)for(let c=0;c<3;c++){
+        if(Math.sin(r*7+c*11+i*5)>.1){
+          ctx.globalAlpha=.3+.3*Math.abs(Math.sin(T*.008+r+c+i));
+          ctx.fillStyle='#ffe070';
+          ctx.fillRect(bx+c*(bw/3.5)+bw*.1,by+r*(bh/4)+bh*.1,bw*.15,bh*.12);
+        }
+      }
+      ctx.globalAlpha=1;
+    });
+    // Move car
+    const dx=carTarget.x-carX,dy=carTarget.y-carY,dist=Math.sqrt(dx*dx+dy*dy);
+    if(dist<.02){carTarget={x:.1+Math.random()*.8,y:.1+Math.random()*.8};}
+    else{carX+=dx*.008;carY+=dy*.008;}
+    // Car glow
+    const cg=ctx.createRadialGradient(carX*W,carY*H,0,carX*W,carY*H,22);
+    cg.addColorStop(0,'rgba(245,166,35,.4)');cg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=cg;ctx.fillRect(carX*W-22,carY*H-22,44,44);
+    // Car dot
+    ctx.beginPath();ctx.arc(carX*W,carY*H,7,0,Math.PI*2);
+    ctx.fillStyle='#F5A623';ctx.fill();
+    ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+    // Pickup pin (green)
+    ctx.beginPath();ctx.arc(W*.2,H*.35,8,0,Math.PI*2);
+    ctx.fillStyle='#00FF94';ctx.fill();
+    ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle='#fff';ctx.font='bold 9px sans-serif';ctx.textAlign='center';ctx.fillText('P',W*.2,H*.35+3);
+    // Drop pin (gold)
+    if(STATE.drop){
+      ctx.beginPath();ctx.arc(W*.75,H*.65,8,0,Math.PI*2);
+      ctx.fillStyle='#F5A623';ctx.fill();
+      ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+      ctx.fillStyle='#fff';ctx.font='bold 9px sans-serif';ctx.textAlign='center';ctx.fillText('D',W*.75,H*.65+3);
+      // Route line
+      ctx.beginPath();ctx.moveTo(W*.2,H*.35);ctx.lineTo(W*.75,H*.65);
+      ctx.strokeStyle='rgba(245,166,35,.4)';ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.stroke();ctx.setLineDash([]);
+    }
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
 
-    // Optional: Real-time Movement Simulation (Testing ke liye)
-    // setInterval(() => {
-    //    let current = driverMarker.getLatLng();
-    //    driverMarker.setLatLng([current.lat + 0.0001, current.lng + 0.0001]);
-    // }, 2000);
+// ════ TRIP MAP CANVAS ════
+(function initTripMap() {
+  const CV = document.getElementById('tripMap');
+  if (!CV) return;
+  const ctx = CV.getContext('2d');
+  let W, H, T = 0, carX = .15, carY = .35;
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio||1,2);
+    const rect = CV.parentElement.getBoundingClientRect();
+    W=rect.width||360;H=rect.height||220;
+    CV.width=W*dpr;CV.height=H*dpr;CV.style.width=W+'px';CV.style.height=H+'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  resize();
+  const roads2=[{x1:.05,y1:.35,x2:.95,y2:.35},{x1:.05,y1:.65,x2:.95,y2:.65},{x1:.35,y1:.05,x2:.35,y2:.95},{x1:.7,y1:.05,x2:.7,y2:.95}];
+  function frame(){
+    T++;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='#080818';ctx.fillRect(0,0,W,H);
+    for(let i=0;i<16;i++){ctx.strokeStyle='rgba(255,255,255,0.025)';ctx.lineWidth=.4;ctx.beginPath();ctx.moveTo(i*W/16,0);ctx.lineTo(i*W/16,H);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i*H/16);ctx.lineTo(W,i*H/16);ctx.stroke();}
+    roads2.forEach(r=>{ctx.beginPath();ctx.moveTo(r.x1*W,r.y1*H);ctx.lineTo(r.x2*W,r.y2*H);ctx.strokeStyle='#181828';ctx.lineWidth=Math.max(6,W*.04);ctx.stroke();});
+    // Route progress
+    const prog=Math.min(1,(T*.004));
+    ctx.beginPath();ctx.moveTo(W*.15,H*.35);ctx.bezierCurveTo(W*.4,H*.35,W*.6,H*.65,W*.8,H*.65);
+    ctx.strokeStyle='rgba(245,166,35,.2)';ctx.lineWidth=4;ctx.setLineDash([8,4]);ctx.stroke();ctx.setLineDash([]);
+    // Progress of trip
+    ctx.save();ctx.beginPath();ctx.moveTo(W*.15,H*.35);ctx.bezierCurveTo(W*.4,H*.35,W*.6,H*.65,W*.8,H*.65);
+    ctx.strokeStyle='rgba(245,166,35,.7)';ctx.lineWidth=3;
+    const len=ctx.measureText('').width;ctx.save();
+    // Animate car along path
+    const t2=Math.min(.95,(T*.003)%1);
+    const bx=W*.15+(W*.8-W*.15)*t2,by=H*.35+(H*.65-H*.35)*t2;
+    carX=bx/W;carY=by/H;
+    ctx.restore();ctx.restore();
+    // Car glow
+    const cg=ctx.createRadialGradient(carX*W,carY*H,0,carX*W,carY*H,20);
+    cg.addColorStop(0,'rgba(245,166,35,.5)');cg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=cg;ctx.fillRect(carX*W-20,carY*H-20,40,40);
+    ctx.beginPath();ctx.arc(carX*W,carY*H,8,0,Math.PI*2);
+    ctx.fillStyle='#F5A623';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+    // Pins
+    ctx.beginPath();ctx.arc(W*.15,H*.35,9,0,Math.PI*2);ctx.fillStyle='#00FF94';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle='#000';ctx.font='bold 9px sans-serif';ctx.textAlign='center';ctx.fillText('A',W*.15,H*.35+3);
+    ctx.beginPath();ctx.arc(W*.8,H*.65,9,0,Math.PI*2);ctx.fillStyle='#F5A623';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle='#000';ctx.font='bold 9px sans-serif';ctx.textAlign='center';ctx.fillText('B',W*.8,H*.65+3);
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
 
+// ════ LOGIN UI ════
+let otpSent = false, rsIv = null;
+
+function selRole(r, el) {
+  STATE.role = r;
+  document.querySelectorAll('.rc').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  showT(r === 'rider' ? '🧍 Rider mode selected!' : '🚗 Driver mode selected!');
+}
+
+function swL(t, el) {
+  document.querySelectorAll('.tb').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  const tog = document.getElementById('togEl');
+  tog.classList.toggle('r', t === 'pwd');
+  document.querySelectorAll('.scr-in').forEach(s => s.classList.remove('active'));
+  document.getElementById(t === 'otp' ? 'sOTP' : 'sPWD').classList.add('active');
+  otpSent = false;
+  document.getElementById('otpBox').style.display = 'none';
+  document.querySelector('#otpBtn .bt').textContent = '⚡ OTP Bhejo';
+  clearInterval(rsIv);
+}
+
+function doOTP() {
+  if (!otpSent) {
+    const ph = document.getElementById('phIn').value;
+    if (ph.length < 10 || !/^[6-9]/.test(ph)) { showT('⚠️ Valid 10-digit number enter karo', 'er'); return; }
+    STATE.phone = ph;
+    const btn = document.getElementById('otpBtn');
+    btn.querySelector('.bt').innerHTML = '<span class="spin"></span>';
+    setTimeout(() => {
+      btn.querySelector('.bt').textContent = '✅ Verify Karo';
+      otpSent = true;
+      document.getElementById('otpBox').style.display = 'block';
+      document.getElementById('o1').focus();
+      startRs();
+      showT('📱 OTP sent to +91' + ph, 'ok');
+    }, 1800);
+  } else {
+    const otp = ['o1','o2','o3','o4','o5','o6'].map(id => document.getElementById(id).value).join('');
+    if (otp.length < 6) { showT('⚠️ 6-digit OTP enter karo', 'er'); return; }
+    const btn = document.getElementById('otpBtn');
+    btn.querySelector('.bt').innerHTML = '<span class="spin"></span>';
+    setTimeout(() => { loginSuccess(); }, 1500);
+  }
+}
+
+function doPwdLogin() {
+  const ph = document.getElementById('ph2').value;
+  const pw = document.getElementById('pwIn').value;
+  if (ph.length < 10) { showT('⚠️ Mobile number enter karo', 'er'); return; }
+  if (pw.length < 4) { showT('⚠️ Password enter karo', 'er'); return; }
+  STATE.phone = ph;
+  showT('🔐 Verifying...', '');
+  setTimeout(loginSuccess, 1500);
+}
+
+function loginSuccess() {
+  showT('✅ Login successful! Welcome to JDP Cabs 🚕', 'ok');
+  setTimeout(() => { goTo('sHome'); }, 700);
+}
+
+function startRs() {
+  let s = 30;
+  document.getElementById('rsInfo').innerHTML = `Resend in <span id="rsT">${s}s</span>`;
+  clearInterval(rsIv);
+  rsIv = setInterval(() => {
+    s--;
+    const el = document.getElementById('rsT');
+    if (!el) { clearInterval(rsIv); return; }
+    if (s <= 0) { clearInterval(rsIv); document.getElementById('rsInfo').innerHTML = 'Nahi mila? <span onclick="resend()" style="color:var(--gold2);cursor:pointer;font-weight:600">Resend karo</span>'; }
+    else el.textContent = s + 's';
+  }, 1000);
+}
+function resend() { showT('📱 OTP resent!', 'ok'); startRs(); }
+function oM(el, nId) { el.value = el.value.replace(/\D/g,'').slice(0,1); if(el.value){el.classList.add('fl');if(nId)document.getElementById(nId).focus();}else el.classList.remove('fl'); }
+function oB(e, el, pId) { if(e.key==='Backspace'&&!el.value&&pId){const p=document.getElementById(pId);p.focus();p.value='';p.classList.remove('fl');} }
+function togE(btn) { const i=btn.parentElement.querySelector('input');i.type=i.type==='password'?'text':'password';btn.textContent=i.type==='password'?'👁️':'🙈'; }
+
+// ════ HOME / BOOKING ════
+function swapLoc() {
+  const p = document.getElementById('pickupInp');
+  const d = document.getElementById('dropInp');
+  const tmp = p.value;
+  p.value = d.value;
+  d.value = tmp;
+  showT('↕️ Locations swap ho gayi!');
+}
+function setDrop(place) {
+  document.getElementById('dropInp').value = place;
+  STATE.drop = place;
+  showT('📍 Drop: ' + place);
+}
+function goToRideSelect() {
+  const pickup = document.getElementById('pickupInp').value;
+  const drop = document.getElementById('dropInp').value;
+  if (!drop || drop.trim() === '') { showT('⚠️ Drop location enter karo', 'er'); return; }
+  STATE.pickup = pickup;
+  STATE.drop = drop;
+  document.getElementById('pickupShow').textContent = pickup;
+  document.getElementById('dropShow').textContent = drop;
+  document.getElementById('tripDrop').textContent = '🟡 ' + drop;
+  goTo('sRide');
+}
+function bnClick(el, id) {
+  document.querySelectorAll('.bn-item').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  if (id === 'trips') showT('📋 Trip history coming soon!');
+  else if (id === 'wallet') showT('👛 Wallet balance: ₹0 — Add money coming soon!');
+  else if (id === 'profile') showT('👤 Profile page coming soon!');
+}
+
+// ════ RIDE SELECTION ════
+let selectedFare = 89, selectedRide = 'Mini EV';
+function selectRide(el, fare, name) {
+  document.querySelectorAll('.ride-card').forEach(c => { c.classList.remove('selected'); c.querySelector('.rc-check').textContent = ''; });
+  el.classList.add('selected');
+  el.querySelector('.rc-check').textContent = '✓';
+  selectedFare = fare; selectedRide = name;
+  STATE.fare = fare; STATE.rideType = name;
+  document.getElementById('confirmBtnTxt').textContent = `⚡ CONFIRM RIDE — ₹${fare}`;
+  showT(`✅ ${name} selected — ₹${fare}`);
+}
+function confirmRide() {
+  const drop = STATE.drop || document.getElementById('dropInp')?.value;
+  if (!drop) { showT('⚠️ Pehle drop location select karo', 'er'); return; }
+  goTo('sSearch');
+  // Update driver screen info
+  document.getElementById('dPickup').textContent = STATE.pickup;
+  document.getElementById('dDrop').textContent = STATE.drop;
+  document.getElementById('dFare').textContent = '₹' + STATE.fare;
+  document.getElementById('dRideType').textContent = STATE.rideType;
+  document.getElementById('totalFare').textContent = '₹' + STATE.fare;
+  document.getElementById('liveFare').textContent = '₹' + STATE.fare;
+  // Reset animations
+  const bar = document.getElementById('searchBar');
+  bar.style.animation = 'none'; void bar.offsetWidth; bar.style.animation = '';
+  const msgs = ['4 drivers nearby...', 'Connecting with Ramesh Kumar...', 'Driver accepted! ✅', 'Driver aa raha hai...'];
+  let mi = 0;
+  clearInterval(STATE.searchIv);
+  STATE.searchIv = setInterval(() => {
+    if (mi < msgs.length) document.getElementById('searchStatus').textContent = msgs[mi++];
+  }, 1500);
+  setTimeout(() => { clearInterval(STATE.searchIv); goTo('sDriver'); startEtaCountdown(); }, 6500);
+}
+
+// ════ DRIVER FOUND ════
+function startEtaCountdown() {
+  // Restart eta animation
+  const etaEl = document.querySelector('.eta-fill');
+  if(etaEl){ etaEl.style.animation='none'; void etaEl.offsetWidth; etaEl.style.animation=''; }
+  let mins = 4, secs = 0;
+  const el = document.getElementById('etaCountdown');
+  STATE.etaIv = setInterval(() => {
+    if (secs === 0) {
+      if (mins === 0) { clearInterval(STATE.etaIv); el.textContent = 'Here!'; el.style.color = 'var(--green)'; return; }
+      mins--; secs = 59;
+    } else secs--;
+    el.textContent = mins + ':' + (secs < 10 ? '0' : '') + secs;
+  }, 1000);
+  // Generate OTP
+  document.getElementById('tripOTP').textContent = Math.floor(1000 + Math.random() * 9000);
+}
+function startTrip() {
+  clearInterval(STATE.etaIv);
+  goTo('sTrip');
+  // Restart trip animations
+  ['eta-fill','tp-fill'].forEach(cls => {
+    const el = document.querySelector('.' + cls);
+    if(el){ el.style.animation='none'; void el.offsetWidth; el.style.animation=''; }
+  });
+  showT('🚀 Trip shuru ho gaya! Safe journey! 🙏', 'ok');
+}
+function cancelRide() {
+  clearInterval(STATE.etaIv);
+  showT('❌ Ride cancel ho gayi');
+  setTimeout(() => goTo('sHome'), 800);
+}
+
+// ════ TRIP ════
+function arrivedAtDest() {
+  // Dynamically calculate fare breakdown
+  const fare = STATE.fare;
+  const base = Math.round(fare * 0.5);
+  const dist = Math.round(fare * 0.37);
+  const plat = fare - base - dist;
+  document.getElementById('fbBase').textContent = '₹' + base;
+  document.getElementById('fbDist').textContent = '₹' + dist;
+  document.getElementById('fbPlat').textContent = '₹' + plat;
+  document.getElementById('totalFare').textContent = '₹' + fare;
+  goTo('sComplete');
+  showT('🎉 Aap pahunch gaye! Trip complete!', 'ok');
+}
+
+// ════ COMPLETE / PAYMENT ════
+let starRating = 5;
+function rateStar(n) {
+  starRating = n; STATE.starRating = n;
+  document.querySelectorAll('.star').forEach((s, i) => {
+    s.classList.toggle('lit', i < n);
+    s.style.transform = i < n ? 'scale(1.15)' : '';
+  });
+  showT(['😞 Better luck next time', '😐 Theek tha', '😊 Acha tha', '😃 Bahut acha!', '🤩 Excellent! 5 stars!'][n-1]);
+}
+function selPay(el) {
+  document.querySelectorAll('.pm').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  STATE.payMethod = el.querySelector('.pm-label').textContent;
+  showT('💳 ' + STATE.payMethod + ' selected');
+}
+function payAndFinish() {
+  showT(`✅ Payment ₹${STATE.fare} done via ${STATE.payMethod}! Thanks for using JDP Cabs 🚕`, 'ok');
+  setTimeout(() => {
+    // Reset and go home
+    document.getElementById('dropInp') && (document.getElementById('dropInp').value = '');
+    STATE.drop = ''; STATE.fare = 89; STATE.rideType = 'Mini EV';
+    goTo('sHome');
+    showT('🏠 Home pe aa gaye! Next trip book karo ⚡');
+  }, 2000);
+}
+
+// ════ TOAST ════
+function showT(msg, type = '') {
+  const t = document.getElementById('toastEl');
+  t.textContent = msg; t.className = 'toast show ' + type;
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ════ ENTRY ANIMATIONS ════
+window.addEventListener('load', () => {
+  document.querySelectorAll('.rc').forEach((c, i) => {
+    c.style.opacity = '0'; c.style.transform = 'translateY(20px)';
+    setTimeout(() => { c.style.transition = 'all .45s cubic-bezier(.34,1.56,.64,1)'; c.style.opacity = '1'; c.style.transform = ''; }, 250 + i * 120);
+  });
+});
 </script>
-
 </body>
 </html>
