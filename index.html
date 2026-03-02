@@ -2,7 +2,7 @@
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <title>JDP CABS 2026 — Complete</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
 <style>
@@ -42,9 +42,9 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
 .screen.slide-right{transform:translateX(100%);}
 
 /* ════ SCREEN 1 — LOGIN ════ */
-#sLogin{background:var(--bg);}
+#sLogin{background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;}
 
-.hero{position:relative;height:46vh;min-height:280px;overflow:hidden;flex-shrink:0;}
+.hero{position:relative;height:46vh;min-height:220px;max-height:320px;overflow:hidden;flex-shrink:1;}
 #rc{position:absolute;inset:0;width:100%;height:100%;display:block;}
 .hero-ui{position:absolute;inset:0;z-index:5;padding:18px 18px 0;pointer-events:none;}
 .top-bar{display:flex;justify-content:space-between;align-items:center;}
@@ -62,7 +62,8 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
 .brand-sub{font-size:11px;font-weight:400;color:rgba(240,240,255,.45);margin-top:4px;}
 
 .sheet{flex:1;background:linear-gradient(165deg,var(--bg2) 0%,var(--bg) 100%);border-radius:26px 26px 0 0;margin-top:-22px;
-  padding:0;position:relative;overflow:hidden;
+  padding:0;position:relative;overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
   animation:su .65s cubic-bezier(.16,1,.3,1) both;
   box-shadow:0 -1px 0 rgba(245,166,35,.12),0 -18px 55px rgba(0,0,0,.7);}
 @keyframes su{from{transform:translateY(65px);opacity:0;}to{transform:translateY(0);opacity:1;}}
@@ -71,7 +72,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
   animation:bs 3s linear infinite;background-size:200%;}
 @keyframes bs{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
 .sheet::after{content:'';position:absolute;top:9px;left:50%;transform:translateX(-50%);width:35px;height:3.5px;background:rgba(255,255,255,.09);border-radius:100px;}
-.inner{padding:20px 18px 0;}
+.inner{padding:20px 18px 100px;}
 
 .rl{text-align:center;font-size:9.5px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
 .role-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
@@ -358,6 +359,38 @@ input::placeholder{color:rgba(240,240,255,.18);}
 .bn-label{font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);transition:all .22s;}
 .bn-item.active .bn-icon{opacity:1;transform:scale(1.1);}
 .bn-item.active .bn-label{color:var(--gold2);}
+/* ═══ MOBILE KEYBOARD FIX ═══ */
+/* When keyboard opens, sheet stays scrollable */
+.sheet::-webkit-scrollbar{display:none;}
+.sheet{scrollbar-width:none;}
+
+/* Ensure CTA button never gets clipped */
+.cta{
+  position:relative;
+  z-index:10;
+  -webkit-transform:translateZ(0);
+  transform:translateZ(0);
+}
+
+/* Bottom safe area padding */
+.scr-in.active{
+  padding-bottom:env(safe-area-inset-bottom, 0);
+}
+
+/* Password screen specific - ensure button visible */
+#sPWD{
+  padding-bottom:20px;
+}
+
+/* Reduce hero faster on keyboard open via media query */
+@media (max-height: 500px) {
+  .hero{height:0 !important;min-height:0 !important;overflow:hidden !important;}
+  .brand-center{display:none;}
+}
+@media (max-height: 650px) {
+  .hero{height:30vh;min-height:160px;}
+}
+
 </style>
 </head>
 <body>
@@ -1260,6 +1293,45 @@ window.addEventListener('load', () => {
     setTimeout(() => { c.style.transition = 'all .45s cubic-bezier(.34,1.56,.64,1)'; c.style.opacity = '1'; c.style.transform = ''; }, 250 + i * 120);
   });
 });
+
+
+  // Ensure login button visible - scroll to it
+  document.addEventListener('click', function(e){
+    if(e.target.closest('#otpBtn, #sPWD .cta')){
+      const btn = e.target.closest('button');
+      if(btn) setTimeout(()=>btn.scrollIntoView({behavior:'smooth',block:'nearest'}), 100);
+    }
+  });
+
+  // ═══ KEYBOARD HANDLER — Fix login button visibility ═══
+(function(){
+  const hero = document.querySelector('.hero');
+  const sheet = document.querySelector('.sheet');
+  let origH = window.innerHeight;
+  
+  function onResize(){
+    const newH = window.innerHeight;
+    const diff = origH - newH;
+    // Keyboard opened (viewport shrunk > 150px)
+    if(diff > 150){
+      if(hero) hero.style.cssText = 'height:0;min-height:0;max-height:0;overflow:hidden;transition:all .3s ease;';
+    } else {
+      if(hero) hero.style.cssText = '';
+    }
+  }
+  window.addEventListener('resize', onResize);
+  
+  // Also scroll login button into view when input focused
+  document.querySelectorAll('#sPWD input, #sOTP input').forEach(inp => {
+    inp.addEventListener('focus', function(){
+      setTimeout(()=>{
+        const sheet = document.querySelector('.sheet');
+        if(sheet) sheet.scrollTop = sheet.scrollHeight;
+      }, 400);
+    });
+  });
+})();
+
 </script>
 </body>
 </html>
