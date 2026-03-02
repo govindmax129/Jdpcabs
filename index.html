@@ -1,396 +1,183 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>RideX</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<link href="
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thunderforest Uber-Style Navigation</title>
 
-https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    
+    <style>
+        :root { --primary-black: #000; --uber-green: #2ecc71; --soft-gray: #f6f6f6; }
+        body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; background: var(--soft-gray); }
+        #map { height: 100vh; width: 100%; z-index: 1; }
 
-" rel="stylesheet">
-<style>
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
-body{font-family:'Inter',sans-serif;background:#000;color:#fff;height:100vh;width:100vw;overflow:hidden}
-#splash{position:fixed;inset:0;background:#000;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .5s}
-#splash.out{opacity:0;pointer-events:none}
-.sp-logo{font-size:68px;font-weight:900;letter-spacing:-3px}
-.sp-logo span{color:#276EF1}
-.sp-tag{font-size:13px;color:rgba(255,255,255,.4);font-weight:500;letter-spacing:2px;text-transform:uppercase;margin-top:8px}
-.sp-bar{width:180px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:56px;overflow:hidden}
-.sp-fill{height:100%;background:#276EF1;border-radius:2px;animation:spf 2.3s ease forwards}
-@keyframes spf{0%{width:0}100%{width:100%}}
-.screen{display:none;position:fixed;inset:0;overflow:hidden}
-.screen.on{display:block}
-#map{width:100%;height:100%;position:absolute}
-.topbar{position:absolute;top:0;left:0;right:0;z-index:10;padding:48px 16px 0}
-.loc-card{background:#fff;border-radius:14px;padding:13px 15px;display:flex;align-items:center;gap:11px;box-shadow:0 4px 24px rgba(0,0,0,.25)}
-.loc-av{width:36px;height:36px;border-radius:50%;background:#000;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;flex-shrink:0}
-.loc-txt{flex:1;min-width:0}
-.loc-g{font-size:11px;color:#888;font-weight:500}
-.loc-a{font-size:14px;font-weight:700;color:#000;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.loc-bell{width:36px;height:36px;border-radius:50%;background:#f5f5f5;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer}
-.home-sheet{position:absolute;bottom:0;left:0;right:0;z-index:10;background:#fff;border-radius:20px 20px 0 0;padding:14px 18px 100px}
-.sh-handle{width:40px;height:4px;background:#e5e5e5;border-radius:2px;margin:0 auto 16px}
-.where-btn{width:100%;background:#000;color:#fff;border:none;border-radius:12px;padding:16px 18px;font-size:16px;font-weight:700;text-align:left;display:flex;align-items:center;gap:11px;cursor:pointer;font-family:'Inter',sans-serif;margin-bottom:18px}
-.wb-dot{width:22px;height:22px;border-radius:50%;background:#276EF1;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
-.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:18px}
-.qitem{background:#f6f6f6;border-radius:12px;padding:13px;display:flex;align-items:center;gap:9px;cursor:pointer;border:none;font-family:'Inter',sans-serif;text-align:left}
-.qitem:active{background:#ebebeb}
-.qi{width:36px;height:36px;border-radius:10px;background:#ebebeb;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
-.ql{font-size:13px;font-weight:700;color:#000}
-.qs{font-size:11px;color:#888;margin-top:1px}
-.rec-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.rec-ttl{font-size:15px;font-weight:800;color:#000}
-.rec-more{font-size:13px;color:#276EF1;font-weight:600;cursor:pointer}
-.rec-item{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid #f5f5f5;cursor:pointer}
-.rec-item:last-child{border-bottom:none}
-.rec-ic{width:36px;height:36px;border-radius:50%;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
-.rec-t{font-size:14px;font-weight:600;color:#000}
-.rec-s{font-size:11px;color:#888;margin-top:2px}
-.rec-arr{color:#ccc;margin-left:auto;font-size:18px}
-.bnav{position:absolute;bottom:0;left:0;right:0;z-index:20;background:#fff;border-top:1px solid #f0f0f0;display:flex;padding:10px 0 24px}
-.bn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:5px 0;border:none;background:none;font-family:'Inter',sans-serif}
-.bn .bi{font-size:20px}
-.bn .bl{font-size:10px;font-weight:600;color:#aaa}
-.bn.on .bl{color:#000}
-#sc-search{background:#fff;overflow-y:auto}
-.srch-hdr{background:#fff;padding:48px 16px 14px;border-bottom:1px solid #f0f0f0;position:sticky;top:0;z-index:5}
-.back{width:36px;height:36px;border-radius:50%;background:#f5f5f5;border:none;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
-.srch-box{background:#f5f5f5;border-radius:14px;overflow:hidden}
-.srch-row{display:flex;align-items:center;gap:9px;padding:12px 13px;background:#fff;margin:2px;border-radius:10px}
-.sd{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-.sd-g{background:#00C853}.sd-b{background:#000}
-.srch-row input{border:none;background:transparent;flex:1;font-size:15px;font-family:'Inter',sans-serif;color:#000;outline:none;font-weight:500}
-.srch-row input::placeholder{color:#aaa}
-.sdiv{height:1px;background:#f5f5f5;margin:0 10px}
-.sug-list{padding:0 16px}
-.sug-hdr{padding:14px 0 8px;font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px}
-.sug{display:flex;align-items:center;gap:13px;padding:13px 0;border-bottom:1px solid #f8f8f8;cursor:pointer}
-.sug-ic{width:38px;height:38px;border-radius:50%;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
-.sug-t{font-size:14px;font-weight:600;color:#000}
-.sug-s{font-size:12px;color:#888;margin-top:3px}
-#sc-ride{background:#f5f5f5}
-.ride-map-wrap{height:42vh;position:relative}
-#rideMap{width:100%;height:100%}
-.ride-back{position:absolute;top:48px;left:14px;z-index:10;width:36px;height:36px;border-radius:50%;background:#fff;border:none;font-size:18px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center}
-.ride-sheet{background:#fff;padding:14px 18px;height:58vh;overflow-y:auto}
-.rs-handle{width:40px;height:4px;background:#e5e5e5;border-radius:2px;margin:0 auto 14px}
-.rs-title{font-size:18px;font-weight:800;color:#000;margin-bottom:4px}
-.rs-sub{font-size:13px;color:#666;margin-bottom:14px}
-.ropt-list{display:flex;flex-direction:column;gap:3px;margin-bottom:14px}
-.ropt{display:flex;align-items:center;gap:13px;padding:14px 12px;border-radius:12px;border:2px solid transparent;cursor:pointer;background:#fff}
-.ropt.sel{border-color:#000;background:#f9f9f9}
-.ro-em{width:50px;height:36px;display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0}
-.ro-inf{flex:1}
-.ro-nm{font-size:15px;font-weight:700;color:#000}
-.ro-ds{font-size:12px;color:#666;margin-top:2px}
-.ro-pr{text-align:right}
-.ro-fa{font-size:16px;font-weight:800;color:#000}
-.ro-et{font-size:11px;color:#666;margin-top:2px}
-.promo-bar{display:flex;align-items:center;justify-content:space-between;padding:13px;background:#f5f5f5;border-radius:12px;margin-bottom:14px}
-.promo-l{font-size:14px;font-weight:600;color:#000}
-.promo-r{font-size:13px;font-weight:700;color:#276EF1;cursor:pointer}
-.confirm-btn{width:100%;padding:16px;background:#000;color:#fff;border:none;border-radius:13px;font-size:16px;font-weight:800;cursor:pointer;font-family:'Inter',sans-serif}
-#sc-track{background:#f5f5f5}
-.trk-map-wrap{height:44vh;position:relative}
-#trackMap{width:100%;height:100%}
-.trk-sheet{position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:18px 18px 24px;box-shadow:0 -4px 24px rgba(0,0,0,.1)}
-.trk-status{font-size:12px;font-weight:700;color:#276EF1;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
-.trk-title{font-size:20px;font-weight:900;color:#000;margin-bottom:14px}
-.drv-card{display:flex;align-items:center;gap:13px;background:#f8f8f8;border-radius:13px;padding:13px;margin-bottom:13px}
-.drv-av{width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#276EF1,#7356BF);display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:900;flex-shrink:0}
-.drv-inf{flex:1}
-.drv-nm{font-size:15px;font-weight:800;color:#000}
-.drv-car{font-size:12px;color:#666;margin-top:2px}
-.drv-rt{font-size:12px;color:#000;margin-top:3px}
-.drv-plate{background:#000;color:#fff;padding:6px 11px;border-radius:8px;font-size:12px;font-weight:800;letter-spacing:2px}
-.eta-band{display:flex;align-items:center;justify-content:space-between;background:#000;color:#fff;border-radius:12px;padding:13px 15px;margin-bottom:12px}
-.eta-n{font-size:28px;font-weight:900;line-height:1}
-.eta-l{font-size:11px;opacity:.6;margin-top:2px}
-.eta-bar-wrap{flex:1;height:4px;background:rgba(255,255,255,.15);border-radius:2px;overflow:hidden;margin:0 14px}
-.eta-fill{height:100%;background:#276EF1;border-radius:2px;animation:etaf 12s linear forwards}
-@keyframes etaf{from{width:5%}to{width:90%}}
-.eta-live{font-size:12px;font-weight:700;color:#00C853}
-.trk-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
-.trk-btn{padding:12px 8px;background:#f5f5f5;border-radius:12px;border:none;cursor:pointer;text-align:center;font-size:12px;font-weight:700;color:#000;font-family:'Inter',sans-serif}
-.trk-btn .tbi{font-size:22px;display:block;margin-bottom:4px}
-.trk-btn.red{color:#E11900}
-#sc-rider{background:#f5f5f5;overflow-y:auto;height:100vh;padding-bottom:80px}
-.prof-hdr{background:#000;padding:56px 20px 22px}
-.prof-top{display:flex;align-items:center;gap:13px;margin-bottom:18px}
-.prof-av{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#276EF1,#7356BF);display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:900;flex-shrink:0}
-.prof-nm{font-size:20px;font-weight:800}
-.prof-em{font-size:12px;opacity:.5;margin-top:3px}
-.prof-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:rgba(255,255,255,.1);border-radius:13px;overflow:hidden}
-.pst{background:rgba(255,255,255,.06);padding:13px;text-align:center}
-.pst-v{font-size:21px;font-weight:800}
-.pst-l{font-size:10px;opacity:.55;margin-top:4px;text-transform:uppercase;letter-spacing:.4px}
-.rider-body{padding:16px}
-.scard{background:#fff;border-radius:15px;padding:15px;margin-bottom:12px}
-.scard-t{font-size:15px;font-weight:800;color:#000;margin-bottom:13px;display:flex;justify-content:space-between;align-items:center}
-.scard-more{font-size:12px;font-weight:700;color:#276EF1;cursor:pointer}
-.trip-row{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid #f5f5f5}
-.trip-row:last-child{border-bottom:none}
-.trip-ic{width:36px;height:36px;border-radius:50%;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
-.trip-inf{flex:1;min-width:0}
-.trip-d{font-size:13px;font-weight:700;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.trip-t{font-size:11px;color:#888;margin-top:3px}
-.trip-p{font-size:14px;font-weight:700;color:#000}
-.tbadge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;margin-top:4px}
-.tb-done{background:#E6F5EC;color:#00A550}
-.tb-cancel{background:#FFF0EE;color:#E11900}
-.pay-row2{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid #f5f5f5}
-.pay-row2:last-child{border-bottom:none}
-.pay-ic2{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;background:#E8F1FF}
-.pay-ic2.wlt{background:#F3EFFF}
-.pay-inf2{flex:1}
-.pay-n2{font-size:13px;font-weight:700;color:#000}
-.pay-s2{font-size:11px;color:#888;margin-top:2px}
-.pay-act2{font-size:12px;font-weight:700}
-.pa-green{color:#00A550}
-.pa-blue{color:#276EF1;cursor:pointer}
-.switch-btn{width:100%;padding:15px;background:#000;color:#fff;border:none;border-radius:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;margin-top:4px}
-.rider-bnav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #f0f0f0;display:flex;padding:10px 0 24px;z-index:20}
-#sc-driver{background:#f5f5f5;overflow-y:auto;height:100vh;padding-bottom:30px}
-.drv-hdr{background:#000;padding:56px 20px 22px}
-.drv-top2{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
-.drv-av2{width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#276EF1,#7356BF);display:flex;align-items:center;justify-content:center;color:#fff;font-size:21px;font-weight:900;flex-shrink:0}
-.drv-nm2{font-size:19px;font-weight:800}
-.drv-sub2{font-size:12px;opacity:.5;margin-top:3px}
-.tog-area{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
-.tog-lbl2{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
-.tog2{position:relative;width:56px;height:30px}
-.tog2 input{display:none}
-.tog-tr{position:absolute;inset:0;background:#333;border-radius:99px;transition:background .3s}
-.tog2 input:checked+.tog-tr{background:#00C853}
-.tog-th{position:absolute;top:3px;left:3px;width:24px;height:24px;background:#fff;border-radius:50%;transition:transform .3s;box-shadow:0 2px 8px rgba(0,0,0,.3)}
-.tog2 input:checked~.tog-th{transform:translateX(26px)}
-.drv-stats2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:rgba(255,255,255,.1);border-radius:13px;overflow:hidden}
-.dst{background:rgba(255,255,255,.06);padding:13px;text-align:center}
-.dst-v{font-size:20px;font-weight:800}
-.dst-l{font-size:10px;opacity:.55;margin-top:4px;text-transform:uppercase;letter-spacing:.3px}
-.drv-body{padding:16px}
-.inc-card{background:#fff;border-radius:15px;padding:15px;margin-bottom:12px;border:2px solid #276EF1;position:relative;overflow:hidden}
-.inc-pulse{position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#276EF1,#7356BF,#276EF1);background-size:200%;animation:ip 1.6s linear infinite}
-@keyframes ip{0%{background-position:0%}100%{background-position:200%}}
-.inc-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:13px}
-.inc-title{font-size:15px;font-weight:800;color:#000}
-.inc-badge{background:#E8F1FF;color:#276EF1;font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px}
-.inc-rider-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.inc-rider-l{display:flex;align-items:center;gap:10px}
-.inc-av{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#FF6B6B,#FF8E53);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;flex-shrink:0}
-.inc-rn{font-size:14px;font-weight:700;color:#000}
-.inc-rr{font-size:12px;color:#888;margin-top:2px}
-.inc-fare{font-size:22px;font-weight:900;color:#000}
-.inc-route{background:#f8f8f8;border-radius:11px;padding:12px 13px;margin-bottom:12px}
-.ir-from,.ir-to{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#000;padding:3px 0}
-.ir-sep{height:10px;border-left:2px dashed #ccc;margin-left:4px}
-.ird-g{width:10px;height:10px;border-radius:50%;background:#00C853;flex-shrink:0}
-.ird-r{width:10px;height:10px;border-radius:50%;background:#E11900;flex-shrink:0}
-.ir-meta{display:flex;gap:14px;font-size:12px;color:#666;font-weight:600;margin-top:8px;padding-top:8px;border-top:1px solid #eee}
-.ir-meta span{color:#000;font-weight:700}
-.inc-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.btn-acc{padding:14px;background:#000;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;font-family:'Inter',sans-serif}
-.btn-dec{padding:14px;background:#f0f0f0;color:#666;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
-.earn-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
-.ec{background:#fff;border-radius:13px;padding:15px}
-.ec-v{font-size:24px;font-weight:900;color:#000}
-.ec-l{font-size:11px;color:#888;margin-top:4px;text-transform:uppercase;letter-spacing:.3px}
-.ec-s{font-size:12px;font-weight:700;color:#00A550;margin-top:5px}
-.ec.dark{background:#000}
-.ec.dark .ec-v{color:#fff}
-.ec.dark .ec-l{color:rgba(255,255,255,.4)}
-.ec.dark .ec-s{color:rgba(255,255,255,.7)}
-.switch-btn2{width:100%;padding:15px;background:#f0f0f0;color:#000;border:none;border-radius:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;margin-top:4px}
-.leaflet-tile-pane{filter:brightness(.9) invert(1) hue-rotate(180deg) saturate(.7) brightness(.8)}
-.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(12px);background:#000;color:#fff;padding:11px 22px;border-radius:99px;font-size:13px;font-weight:700;z-index:9999;opacity:0;transition:all .25s;white-space:nowrap;pointer-events:none}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-::-webkit-scrollbar{width:0;height:0}
-</style>
+        /* Floating Panel UI */
+        .main-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: white;
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            width: 350px;
+        }
+
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .badge { background: var(--uber-green); color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+
+        /* Custom Search Styling */
+        #search-box { margin-bottom: 20px; }
+        .leaflet-control-geocoder { 
+            width: 100% !important; 
+            box-shadow: none !important; 
+            border: 1px solid #ddd !important; 
+            border-radius: 8px !important; 
+        }
+        .leaflet-control-geocoder-form input { width: 100% !important; padding: 10px !important; font-size: 14px; }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px; }
+        .stat-box { text-align: left; }
+        .stat-label { font-size: 12px; color: #888; display: block; }
+        .stat-value { font-size: 18px; font-weight: bold; color: var(--primary-black); }
+
+        .btn-primary {
+            width: 100%;
+            background: var(--primary-black);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: transform 0.2s;
+        }
+        .btn-primary:active { transform: scale(0.98); }
+
+        /* Hide Default Routing List */
+        .leaflet-routing-container { display: none !important; }
+    </style>
 </head>
 <body>
-<div id="splash"><div class="sp-logo">ride<span>X</span></div><div class="sp-tag">Move smarter every day</div><div class="sp-bar"><div class="sp-fill"></div></div></div>
-<div class="toast" id="toast"></div>
 
-<!-- HOME -->
-<div class="screen on" id="sc-home">
-  <div id="map"></div>
-  <div class="topbar"><div class="loc-card"><div class="loc-av">R</div><div class="loc-txt"><div class="loc-g">Good morning, Rahul 👋</div><div class="loc-a">📍 Connaught Place, New Delhi</div></div><div class="loc-bell" onclick="T('🔔 No new notifications')">🔔</div></div></div>
-  <div class="home-sheet">
-    <div class="sh-handle"></div>
-    <button class="where-btn" onclick="go('sc-search')"><div class="wb-dot">🔍</div>Where are you going?</button>
-    <div class="quick-grid">
-      <button class="qitem" onclick="goDest('Home — Rohini Sec 15')"><div class="qi">🏠</div><div><div class="ql">Home</div><div class="qs">Rohini Sec 15</div></div></button>
-      <button class="qitem" onclick="goDest('Work — Cyber Hub')"><div class="qi">🏢</div><div><div class="ql">Work</div><div class="qs">Cyber Hub, Gurgaon</div></div></button>
-      <button class="qitem" onclick="goDest('IGI Airport T3')"><div class="qi">✈️</div><div><div class="ql">Airport</div><div class="qs">IGI Terminal 3</div></div></button>
-      <button class="qitem" onclick="goDest('DLF Mall, Saket')"><div class="qi">🛍️</div><div><div class="ql">DLF Mall</div><div class="qs">Saket, Delhi</div></div></button>
+<div class="main-panel">
+    <div class="header">
+        <h2 style="margin:0; font-size: 20px;">Nagivaton Panel</h2>
+        <span class="badge">LIVE</span>
     </div>
-    <div class="rec-hdr"><div class="rec-ttl">Recent</div><div class="rec-more" onclick="go('sc-rider')">See all</div></div>
-    <div class="rec-item" onclick="goDest('IGI Airport T3')"><div class="rec-ic">✈️</div><div><div class="rec-t">IGI Airport — T3</div><div class="rec-s">Today · ₹320</div></div><div class="rec-arr">›</div></div>
-    <div class="rec-item" onclick="goDest('Saket Metro')"><div class="rec-ic">🚉</div><div><div class="rec-t">Saket Metro Station</div><div class="rec-s">Yesterday · ₹65</div></div><div class="rec-arr">›</div></div>
-  </div>
-  <div class="bnav">
-    <button class="bn on" onclick="go('sc-home')"><span class="bi">🏠</span><span class="bl">Home</span></button>
-    <button class="bn" onclick="go('sc-rider')"><span class="bi">🕐</span><span class="bl">Activity</span></button>
-    <button class="bn" onclick="T('💬 Coming soon')"><span class="bi">💬</span><span class="bl">Messages</span></button>
-    <button class="bn" onclick="go('sc-rider')"><span class="bi">👤</span><span class="bl">Account</span></button>
-  </div>
+
+    <div id="search-box">
+        <label style="font-size: 12px; font-weight: bold; color: #555;">WHERE TO?</label>
+        <div id="geocoder-input"></div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-box">
+            <span class="stat-label">DISTANCE</span>
+            <span class="stat-value" id="dist-txt">0.0 km</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-label">TIME (ETA)</span>
+            <span class="stat-value" id="time-txt">0 mins</span>
+        </div>
+    </div>
+
+    <button class="btn-primary" onclick="startRide()">Book Ride Now</button>
 </div>
 
-<!-- SEARCH -->
-<div class="screen" id="sc-search">
-  <div class="srch-hdr">
-    <button class="back" onclick="go('sc-home')">←</button>
-    <div class="srch-box">
-      <div class="srch-row"><div class="sd sd-g"></div><input type="text" value="📍 Connaught Place, New Delhi" readonly></div>
-      <div class="sdiv"></div>
-      <div class="srch-row"><div class="sd sd-b"></div><input type="text" id="destInput" placeholder="Where to?"></div>
-    </div>
-  </div>
-  <div class="sug-list">
-    <div class="sug-hdr">Suggestions</div>
-    <div class="sug" onclick="pickDest('Home — Rohini Sec 15')"><div class="sug-ic">🏠</div><div><div class="sug-t">Home</div><div class="sug-s">Rohini Sector 15, Delhi</div></div></div>
-    <div class="sug" onclick="pickDest('Work — Cyber Hub, Gurgaon')"><div class="sug-ic">🏢</div><div><div class="sug-t">Work</div><div class="sug-s">Cyber Hub, DLF CyberCity, Gurgaon</div></div></div>
-    <div class="sug" onclick="pickDest('IGI Airport — Terminal 3')"><div class="sug-ic">✈️</div><div><div class="sug-t">IGI Airport — Terminal 3</div><div class="sug-s">New Delhi Airport</div></div></div>
-    <div class="sug" onclick="pickDest('DLF Promenade, Saket')"><div class="sug-ic">🛍️</div><div><div class="sug-t">DLF Promenade, Saket</div><div class="sug-s">Nelson Mandela Marg, Delhi</div></div></div>
-    <div class="sug" onclick="pickDest('AIIMS New Delhi')"><div class="sug-ic">🏥</div><div><div class="sug-t">AIIMS New Delhi</div><div class="sug-s">Ansari Nagar, New Delhi</div></div></div>
-    <div class="sug" onclick="pickDest('Hauz Khas Village')"><div class="sug-ic">🍽️</div><div><div class="sug-t">Hauz Khas Village</div><div class="sug-s">South Delhi</div></div></div>
-    <div class="sug" onclick="pickDest('Noida Sector 18')"><div class="sug-ic">🏙️</div><div><div class="sug-t">Noida Sector 18 Metro</div><div class="sug-s">Noida, Uttar Pradesh</div></div></div>
-    <div class="sug" onclick="pickDest('Lajpat Nagar Metro')"><div class="sug-ic">🚉</div><div><div class="sug-t">Lajpat Nagar Metro</div><div class="sug-s">Ring Road, New Delhi</div></div></div>
-  </div>
-</div>
+<div id="map"></div>
 
-<!-- RIDE SELECT -->
-<div class="screen" id="sc-ride">
-  <div class="ride-map-wrap"><div id="rideMap"></div><button class="ride-back" onclick="go('sc-search')">←</button></div>
-  <div class="ride-sheet">
-    <div class="rs-handle"></div>
-    <div class="rs-title">Choose a ride</div>
-    <div class="rs-sub" id="rsSub">To: —</div>
-    <div class="ropt-list">
-      <div class="ropt sel" onclick="selRide(this,'₹80','3','UberGo')"><div class="ro-em">🚗</div><div class="ro-inf"><div class="ro-nm">UberGo / Mini</div><div class="ro-ds">Affordable compact rides</div></div><div class="ro-pr"><div class="ro-fa">₹80</div><div class="ro-et">3 min</div></div></div>
-      <div class="ropt" onclick="selRide(this,'₹130','2','Sedan')"><div class="ro-em">🚙</div><div class="ro-inf"><div class="ro-nm">Sedan / Premier</div><div class="ro-ds">Comfortable sedans</div></div><div class="ro-pr"><div class="ro-fa">₹130</div><div class="ro-et">2 min</div></div></div>
-      <div class="ropt" onclick="selRide(this,'₹195','4','UberXL')"><div class="ro-em">🚐</div><div class="ro-inf"><div class="ro-nm">UberXL / SUV</div><div class="ro-ds">For groups up to 6</div></div><div class="ro-pr"><div class="ro-fa">₹195</div><div class="ro-et">4 min</div></div></div>
-      <div class="ropt" onclick="selRide(this,'₹55','5','Auto')"><div class="ro-em">🛺</div><div class="ro-inf"><div class="ro-nm">Auto Rickshaw</div><div class="ro-ds">Quick local trips</div></div><div class="ro-pr"><div class="ro-fa">₹55</div><div class="ro-et">5 min</div></div></div>
-      <div class="ropt" onclick="selRide(this,'₹38','1','Moto')"><div class="ro-em">🏍️</div><div class="ro-inf"><div class="ro-nm">Bike / Moto</div><div class="ro-ds">Beat traffic fast</div></div><div class="ro-pr"><div class="ro-fa">₹38</div><div class="ro-et">1 min</div></div></div>
-    </div>
-    <div class="promo-bar"><div class="promo-l">🏷️ Add promo code</div><div class="promo-r" onclick="T('🏷️ Code RIDE50 applied!')">Add</div></div>
-    <button class="confirm-btn" id="confBtn" onclick="confirmRide()">Confirm UberGo — ₹80</button>
-  </div>
-</div>
-
-<!-- TRACKING -->
-<div class="screen" id="sc-track">
-  <div class="trk-map-wrap"><div id="trackMap"></div></div>
-  <div class="trk-sheet">
-    <div class="trk-status">🟢 Driver on the way</div>
-    <div class="trk-title" id="trkTitle">Ramesh is 3 min away</div>
-    <div class="drv-card">
-      <div class="drv-av">R</div>
-      <div class="drv-inf"><div class="drv-nm">Ramesh Kumar</div><div class="drv-car">🚗 Maruti Swift Dzire · White</div><div class="drv-rt">⭐ 4.8 · 1,240 trips</div></div>
-      <div class="drv-plate">DL 4C 2891</div>
-    </div>
-    <div class="eta-band">
-      <div><div class="eta-n" id="etaN">3</div><div class="eta-l">min away</div></div>
-      <div class="eta-bar-wrap"><div class="eta-fill"></div></div>
-      <div class="eta-live">● Live</div>
-    </div>
-    <div style="height:10px"></div>
-    <div class="trk-actions">
-      <button class="trk-btn" onclick="T('📞 Calling Ramesh...')"><span class="tbi">📞</span>Call</button>
-      <button class="trk-btn" onclick="T('💬 Chat opening...')"><span class="tbi">💬</span>Chat</button>
-      <button class="trk-btn red" onclick="cancelRide()"><span class="tbi">✖️</span>Cancel</button>
-    </div>
-  </div>
-</div>
-
-<!-- RIDER -->
-<div class="screen" id="sc-rider">
-  <div class="prof-hdr">
-    <div class="prof-top"><div class="prof-av">R</div><div><div class="prof-nm">Rahul Sharma</div><div class="prof-em">rahul@gmail.com · +91 98765 43210</div></div></div>
-    <div class="prof-stats"><div class="pst"><div class="pst-v">48</div><div class="pst-l">Rides</div></div><div class="pst"><div class="pst-v">⭐4.6</div><div class="pst-l">Rating</div></div><div class="pst"><div class="pst-v">₹620</div><div class="pst-l">Saved</div></div></div>
-  </div>
-  <div class="rider-body">
-    <div class="scard">
-      <div class="scard-t">Recent Trips <span class="scard-more" onclick="T('All trips...')">See all</span></div>
-      <div class="trip-row"><div class="trip-ic">✈️</div><div class="trip-inf"><div class="trip-d">CP → IGI Airport T3</div><div class="trip-t">Today, 9:00 AM · Mini</div><span class="tbadge tb-done">Completed</span></div><div class="trip-p">₹320</div></div>
-      <div class="trip-row"><div class="trip-ic">🛺</div><div class="trip-inf"><div class="trip-d">Lajpat Nagar → Saket</div><div class="trip-t">Yesterday · Auto</div><span class="tbadge tb-done">Completed</span></div><div class="trip-p">₹65</div></div>
-      <div class="trip-row"><div class="trip-ic">🚗</div><div class="trip-inf"><div class="trip-d">Karol Bagh → Dwarka</div><div class="trip-t">28 Feb · Sedan</div><span class="tbadge tb-cancel">Cancelled</span></div><div class="trip-p">—</div></div>
-      <div class="trip-row"><div class="trip-ic">🏍️</div><div class="trip-inf"><div class="trip-d">Nehru Place → Noida</div><div class="trip-t">27 Feb · Bike</div><span class="tbadge tb-done">Completed</span></div><div class="trip-p">₹90</div></div>
-    </div>
-    <div class="scard">
-      <div class="scard-t">Payments <span class="scard-more" onclick="T('Add payment')">+ Add</span></div>
-      <div class="pay-row2"><div class="pay-ic2">💳</div><div class="pay-inf2"><div class="pay-n2">UPI — rahul@okaxis</div><div class="pay-s2">Linked to SBI · Primary</div></div><div class="pay-act2 pa-green">✓ Default</div></div>
-      <div class="pay-row2"><div class="pay-ic2 wlt">💰</div><div class="pay-inf2"><div class="pay-n2">Uber Wallet</div><div class="pay-s2">Balance: ₹150</div></div><div class="pay-act2 pa-blue" onclick="T('Top up...')">Top Up</div></div>
-    </div>
-    <button class="switch-btn" onclick="go('sc-driver')">Switch to Driver Mode 🚗</button>
-  </div>
-  <div class="rider-bnav">
-    <button class="bn" onclick="go('sc-home')"><span class="bi">🏠</span><span class="bl">Home</span></button>
-    <button class="bn on"><span class="bi">🕐</span><span class="bl">Activity</span></button>
-    <button class="bn" onclick="T('Messages')"><span class="bi">💬</span><span class="bl">Messages</span></button>
-    <button class="bn on"><span class="bi">👤</span><span class="bl">Account</span></button>
-  </div>
-</div>
-
-<!-- DRIVER -->
-<div class="screen" id="sc-driver">
-  <div class="drv-hdr">
-    <div class="drv-top2">
-      <div style="display:flex;align-items:center;gap:12px"><div class="drv-av2">D</div><div><div class="drv-nm2">Ramesh Kumar</div><div class="drv-sub2">DL 4C 2891 · Swift Dzire</div></div></div>
-      <div class="tog-area"><div class="tog-lbl2" id="togLbl">OFFLINE</div><label class="tog2"><input type="checkbox" id="dTog" onchange="toggleDriver(this)"><div class="tog-tr"></div><div class="tog-th"></div></label></div>
-    </div>
-    <div class="drv-stats2"><div class="dst"><div class="dst-v">₹1,240</div><div class="dst-l">Today</div></div><div class="dst"><div class="dst-v">18</div><div class="dst-l">Trips</div></div><div class="dst"><div class="dst-v">⭐4.9</div><div class="dst-l">Rating</div></div></div>
-  </div>
-  <div class="drv-body">
-    <div class="inc-card" id="incCard" style="display:none">
-      <div class="inc-pulse"></div>
-      <div class="inc-hdr"><div class="inc-title">🔔 New Ride Request</div><div class="inc-badge">3.2 km away</div></div>
-      <div class="inc-rider-row"><div class="inc-rider-l"><div class="inc-av">A</div><div><div class="inc-rn">Ananya Singh</div><div class="inc-rr">⭐ 4.7 · 42 rides</div></div></div><div class="inc-fare">₹95</div></div>
-      <div class="inc-route">
-        <div class="ir-from"><div class="ird-g"></div>Hauz Khas Village, South Delhi</div>
-        <div class="ir-sep"></div>
-        <div class="ir-to"><div class="ird-r"></div>South Extension Part 2</div>
-        <div class="ir-meta">📏 <span>5.1 km</span> &nbsp;⏱ <span>~12 min</span> &nbsp;💰 <span>₹95</span></div>
-      </div>
-      <div class="inc-btns"><button class="btn-acc" onclick="acceptRide()">✓ Accept</button><button class="btn-dec" onclick="declineRide()">✕ Decline</button></div>
-    </div>
-    <div class="earn-grid">
-      <div class="ec dark"><div class="ec-v">₹6,840</div><div class="ec-l">Weekly</div><div class="ec-s">↑ 18% vs last week</div></div>
-      <div class="ec"><div class="ec-v">94%</div><div class="ec-l">Acceptance</div><div class="ec-s">Keep above 90%!</div></div>
-      <div class="ec"><div class="ec-v">₹500</div><div class="ec-l">Bonus</div><div class="ec-s">Peak hour bonus 🔥</div></div>
-      <div class="ec"><div class="ec-v">4.9⭐</div><div class="ec-l">Rating</div><div class="ec-s">Top rated driver!</div></div>
-    </div>
-    <div class="scard">
-      <div class="scard-t">Today's Trips</div>
-      <div class="trip-row"><div class="trip-ic">🚗</div><div class="trip-inf"><div class="trip-d">Lajpat Nagar → Nehru Place</div><div class="trip-t">10:30 AM</div><span class="tbadge tb-done">Done</span></div><div class="trip-p">₹85</div></div>
-      <div class="trip-row"><div class="trip-ic">🚗</div><div class="trip-inf"><div class="trip-d">CP → Dwarka Sec 10</div><div class="trip-t">9:15 AM</div><span class="tbadge tb-done">Done</span></div><div class="trip-p">₹210</div></div>
-      <div class="trip-row"><div class="trip-ic">🚗</div><div class="trip-inf"><div class="trip-d">Rohini West → Pitampura</div><div class="trip-t">8:00 AM</div><span class="tbadge tb-done">Done</span></div><div class="trip-p">₹65</div></div>
-    </div>
-    <button class="switch-btn2" onclick="go('sc-home')">Switch to Rider Mode 👤</button>
-  </div>
-</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
 <script>
-var M={},rD=false,tD=false,eTmr,fare='₹80',eta='3',rN='UberGo';
-setTimeout(function(){var s=document.getElementById('splash');s.classList.add('out');setTimeout(function(){s.style.display='none';initH();},520);},2500);
-function initH(){if(M.h)return;M.h=L.map('map',{zoomControl:false,attributionControl:false,dragging:true,scrollWheelZoom:false}).setView([28.6139,77.2090],14);L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:20,subdomains:'abcd'}).addTo(M.h);L.marker([28.6139,77.2090],{icon:L.divIcon({className:'',html:'<div style="width:18px;height:18px;background:#276EF1;border-radius:50%;border:3px solid #fff;box-shadow:0 0 14px rgba(39,110,241,.8)"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(M.h);var dl=28.618,dg=77.216,dm=L.marker([dl,dg],{icon:L.divIcon({className:'',html:'<div style="width:34px;height:34px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 3px 14px rgba(0,0,0,.4)">🚗</div>',iconSize:[34,34],iconAnchor:[17,17]})}).addTo(M.h);setInterval(function(){dl+=(Math.random()-.5)*.0014;dg+=(Math.random()-.38)*.0014;dm.setLatLng([dl,dg]);},1800);[[28.620,77.205,'🚗'],[28.608,77.218,'🛺'],[28.615,77.225,'🏍️'],[28.623,77.211,'🚙']].forEach(function(d){L.marker(d,{icon:L.divIcon({className:'',html:'<div style="width:28px;height:28px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;opacity:.5;box-shadow:0 2px 8px rgba(0,0,0,.3)">'+d[2]+'</div>',iconSize:[28,28],iconAnchor:[14,14]})}).addTo(M.h);});}
-function initR(){if(rD)return;rD=true;M.r=L.map('rideMap',{zoomControl:false,attributionControl:false,dragging:false}).setView([28.6139,77.2090],13);L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:20,subdomains:'abcd'}).addTo(M.r);var dl=28.6139+(Math.random()-.5)*.035,dg=77.2090+(Math.random()-.5)*.035;L.marker([28.6139,77.2090],{icon:L.divIcon({className:'',html:'<div style="width:13px;height:13px;background:#00C853;border-radius:50%;border:3px solid #fff"></div>',iconSize:[13,13],iconAnchor:[6,6]})}).addTo(M.r);L.marker([dl,dg],{icon:L.divIcon({className:'',html:'<div style="width:13px;height:13px;background:#276EF1;border-radius:50%;border:3px solid #fff"></div>',iconSize:[13,13],iconAnchor:[6,6]})}).addTo(M.r);L.polyline([[28.6139,77.2090],[dl,dg]],{color:'#276EF1',weight:4,opacity:.9,dashArray:'8,6'}).addTo(M.r);M.r.fitBounds([[28.6139,77.2090],[dl,dg]],{padding:[50,50]});var ml=28.618,mg=77.216,mm=L.marker([ml,mg],{icon:L.divIcon({className:'',html:'<div style="width:32px;height:32px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 3px 12px rgba(0,0,0,.4)">🚗</div>',iconSize:[32,32],iconAnchor:[16,16]})}).addTo(M.r);setInterval(function(){ml+=(Math.random()-.5)*.001;mg+=(Math.random()-.38)*.001;mm.setLatLng([ml,mg]);},1600);}
-function initT(){if(tD)return;tD=true;M.t=L.map('trackMap',{zoomControl:false,attributionControl:false,dragging:false}).setView([28.6139,77.2090],14);L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:20,subdomains:'abcd'}).addTo(M.t);L.marker([28.6139,77.2090],{icon:L.divIcon({className:'',html:'<div style="width:16px;height:16px;background:#276EF1;border-radius:50%;border:3px solid #fff;box-shadow:0 0 14px rgba(39,110,241,.8)"></div>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(M.t);var dl=28.618,dg=77.216,dm=L.marker([dl,dg],{icon:L.divIcon({className:'',html:'<div style="width:34px;height:34px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 3px 14px rgba(0,0,0,.5)">🚗</div>',iconSize:[34,34],iconAnchor:[17,17]})}).addTo(M.t);setInterval(function(){dl+=(Math.random()-.5)*.0012;dg+=(Math.random()-.38)*.0012;dm.setLatLng([dl,dg]);},1600);}
-function go(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('on')});document.getElementById(id).classList.add('on');if(id==='sc-ride')setTimeout(function(){initR();if(M.r)M.r.invalidateSize();},120);if(id==='sc-track')setTimeout(function(){initT();if(M.t)M.t.invalidateSize();},120);if(id==='sc-home')setTimeout(function(){if(M.h)M.h.invalidateSize();},200);}
-function T(msg,d){d=d||2500;var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show');},d);}
-function goDest(v){pickDest(v);}
-function pickDest(v){document.getElementById('rsSub').textContent='To: '+v;document.getElementById('confBtn').textContent='Confirm '+rN+' — '+fare;go('sc-ride');}
-function selRide(el,f,e,n){document.querySelectorAll('.ropt').forEach(function(r){r.classList.remove('sel')});el.classList.add('sel');fare=f;eta=e;rN=n;document.getElementById('confBtn').textContent='Confirm '+n+' — '+f;}
-function confirmRide(){go('sc-track');var m=parseInt(eta);document.getElementById('etaN').textContent=m;document.getElementById('trkTitle').textContent='Ramesh is '+m+' min away';T('🚀 Booking confirmed! Driver is coming...',3500);clearInterval(eTmr);eTmr=setInterval(function(){if(m>0){m--;document.getElementById('etaN').textContent=m;document.getElementById('trkTitle').textContent=m>0?'Ramesh is '+m+' min away':'🎉 Ramesh has arrived!';}else{clearInterval(eTmr);T('🎉 Driver arrived! Enjoy your ride 🚗',4000);}},9000);}
-function cancelRide(){if(!confirm('Cancel this ride?'))return;clearInterval(eTmr);go('sc-home');T('Ride cancelled. See you again!');}
-function toggleDriver(el){var l=document.getElementById('togLbl');if(el.checked){l.textContent='ONLINE';l.style.color='#00C853';T('🟢 Online! Finding rides...');setTimeout(function(){document.getElementById('incCard').style.display='block';},4000);}else{l.textContent='OFFLINE';l.style.color='';document.getElementById('incCard').style.display='none';T('🔴 Offline');}}
-function acceptRide(){document.getElementById('incCard').style.display='none';T('✅ Accepted! Navigate to Hauz Khas 🗺',3500);}
-function declineRide(){document.getElementById('incCard').style.display='none';T('Ride declined.');}
+    // 1. Initialize Map with Thunderforest Atlas Layer
+    const apiKey = '2ae56235ac8a49c08f776200c64186cb';
+    const map = L.map('map', { zoomControl: false }).setView([28.6139, 77.2090], 14);
+
+    L.tileLayer(`https://api.thunderforest.com/atlas/{z}/{x}/{y}.png?apikey=${apiKey}`, {
+        attribution: '© Thunderforest'
+    }).addTo(map);
+
+    // 2. Custom Icons (Uber Style)
+    const carIcon = L.icon({
+        iconUrl: 'https://cdn-icons-png.flaticon.com/512/744/744465.png',
+        iconSize: [40, 40], iconAnchor: [20, 20]
+    });
+    const pinIcon = L.icon({
+        iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
+        iconSize: [35, 35], iconAnchor: [17, 35]
+    });
+
+    // 3. Markers
+    let driverMarker = L.marker([28.6139, 77.2090], { icon: carIcon }).addTo(map);
+    let destMarker = L.marker([0, 0], { icon: pinIcon });
+
+    // 4. Routing Controller (Perfect Road Calculations)
+    const routingControl = L.Routing.control({
+        waypoints: [],
+        lineOptions: {
+            styles: [{ color: '#000', opacity: 0.8, weight: 6 }]
+        },
+        createMarker: function() { return null; }, // Hide default blue markers
+        addWaypoints: false,
+        routeWhileDragging: false
+    }).addTo(map);
+
+    // 5. Search/Autocomplete Functionality
+    const geocoder = L.Control.geocoder({
+        defaultMarkGeocode: false,
+        placeholder: "Enter destination..."
+    }).on('markgeocode', function(e) {
+        const destCoords = e.geocode.center;
+        
+        // Update Marker & Map
+        destMarker.setLatLng(destCoords).addTo(map);
+        map.flyTo(destCoords, 15);
+
+        // Update Road Route
+        routingControl.setWaypoints([
+            driverMarker.getLatLng(),
+            destCoords
+        ]);
+    }).addTo(map);
+
+    // Move search bar into our custom panel
+    document.getElementById('geocoder-input').appendChild(geocoder.getContainer());
+
+    // 6. Update Stats (KM & Mins)
+    routingControl.on('routesfound', function(e) {
+        const summary = e.routes[0].summary;
+        const km = (summary.totalDistance / 1000).toFixed(1);
+        const mins = Math.round(summary.totalTime / 60);
+        
+        document.getElementById('dist-txt').innerText = km + ' km';
+        document.getElementById('time-txt').innerText = mins + ' mins';
+    });
+
+    // 7. Simulation / Action
+    function startRide() {
+        if(destMarker.getLatLng().lat === 0) {
+            alert("Pehle destination search karein!");
+        } else {
+            alert("Booking Confirmed! Road distance calculate ho gaya hai.");
+            // Yahan aap live tracking ka animation shuru kar sakte hain
+        }
+    }
+
+    // Optional: Real-time Movement Simulation (Testing ke liye)
+    // setInterval(() => {
+    //    let current = driverMarker.getLatLng();
+    //    driverMarker.setLatLng([current.lat + 0.0001, current.lng + 0.0001]);
+    // }, 2000);
+
 </script>
+
 </body>
 </html>
